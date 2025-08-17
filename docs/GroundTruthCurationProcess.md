@@ -1,6 +1,7 @@
 # Ground Truth Curation Process
 
-Author: [Laura Lund](https://www.linkedin.com/in/lundlaura/)
+- Author: [Laura Lund](https://www.linkedin.com/in/lundlaura/)
+- Last Updated: 2025-08-16
 
 [A version of this article was originally published on Medium](https://medium.com/@laura.l.lund/ground-truth-curation-process-for-ai-systems-590cbc93c1c0)
 

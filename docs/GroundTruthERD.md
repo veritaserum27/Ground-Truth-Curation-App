@@ -1,9 +1,9 @@
 # Ground Truth Entity Relationship Diagram
 
-Author: Laura Lund
-Last Updated: 2025-08-16
-Tool: [Mermaid Chart](https://mermaid.js.org/)
-Docs: [Mermaid Syntax](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)
+- Author: Laura Lund
+- Last Updated: 2025-08-16
+- Tool: [Mermaid Chart](https://mermaid.js.org/)
+- Docs: [Mermaid Syntax](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)
 
 ## Overview
 

@@ -1,9 +1,9 @@
 # Ground Truth Curation Flow Chart
 
-Author: Laura Lund
-Last Updated: 2025-08-16
-Tool: [Mermaid Chart](https://mermaid.js.org/)
-Docs: [Mermaid Syntax](https://docs.mermaidchart.com/mermaid-oss/syntax/flowchart.html#a-node-default)
+- Author: Laura Lund
+- Last Updated: 2025-08-16
+- Tool: [Mermaid Chart](https://mermaid.js.org/)
+- Docs: [Mermaid Syntax](https://docs.mermaidchart.com/mermaid-oss/syntax/flowchart.html#a-node-default)
 
 ## Overview
 
