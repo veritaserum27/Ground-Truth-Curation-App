@@ -164,11 +164,11 @@ SME Reviewer and Data Curator personas may need to leave comments about a given 
 
 ## Conversation
 
-A `Conversation` is comprised of multiple `Ground Truth Definition` entities across a single `Context`.
+A `Conversation` is is grounded in a single `Context`.
 
 - `conversationId`: The primary key unique identifier for a specific set of user queries that are asked across the same context
 - `contextId`: The foreign key that points back to the context of this conversation
 
-## Ground Truth Definition - Converstaion
+## Ground Truth Definition - Conversation Relationship Table
 
-A relationship table that associates `conversationId` and `groundTruthId` identifiers to build this many-to-many relationhip.
+A relationship table that associates `conversationId` and `groundTruthId` identifiers to build this many-to-many relationhip. Multiple `Conversation` entites can related to multiple `Ground Truth Definition` entites.
