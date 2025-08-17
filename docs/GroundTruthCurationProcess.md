@@ -10,7 +10,7 @@ Imagine you’re building a powerful new AI assistant to support real business t
 
 This is where the concept of **ground truth** comes in.
 
-A set of **ground truths** refers to a set of accurate, verified answers that serve as the benchmark against which an AI system’s outputs are evaluated. It’s the answer key for the tests you run to determine whether the system is behaving as expected. In practice, ground truths are carefully curated question-and-answer pairs that reflect what users should receive when they ask a particular question based on the system’s underlying data sources.
+A collection of **ground truths** refers to a set of accurate, verified answers that serve as the benchmark against which an AI system’s outputs are evaluated. It’s the answer key for the tests you run to determine whether the system is behaving as expected. In practice, ground truths are carefully curated question-and-answer pairs that reflect what users should receive when they ask a particular question based on the system’s underlying data sources.
 
 For example, if a user asks, “What are the most recent updates related to this item?”, the ground truth would be a verified, accurate list of those updates pulled directly from the system of record. This response represents the correct answer the AI system is expected to return and serves as the benchmark against which its performance can be tested and evaluated.
 
