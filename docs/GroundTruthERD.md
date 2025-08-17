@@ -169,6 +169,6 @@ A `Conversation` is comprised of multiple `Ground Truth Definition` entities acr
 - `conversationId`: The primary key unique identifier for a specific set of user queries that are asked across the same context
 - `contextId`: The foreign key that points back to the context of this conversation
 
-# GROUND_TRUTH_DEFINITION_CONVERSATION
+## Ground Truth Definition - Converstaion
 
 A relationship table that associates `conversationId` and `groundTruthId` identifiers to build this many-to-many relationhip.
