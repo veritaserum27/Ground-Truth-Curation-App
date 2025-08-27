@@ -11,7 +11,7 @@ function show_usage {
   echo "Usage: $0 [--no-md-diff] [--base-branch BRANCH]"
   echo ""
   echo "Options:"
-  echo "  --no-md-diff       Exclude markdown files (*.md) from the diff output"
+  echo "  --no-md-diff       Exclude markdown files (*.md) from the diff output, if the changes are minor."
   echo "  --base-branch      Specify the base branch to compare against (default: main)"
   exit 1
 }
