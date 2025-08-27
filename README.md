@@ -10,17 +10,132 @@ Enterprise companies currently struggle with providing high quality ground truth
 
 ## Features
 
-TBD
+The Ground Truth Management System provides the following features:
+
+### 🧩 Metadata & Timestamp Enhancements
+
+- Created / Last Updated Timestamps: Displayed in both list and detail views.
+- Date-Time Format: Consistent formatting improves clarity and change tracking.
+
+### 🏷️ Tagging System
+
+- Predefined Tags: Includes tags like `Answerable`, `Unanswerable`, and `Multiple Data Sources`.
+- Custom Tags: Users can create their own tags with random color assignments.
+- Tag Display: Color-coded badges shown in list and detail views.
+- Tag Filtering: Dropdown filters for tag-based navigation.
+- Tag Management Component: Add, edit, and remove tags via `TagManager`.
+
+### 👥 Role-Based Editing
+
+- Curator & Validator Roles: Editing permissions restricted to designated roles.
+- Validation Workflow: Validators can now edit entries for review and approval.
+
+### 📤 Export Functionality
+
+- Supported Formats: `JSONL`, `CSV`.
+- Role-Based Access: Only curators can export data.
+- Export Modal: Allows format selection and respects current filters.
+- Export Content: Includes user query, context, raw data, response, metadata, and data queries.
+
+### 🔍 Data Validation & Multi-Source Handling
+
+#### Validation Requirements
+
+- Raw data for each query.
+- Data-driven answers.
+- Complete metadata.
+
+#### Multi-Query Entries
+
+- Unified formatted response synthesizes insights from multiple sources (e.g., SQL, GraphQL).
+- Raw data remains separated per query.
+
+### 🧮 Parameter Structure Overhaul
+
+#### Parameter Fields
+
+- `name`
+- `value`
+- `dataType` (e.g., string, float, datetime)
+
+#### UI Enhancements
+
+- Improved editing and viewing experience.
+- Validation and export compatibility for mixed-type queries.
 
 ## Installation instructions
 
-TBD
+Follow these steps to set up the Ground Truth Curation App:
+
+1. **Check Prerequisites**
+	- Ensure you have Python and Node.js installed (see future documentation for specific versions).
+	- Install Git if you plan to contribute.
+
+1. **Clone the Repository**
+
+```sh
+git clone https://github.com/veritaserum27/Ground-Truth-Curation-App.git
+cd Ground-Truth-Curation-App
+```
+
+1. **Install Dependencies**
+
+For backend:
+
+```sh
+pip install -r requirements.txt
+```
+
+For frontend/UI:
+
+```sh
+npm install
+```
+
+(Adjust commands as needed for your actual stack.)
+
+1. **Configuration**
+	- Review any `.env.example` or configuration files and create your own `.env` if required.
+	- Set up environment variables for database, API keys, or other integrations.
+
+1. **Run the Application**
+	- Start backend and frontend services as described in future usage instructions.
+
+Refer to future documentation for advanced workflows, API usage, and integration details.
 
 ## Usage instructions
 
-TBD
+This section provides a basic guide for using the Ground Truth Curation App. More detailed instructions will be added as the project evolves.
+
+### 1. Start the Application
+
+- Run backend and frontend services as described in the installation instructions.
+- Access the application via your browser at the provided local address (e.g., http://localhost:3000 or as specified by your setup).
+
+### 2. Curate Ground Truth Data
+
+- Log in with your assigned role (Curator or Validator).
+- Add, edit, or review ground truth entries using the UI.
+- Use tagging, metadata, and export features as needed.
+
+### 3. Export Data
+
+- Use the export functionality to download curated data in JSONL or CSV format.
 
 ## Contributing guidelines
+
+### AI Coding Agent Instructions
+
+This repository includes a special file: `.github/copilot-instructions.md`.
+
+- This file guides AI coding agents (like GitHub Copilot) on how to work productively in this codebase.
+- It documents architecture, workflows, conventions, and integration points specific to this project.
+- AI agents automatically read this file to generate code, scripts, and documentation that match project standards.
+- Contributors can update this file to clarify rules, add examples, or document new patterns as the project evolves.
+
+**Tip:** Refer to `.github/copilot-instructions.md` for onboarding, troubleshooting, or when asking for code generation in Copilot Chat or similar tools.
+
+### How to Contribute
 
 For invited contributors, please:
 
