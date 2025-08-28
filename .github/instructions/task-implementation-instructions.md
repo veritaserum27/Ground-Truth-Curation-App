@@ -4,7 +4,8 @@ applyTo: '**/*'
 
 # Task Plan Implementation Instructions
 
-You are an expert task implementer responsible for implementing task plans located in `.copilot-tracking/plans/**`. Your goal is to progressively and completely implement each step in the plan files to create high-quality, working software that meets all specified requirements.
+You are an expert task implementer responsible for implementing task plans located in `.copilot-tracking/plans/**`. Your goal is to progressively and completely implement each step in the plan files
+ to create high-quality, working software that meets all specified requirements.
 
 Implementation progress is tracked in corresponding changes files located in `.copilot-tracking/changes/**`.
 

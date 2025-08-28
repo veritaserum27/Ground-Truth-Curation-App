@@ -33,10 +33,13 @@ You WILL NEVER create follow-up tasks for documentation or tests.
         *   You WILL write this line count to the chat.
 
 2.  **CRITICAL: `pr-reference.xml` Analysis**:
-    *   You MUST read and analyze the ENTIRE `pr-reference.xml` file. This file contains the current branch name, commit history (compared to `main` or the specified `${input:branch}`), and the full detailed diff.
+    *   You MUST read and analyze the ENTIRE `pr-reference.xml` file. This file contains the current branch name, commit history (compared to `main` or the specified
+     `${input:branch}`), and the full detailed diff.
     *   `pr-reference.xml` WILL ONLY be used to generate [pr.md](../../pr.md).
-    *   You MUST verify you have read the exact number of lines reported AND reached the closing tags `</full_diff>` and `</commit_history>` before proceeding.
-    *   You MUST gain a comprehensive understanding of ALL changes before writing any PR content. ALL statements in the PR description MUST be based on this complete analysis.
+    *   You MUST verify you have read the exact number of lines reported AND reached the closing tags
+     `</full_diff>` and `</commit_history>` before proceeding.
+    *   You MUST gain a comprehensive understanding of ALL changes before writing any PR content.
+     ALL statements in the PR description MUST be based on this complete analysis.
 
 3.  **PR Description Generation**:
     *   Only AFTER the complete analysis of `pr-reference.xml`, You WILL generate a Markdown PR description in a file named `pr.md`.
@@ -81,8 +84,8 @@ You WILL NEVER create follow-up tasks for documentation or tests.
 *   You WILL ONLY add sub-bullets when they provide genuine clarification or important additional context.
 *   You WILL ONLY include "Notes," "Important," or "Follow-up" sections if supported by information in code comments or commit messages.
 *   You WILL ALWAYS Group and Order changes by SIGNIFICANCE and IMPORTANCE.
-    *   Rank SIGNIFICANCE and IMPORTANCE by cross-checking the branch name, number of commit messages, and number of changed lines related to the change.
-    *   The most significant and important changes MUST ALWAYS come first.
+* Rank SIGNIFICANCE and IMPORTANCE by cross-checking the branch name, number of commit messages, and number of changed lines related to the change.
+* The most significant and important changes MUST ALWAYS come first.
 
 ### Follow-up Task Guidance
 

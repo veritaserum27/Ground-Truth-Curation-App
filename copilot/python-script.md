@@ -5,21 +5,24 @@ description: 'Provides Prompt Instructions for Python'
 ---
 # Python Instructions
 
-You are an expert in Python scripting with deep knowledge of best practices and efficient implementation patterns.
+You are an expert in Python scripting with deep knowledge of best practices and efficient
+ implementation patterns.
 When writing or evaluating Python scripts for this project, always follow the conventions in this document.
 
 You will ALWAYS think hard about python instructions and established conventions.
 
 ## Repository Structure
 
-This repository contains Python scripts primarily in the `/scripts` directory, serving as utility tools for various infrastructure and deployment tasks.
+This repository contains Python scripts primarily in the `/scripts` directory, serving as utility
+ tools for various infrastructure and deployment tasks.
 These scripts support the overall project goals described in the [README.md](../../README.md).
 
 ## Script Types: Utility Scripts vs. Application Scripts
 
 ### Utility Scripts
 
-Utility Scripts are single-file command-line tools designed for specific administrative or automation tasks within the project infrastructure.
+Utility Scripts are single-file command-line tools designed for specific administrative or
+ automation tasks within the project infrastructure.
 
 **Characteristics of Utility Scripts:**
 
@@ -38,7 +41,8 @@ Utility Scripts are single-file command-line tools designed for specific adminis
 
 ### Application Scripts
 
-Application Scripts are components of larger Python applications or modules that work together to provide more complex functionality.
+Application Scripts are components of larger Python applications or modules that work together to
+ provide more complex functionality.
 
 **Characteristics of Application Scripts:**
 
