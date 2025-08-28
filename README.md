@@ -63,13 +63,19 @@ The Ground Truth Management System provides the following features:
 - Improved editing and viewing experience.
 - Validation and export compatibility for mixed-type queries.
 
+### 💬 Multi-Turn Conversations
+
+- String user queries together to simulate multi-turn interactions with the AI system.
+- Reuse existing ground truth definitions or create new definitions for use in a conversation.ß
+
 ## Installation instructions
 
 Follow these steps to set up the Ground Truth Curation App:
 
 1. **Check Prerequisites**
-	- Ensure you have Python and Node.js installed (see future documentation for specific versions).
-	- Install Git if you plan to contribute.
+
+- Ensure you have Python and Node.js installed (see future documentation for specific versions).
+- Install Git if you plan to contribute.
 
 1. **Clone the Repository**
 

@@ -317,3 +317,50 @@ The system should handle thousands of entries without performance degradation.
 - [ ] Export operations handle large datasets without timeout
 - [ ] Database queries receive optimization for performance
 - [ ] UI remains responsive during background operations
+
+## Epic 9: Multi-Turn Conversations
+
+### US021: Create Multi-Turn Conversation Flows
+
+**Description:**
+As a GT Sponsor, I would like to create multi-turn conversation flows by linking multiple ground truth entries together,
+so that I can simulate realistic user interactions with AI systems that span multiple exchanges.
+This will help evaluate how well AI models maintain context across conversation turns.
+
+**Acceptance Criteria:**
+
+- [ ] User can create a new conversation flow with a descriptive name and purpose
+- [ ] System allows linking existing ground truth entries as conversation turns
+- [ ] User can reorder conversation turns within a flow using drag-and-drop interface
+- [ ] System maintains conversation context and dependencies between turns
+- [ ] Each conversation turn can reference previous turns for context continuity
+
+### US022: Manage Conversation Turn Dependencies
+
+**Description:**
+As a GT Sponsor, I would like to define how conversation turns depend on each other,
+so that the AI system can understand the conversational context and provide appropriate responses.
+Dependencies should be clearly visible and editable within the conversation flow.
+
+**Acceptance Criteria:**
+
+- [ ] User can specify which previous turns influence the current turn's context
+- [ ] System validates that conversation flows maintain logical progression
+- [ ] Visual indicators show conversation turn relationships and dependencies
+- [ ] User can modify turn dependencies without breaking the conversation flow
+- [ ] System warns if removing a turn would break dependent relationships
+
+### US023: Export Multi-Turn Conversations
+
+**Description:**
+As a GT Sponsor, I would like to export complete conversation flows in formats suitable for AI training,
+so that I can use these multi-turn datasets for model evaluation and improvement.
+Export should include all turns, context, and relationship metadata.
+
+**Acceptance Criteria:**
+
+- [ ] User can export conversation flows in JSONL and CSV formats
+- [ ] Export includes all conversation turns with proper sequencing
+- [ ] Exported data maintains turn relationships and context dependencies  
+- [ ] User can select specific conversation flows for export via filtering
+- [ ] Export includes conversation metadata (name, purpose, creation date, etc.)
