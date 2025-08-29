@@ -103,11 +103,13 @@ npm install
 (Adjust commands as needed for your actual stack.)
 
 1. **Configuration**
-	- Review any `.env.example` or configuration files and create your own `.env` if required.
-	- Set up environment variables for database, API keys, or other integrations.
+
+- Review any `.env.example` or configuration files and create your own `.env` if required.
+- Set up environment variables for database, API keys, or other integrations.
 
 1. **Run the Application**
-	- Start backend and frontend services as described in future usage instructions.
+
+- Start backend and frontend services as described in future usage instructions.
 
 Refer to future documentation for advanced workflows, API usage, and integration details.
 
@@ -118,7 +120,7 @@ This section provides a basic guide for using the Ground Truth Curation App. Mor
 ### 1. Start the Application
 
 - Run backend and frontend services as described in the installation instructions.
-- Access the application via your browser at the provided local address (e.g., http://localhost:3000 or as specified by your setup).
+- Access the application via your browser at the provided local address (e.g., [http://localhost:3000](http://localhost:3000) or as specified by your setup).
 
 ### 2. Curate Ground Truth Data
 
