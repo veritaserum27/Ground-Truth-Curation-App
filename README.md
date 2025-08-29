@@ -120,7 +120,7 @@ This section provides a basic guide for using the Ground Truth Curation App. Mor
 ### 1. Start the Application
 
 - Run backend and frontend services as described in the installation instructions.
-- Access the application via your browser at the provided local address (e.g., <http://localhost:3000> or as specified by your setup).
+- Access the application via your browser at the provided local address (e.g., [http://localhost:3000](http://localhost:3000) or as specified by your setup).
 
 ### 2. Curate Ground Truth Data
 
