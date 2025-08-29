@@ -1,0 +1,16 @@
+# .github/workflows/markdown-lint.yml
+name: Markdown Lint
+
+on: [push, pull_request]
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint markdown files
+        uses: DavidAnson/markdownlint-cli2-action@v13
+        continue-on-error: true
+        with:
+          globs: '**/*.md'
+          config: '.markdownlint.json'
