@@ -195,3 +195,5 @@ For production workloads, consider Standard or Premium tiers.
 The infrastructure is designed to work with the support ticket dataset from [Kaggle.com](https://www.kaggle.com/datasets/albertobircoci/support-ticket-priority-dataset-50k?resource=download).
 
 Dataset contains 48,900 records with detailed support ticket information including priorities, customer data, error rates, and regional information.
+
+You will need to unzip [this dataset](./data/Support_tickets.zip) to open the `.csv`.

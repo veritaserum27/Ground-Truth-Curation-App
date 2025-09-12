@@ -13,3 +13,4 @@ __pycache__/
 *.so
 .coverage
 .pytest_cache/
+infra/data/Support_tickets.csv
