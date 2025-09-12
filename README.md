@@ -104,6 +104,7 @@ npm install
 
 1. **Configuration**
 
+- Review [infra setup](./infra/README.md).
 - Review any `.env.example` or configuration files and create your own `.env` if required.
 - Set up environment variables for database, API keys, or other integrations.
 
