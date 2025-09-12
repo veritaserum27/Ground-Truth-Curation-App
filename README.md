@@ -88,19 +88,7 @@ cd Ground-Truth-Curation-App
 
 1. **Install Dependencies**
 
-For backend:
-
-```sh
-pip install -r requirements.txt
-```
-
-For frontend/UI:
-
-```sh
-npm install
-```
-
-(Adjust commands as needed for your actual stack.)
+TBD
 
 1. **Configuration**
 

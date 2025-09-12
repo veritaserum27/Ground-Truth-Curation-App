@@ -15,7 +15,7 @@ The infrastructure creates:
 - `main.bicep` - Main Bicep template defining all Azure resources
 - `main.parameters.json` - Parameters file with default values
 - `create-support-tickets-table.sql` - SQL script to create the support_tickets table
-- `import-csv-robust.py` - Python script for importing CSV data to the database
+- `import-csv.py` - Python script for importing CSV data to the database
 - `deploy.sh` - Automated deployment script (recommended)
 - `data/Support_tickets.csv` - Sample data for seeding the database (48,900 records)
 
@@ -24,7 +24,33 @@ The infrastructure creates:
 1. **Azure CLI** - Install from [https://docs.microsoft.com/en-us/cli/azure/install-azure-cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 2. **Azure Subscription** - You'll need an active Azure subscription
 3. **Permissions** - Contributor access to create resources
-4. **Python 3.7+** and **pyodbc** - For running the CSV import script
+4. **Python 3.7+** - For running the CSV import script
+
+   **Option A: Use the automated setup script (Recommended)**
+
+   ```bash
+   # Run the setup script (creates virtual environment and installs dependencies)
+   ./setup.sh
+   
+   # After the script completes, activate the virtual environment
+   cd .. && source .venv/bin/activate
+   
+   # Verify activation (you should see (.venv) in your prompt)
+   which python
+   ```
+
+   **Option B: Manual setup**
+
+   ```bash
+   # Create virtual environment in project root
+   cd .. && python3 -m venv .venv
+   
+   # Activate virtual environment
+   source .venv/bin/activate
+   
+   # Install dependencies
+   pip install -r infra/requirements.txt
+   ```
 
 ## Quick Deployment
 
@@ -71,10 +97,25 @@ The infrastructure creates:
 
 1. **Create the support_tickets table**:
    - Connect to your SQL Database using SQL Server Management Studio, Azure Data Studio, or the Azure portal
-   - Run the SQL script: `create-support-tickets-table.sql`
+   - Run the SQL script: `create-support-tickets-table.sql` **NOTE:** Make sure you are connected to the `SystemDemoDB` database prior to execution.
+
+   ![Screenshot of selecting SystemDemoDB database](./assets/SelectDbVsCodeSqlExtension.jpg)
 
 2. **Import CSV data**:
-   - Use the provided Python script: `python import-csv-robust.py`
+    For Python CSV import tools (optional, only needed for database setup):
+
+    ```sh
+    # Run the setup script to create Python virtual environment
+    ./setup.sh
+
+    # Or manually:
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r infra/requirements.txt
+    ```
+
+    Import data:
+   - Use the provided Python script: `python import-csv.py`
    - The script handles chunked imports to avoid connection timeouts
    - Successfully imports all 48,900 records from the CSV file
 
@@ -141,7 +182,7 @@ Optimized indexes are created for common query patterns:
 
 ## CSV Import Script
 
-The `import-csv-robust.py` script provides reliable data import with these features:
+The `import-csv.py` script provides reliable data import with these features:
 
 - **Chunked processing**: Imports data in 5,000-record batches to avoid timeouts
 - **Error handling**: Robust connection management and retry logic
@@ -151,7 +192,7 @@ The `import-csv-robust.py` script provides reliable data import with these featu
 ### Usage
 
 ```bash
-python import-csv-robust.py
+python import-csv.py
 ```
 
 The script will prompt for:

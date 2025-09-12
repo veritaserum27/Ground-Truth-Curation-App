@@ -16,15 +16,37 @@ except ImportError:
     print("   pip install pyodbc")
     sys.exit(1)
 
-# Database connection parameters
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    print("❌ python-dotenv is not installed. Please install it first:")
+    print("   pip install python-dotenv")
+    sys.exit(1)
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Database connection parameters from environment variables
 CONNECTION_PARAMS = {
-    'server': 'ground-truth-sql-un7clpddqxgbc.database.windows.net',
-    'database': 'SystemDemoDB',
-    'username': 'gtadmin',
-    'password': 'H@nS0l01985',
-    'driver': '{ODBC Driver 18 for SQL Server}',
-    'port': 1433
+    'server': os.getenv('DB_SERVER'),
+    'database': os.getenv('DB_DATABASE', 'SystemDemoDB'),
+    'username': os.getenv('DB_USERNAME'),
+    'password': os.getenv('DB_PASSWORD'),
+    'driver': os.getenv('DB_DRIVER', '{ODBC Driver 18 for SQL Server}'),
+    'port': int(os.getenv('DB_PORT', 1433))
 }
+
+# Validate required environment variables
+required_vars = ['DB_SERVER', 'DB_USERNAME', 'DB_PASSWORD']
+missing_vars = [var for var in required_vars if not os.getenv(var)]
+
+if missing_vars:
+    print("❌ Missing required environment variables:")
+    for var in missing_vars:
+        print(f"   - {var}")
+    print("\n📝 Please create a .env file with the required variables.")
+    print("   See .env.example for the template.")
+    sys.exit(1)
 
 
 def create_connection_string(params: Dict[str, str]) -> str:
@@ -177,10 +199,13 @@ def import_csv_chunk(csv_file_path: str, start_row: int = 1,
 
 def main():
     """Main function with chunked import"""
-    csv_file_path = "data/Support_tickets.csv"
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_file_path = os.path.join(script_dir, "data", "Support_tickets.csv")
     
     print("🚀 Robust CSV Import - Processing in chunks")
     print("=" * 50)
+    print(f"📁 Looking for CSV file at: {csv_file_path}")
     
     # Import in chunks of 5000 records
     chunk_size = 5000
