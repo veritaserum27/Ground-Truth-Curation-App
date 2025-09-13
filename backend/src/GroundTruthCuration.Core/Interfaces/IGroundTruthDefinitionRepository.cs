@@ -35,12 +35,18 @@ public interface IGroundTruthDefinitionRepository
     Task<IEnumerable<GroundTruthDefinition>> GetByValidationStatusAsync(string validationStatus);
 
     /// <summary>
+    /// Adds a new ground truth definition to the repository.
+    /// </summary>
+    /// <param name="groundTruthDefinition">The ground truth definition to add.</param>
+    /// <returns>The added ground truth definition.</returns>
+    Task<GroundTruthDefinition> AddAsync(GroundTruthDefinition groundTruthDefinition);
+
+    /// <summary>
     /// Updates an existing ground truth definition in the repository.
     /// </summary>
     /// <param name="groundTruthDefinition">The ground truth definition to update.</param>
     /// <returns>The updated ground truth definition.</returns>
     Task<GroundTruthDefinition> UpdateAsync(GroundTruthDefinition groundTruthDefinition);
-
     /// <summary>
     /// Deletes a ground truth definition from the repository by its unique identifier.
     /// </summary>
