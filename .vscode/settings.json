@@ -27,5 +27,11 @@
         "MD013": {
             "line_length": 80
         }
-    }
+    },
+    "dotnet.server.useOmnisharp": true,
+    "csharp.experimental.debug.hotReload": false,
+    "omnisharp.enableRoslynAnalyzers": true,
+    "omnisharp.enableEditorConfigSupport": true,
+    "omnisharp.enableImportCompletion": true,
+    "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true
 }

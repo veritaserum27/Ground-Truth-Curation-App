@@ -1,14 +1,14 @@
 # Ground Truth Curation App
 
 This application is a tool to curate contextualized ground truth entries for AI projects.
- The process is generic and applicable across data structures and problem domains.
+The process is generic and applicable across data structures and problem domains.
 
 This application implements the [Ground Truth Curation Process defined in this article](./docs/GroundTruthCurationProcess.md).
 
 ## Problem Statement
 
 Enterprise companies currently struggle with providing high quality ground truth user query/answer pairs
- to use during the AI development process.
+to use during the AI development process.
 
 ## Features
 
@@ -88,7 +88,25 @@ cd Ground-Truth-Curation-App
 
 1. **Install Dependencies**
 
-TBD
+### Backend (C# .NET 8)
+
+```sh
+# Navigate to the backend directory
+cd backend
+
+# Restore NuGet packages
+dotnet restore
+
+# Build the solution
+dotnet build
+
+# Run the API (optional - for testing)
+dotnet run --project src/GroundTruthCuration.Api
+```
+
+### Frontend
+
+TBD - Frontend setup instructions will be added when frontend is implemented.
 
 1. **Configuration**
 
@@ -143,11 +161,11 @@ For invited contributors, please:
 3. Submit a pull request
 
 For major changes, please check our [GitHub Project](https://github.com/users/veritaserum27/projects/1)
- to see planned work or create an issue to discuss what you'd like to change.
+to see planned work or create an issue to discuss what you'd like to change.
 
 ## License information
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 The MIT License is a permissive license that allows for reuse within proprietary software provided
- that all copies of the licensed software include a copy of the MIT License terms and the copyright notice.
+that all copies of the licensed software include a copy of the MIT License terms and the copyright notice.

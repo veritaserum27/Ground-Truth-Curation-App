@@ -1,0 +1,22 @@
+### Test Hello Controller
+
+# Test Hello with default greeting
+GET {{GroundTruthCuration.Api_HostAddress}}/api/hello
+
+### Test Hello with custom name
+GET {{GroundTruthCuration.Api_HostAddress}}/api/hello/John
+
+### Test with empty name (should return BadRequest)
+GET {{GroundTruthCuration.Api_HostAddress}}/api/hello/
+
+### Test local development
+GET http://localhost:5105/api/hello
+
+### Test local development with name
+GET http://localhost:5105/api/hello/John
+
+### Test local development (HTTPS)
+GET https://localhost:7278/api/hello
+
+### Test local development with name (HTTPS)
+GET https://localhost:7278/api/hello/John

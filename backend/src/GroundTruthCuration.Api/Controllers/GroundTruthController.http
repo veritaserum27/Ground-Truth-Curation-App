@@ -1,0 +1,30 @@
+### Create a new Ground Truth Definition
+POST https://localhost:5001/api/groundtruth/definitions
+Content-Type: application/json
+
+{
+  "userQuery": "How to troubleshoot login issues?",
+  "userId": "user123@example.com"
+}
+
+### Add an entry to a ground truth definition (replace {id} with actual ID from create response)
+POST https://localhost:5001/api/groundtruth/definitions/{id}/entries
+Content-Type: application/json
+
+{
+  "response": "Check password reset options and verify account status",
+  "requiredValuesJson": "{\"issue_type\": \"login\", \"priority\": \"high\"}",
+  "rawDataJson": "{\"user_id\": \"user123\", \"timestamp\": \"2025-09-13T11:52:00Z\"}"
+}
+
+### Update validation status (replace {id} with actual ID)
+PUT https://localhost:5001/api/groundtruth/definitions/{id}/validation-status
+Content-Type: application/json
+
+{
+  "validationStatus": "Pending",
+  "userId": "validator456@example.com"
+}
+
+### Get a specific definition (replace {id} with actual ID)
+GET https://localhost:5001/api/groundtruth/definitions/{id}
