@@ -1,17 +1,25 @@
 @description('The location where all resources will be deployed')
 param location string = resourceGroup().location
 
-@description('The name of the SQL Server')
-param sqlServerName string = 'ground-truth-sql-${uniqueString(resourceGroup().id)}'
+@description('The name of the System SQL Server')
+param systemSqlServerName string = 'gt-system-data-sql'
 
-@description('The name of the SQL Database')
-param sqlDatabaseName string = 'SystemDemoDB'
+@description('The name of the Ground Truth SQL Server')
+param groundTruthSqlServerName string = 'ground-truth-curation-sql'
+
+@description('The name of the System Demo SQL Database')
+param systemDatabaseName string = 'ManufacturingDataRelDB'
+
+@description('The name of the Ground Truth SQL Database')
+param groundTruthDatabaseName string = 'GroundTruthDB'
 
 @description('The administrator username for the SQL Server')
 param sqlAdministratorLogin string
 
 @description('The administrator password for the SQL Server')
 @secure()
+@minLength(8)
+@maxLength(128)
 param sqlAdministratorPassword string
 
 @description('The SKU for the SQL Database')
@@ -21,9 +29,15 @@ param sqlDatabaseSku object = {
   capacity: 5
 }
 
-// SQL Server
-resource sqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
-  name: sqlServerName
+@description('The name of the Azure Cosmos DB account')
+param cosmosDbAccountName string = 'gt-system-data-cosmos'
+
+@description('The name of the Azure Cosmos DB database')
+param cosmosDbDatabaseName string = 'ManufacturingDataDocDB'
+
+// System SQL Server
+resource systemSqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
+  name: systemSqlServerName
   location: location
   properties: {
     administratorLogin: sqlAdministratorLogin
@@ -33,10 +47,22 @@ resource sqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
   }
 }
 
-// SQL Database
-resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
-  parent: sqlServer
-  name: sqlDatabaseName
+// Ground Truth SQL Server  
+resource groundTruthSqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
+  name: groundTruthSqlServerName
+  location: location
+  properties: {
+    administratorLogin: sqlAdministratorLogin
+    administratorLoginPassword: sqlAdministratorPassword
+    version: '12.0'
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+// SQL Database - System Demo
+resource systemSqlDatabase 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
+  parent: systemSqlServer
+  name: systemDatabaseName
   location: location
   sku: sqlDatabaseSku
   properties: {
@@ -49,9 +75,25 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
   }
 }
 
-// Firewall rule to allow Azure services
-resource firewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = {
-  parent: sqlServer
+// SQL Database - Ground Truth
+resource groundTruthSqlDatabase 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
+  parent: groundTruthSqlServer
+  name: groundTruthDatabaseName
+  location: location
+  sku: sqlDatabaseSku
+  properties: {
+    collation: 'SQL_Latin1_General_CP1_CI_AS'
+    maxSizeBytes: 2147483648 // 2GB
+    catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
+    zoneRedundant: false
+    readScale: 'Disabled'
+    requestedBackupStorageRedundancy: 'Local'
+  }
+}
+
+// Firewall rule to allow Azure services - System SQL Server
+resource systemFirewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = {
+  parent: systemSqlServer
   name: 'AllowAllWindowsAzureIps'
   properties: {
     startIpAddress: '0.0.0.0'
@@ -59,9 +101,9 @@ resource firewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2023-05-01-previ
   }
 }
 
-// Hackathon firewall rule to allow all IPs (for development/hackathon use)
-resource firewallRuleHackathon 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = {
-  parent: sqlServer
+// Hackathon firewall rule to allow all IPs - System SQL Server
+resource systemFirewallRuleHackathon 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = {
+  parent: systemSqlServer
   name: 'HackathonOpenAccess'
   properties: {
     startIpAddress: '0.0.0.0'
@@ -69,7 +111,86 @@ resource firewallRuleHackathon 'Microsoft.Sql/servers/firewallRules@2023-05-01-p
   }
 }
 
-output sqlServerName string = sqlServer.name
-output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
-output sqlDatabaseName string = sqlDatabase.name
-output connectionStringTemplate string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdministratorLogin};Password=<your-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+// Firewall rule to allow Azure services - Ground Truth SQL Server
+resource groundTruthFirewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = {
+  parent: groundTruthSqlServer
+  name: 'AllowAllWindowsAzureIps'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
+  }
+}
+
+// Hackathon firewall rule to allow all IPs - Ground Truth SQL Server
+resource groundTruthFirewallRuleHackathon 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = {
+  parent: groundTruthSqlServer
+  name: 'HackathonOpenAccess'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '255.255.255.255'
+  }
+}
+
+// Azure Cosmos DB Account (Serverless)
+module cosmosDbAccount 'br/public:avm/res/document-db/database-account:0.11.0' = {
+  name: 'cosmosDbDeployment'
+  params: {
+    name: cosmosDbAccountName
+    location: location
+    // Enable key-based authentication (disable local auth = false)
+    disableLocalAuth: false
+    // Allow key-based metadata write access
+    disableKeyBasedMetadataWriteAccess: false
+    capabilitiesToAdd: [
+      'EnableServerless'
+    ]
+    sqlDatabases: [
+      {
+        name: cosmosDbDatabaseName
+        containers: [
+          {
+            name: 'repairs'
+            paths: [
+              '/partitionKey'
+            ]
+            indexingPolicy: {
+              automatic: true
+            }
+          }
+        ]
+      }
+    ]
+    networkRestrictions: {
+      publicNetworkAccess: 'Enabled'
+      ipRules: []
+      virtualNetworkRules: []
+    }
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    tags: {
+      'azd-env-name': uniqueString(resourceGroup().id)
+      purpose: 'hackathon'
+      project: 'ground-truth-curation'
+    }
+  }
+}
+
+output systemSqlServerName string = systemSqlServer.name
+output systemSqlServerFqdn string = systemSqlServer.properties.fullyQualifiedDomainName
+output groundTruthSqlServerName string = groundTruthSqlServer.name
+output groundTruthSqlServerFqdn string = groundTruthSqlServer.properties.fullyQualifiedDomainName
+output systemDatabaseName string = systemSqlDatabase.name
+output groundTruthDatabaseName string = groundTruthSqlDatabase.name
+output connectionStringTemplateSystem string = 'Server=tcp:${systemSqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${systemDatabaseName};Persist Security Info=False;User ID=${sqlAdministratorLogin};Password=<your-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+output connectionStringTemplateGroundTruth string = 'Server=tcp:${groundTruthSqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${groundTruthDatabaseName};Persist Security Info=False;User ID=${sqlAdministratorLogin};Password=<your-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+
+// Cosmos DB outputs
+output cosmosDbAccountName string = cosmosDbAccount.outputs.name
+output cosmosDbAccountEndpoint string = cosmosDbAccount.outputs.endpoint
+output cosmosDbDatabaseName string = cosmosDbDatabaseName
+output cosmosDbResourceId string = cosmosDbAccount.outputs.resourceId

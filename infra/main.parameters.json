@@ -7,9 +7,6 @@
     },
     "sqlAdministratorLogin": {
       "value": "gtadmin"
-    },
-    "sqlAdministratorPassword": {
-      "value": "<your-password-here>"
     }
   }
 }
