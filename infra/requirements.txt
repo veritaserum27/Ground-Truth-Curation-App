@@ -1,0 +1,12 @@
+# Python dependencies for CSV import functionality
+# Database connectivity for importing data
+pyodbc>=4.0.34
+
+# Azure Cosmos DB connectivity for NoSQL data upload
+azure-cosmos>=4.5.0
+
+# Azure Active Directory authentication
+azure-identity>=1.12.0
+
+# Environment variable management
+python-dotenv>=1.0.0

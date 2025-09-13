@@ -1,0 +1,31 @@
+{
+    "python.defaultInterpreterPath": "python3",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit",
+        "source.fixAll": "explicit"
+    },
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+        },
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "[markdown]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.markdownlint": "explicit"
+        },
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "black-formatter.args": ["--line-length=79"],
+    "flake8.args": ["--max-line-length=79"],
+    "isort.args": ["--profile", "black"],
+    "markdownlint.config": {
+        "MD013": {
+            "line_length": 80
+        }
+    }
+}

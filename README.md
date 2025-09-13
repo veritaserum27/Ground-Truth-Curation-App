@@ -88,22 +88,11 @@ cd Ground-Truth-Curation-App
 
 1. **Install Dependencies**
 
-For backend:
-
-```sh
-pip install -r requirements.txt
-```
-
-For frontend/UI:
-
-```sh
-npm install
-```
-
-(Adjust commands as needed for your actual stack.)
+TBD
 
 1. **Configuration**
 
+- Review [infra setup](./infra/README.md).
 - Review any `.env.example` or configuration files and create your own `.env` if required.
 - Set up environment variables for database, API keys, or other integrations.
 
