@@ -1,0 +1,49 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Ground Truth API (HTTPS)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/backend/src/GroundTruthCuration.Api/bin/Debug/net8.0/GroundTruthCuration.Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/backend/src/GroundTruthCuration.Api",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart",
+            "requireExactSource": false,
+            "justMyCode": false
+        },
+        {
+            "name": "Ground Truth API (HTTP Only)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/backend/src/GroundTruthCuration.Api/bin/Debug/net8.0/GroundTruthCuration.Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/backend/src/GroundTruthCuration.Api",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5105",
+                "DOTNET_GENERATE_ASPNET_CERTIFICATE": "false",
+                "ASPNETCORE_HTTPS_PORT": "",
+                "DOTNET_RUNNING_IN_CONTAINER": "false"
+            },
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart",
+            "requireExactSource": false,
+            "justMyCode": false
+        },
+        {
+            "name": "Ground Truth API (Terminal Debug)",
+            "type": "coreclr",
+            "request": "attach",
+            "processName": "GroundTruthCuration.Api"
+        }
+    ]
+}
