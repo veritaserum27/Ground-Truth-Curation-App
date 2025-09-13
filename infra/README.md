@@ -28,7 +28,7 @@ The infrastructure creates:
 - `data/Support_tickets.csv` - Sample data for seeding the SQL database (48,900 records)
 - `data/defects_data_with_company.csv` - Manufacturing defects data for Cosmos DB
 
-## Prerequisites
+## Deployment Prerequisites
 
 1. **Azure CLI** - Install from [https://docs.microsoft.com/en-us/cli/azure/install-azure-cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 2. **Azure Subscription** - You'll need an active Azure subscription
@@ -73,6 +73,7 @@ The infrastructure creates:
 ### Setup Environment
 
 1. **Create .env file**:
+
    ```bash
    cd infra
    cp .env.example .env
@@ -80,6 +81,7 @@ The infrastructure creates:
    ```
 
 2. **Login to Azure**:
+
    ```bash
    az login
    ```
