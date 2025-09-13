@@ -41,8 +41,7 @@ public class GroundTruthController : ControllerBase
         try
         {
             // This demonstrates the flow: API -> Core Service -> Infrastructure Repository
-            var groundTruthDefinition = await _groundTruthCurationService.GetGroundTruthDefinitionsForValidationAsync();
-            var definition = groundTruthDefinition.FirstOrDefault(gt => gt.GroundTruthId == id);
+            var definition = await _groundTruthCurationService.GetGroundTruthDefinitionByIdAsync(id);
 
             if (definition == null)
             {
