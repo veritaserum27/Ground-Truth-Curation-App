@@ -35,5 +35,10 @@ namespace GroundTruthCuration.Core.Services
             await Task.CompletedTask;
             return new GroundTruthDefinition();
         }
+
+        public Task<GroundTruthDefinition> GetGroundTruthDefinitionByIdAsync(Guid definitionId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

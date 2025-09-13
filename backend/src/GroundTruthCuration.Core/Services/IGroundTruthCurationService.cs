@@ -11,5 +11,6 @@ namespace GroundTruthCuration.Core.Services
         Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsForValidationAsync();
         Task<GroundTruthEntry> AddGroundTruthEntryAsync(Guid definitionId, string response, string requiredValuesJson, string rawDataJson);
         Task<GroundTruthDefinition> UpdateValidationStatusAsync(Guid definitionId, string validationStatus, string userId);
+        Task<GroundTruthDefinition> GetGroundTruthDefinitionByIdAsync(Guid definitionId);
     }
 }
