@@ -15,7 +15,7 @@ The system should capture all necessary metadata including timestamps and source
 
 - [ ] User can create a new entry with required fields: user query, context, expected response
 - [ ] System automatically captures created timestamp and creator information
-- [ ] System saves entry with unique identifier and initial status of "Draft"
+- [ ] System saves entry with unique identifier and initial status of "New"
 - [ ] All mandatory fields must be completed before saving
 - [ ] System validates data format and provides error messages for invalid entries
 
@@ -361,6 +361,6 @@ Export should include all turns, context, and relationship metadata.
 
 - [ ] User can export conversation flows in JSONL and CSV formats
 - [ ] Export includes all conversation turns with proper sequencing
-- [ ] Exported data maintains turn relationships and context dependencies  
+- [ ] Exported data maintains turn relationships and context dependencies
 - [ ] User can select specific conversation flows for export via filtering
 - [ ] Export includes conversation metadata (name, purpose, creation date, etc.)

@@ -32,6 +32,5 @@
     "csharp.experimental.debug.hotReload": false,
     "omnisharp.enableRoslynAnalyzers": true,
     "omnisharp.enableEditorConfigSupport": true,
-    "omnisharp.enableImportCompletion": true,
     "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true
 }
