@@ -18,3 +18,53 @@ infra/data/defects_data.csv
 infra/data/defects_data_with_company.csv
 infra/data/Manufacturing_defects.zip
 infra/.env.backup
+
+
+
+# --------------------------------------------------
+# Frontend (React / Vite) common ignores
+# --------------------------------------------------
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+frontend/dist/
+build/
+frontend/build/
+
+# Vite / Tooling caches
+.vite/
+frontend/.vite/
+.cache/
+.parcel-cache
+.eslintcache
+
+# Testing / coverage
+coverage/
+frontend/coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Package manager stores
+.pnpm-store/
+.npm/
+
+# Misc
+.turbo/
+*.tsbuildinfo
+*.log
+
+# Optional editor / IDE
+.idea/
+.vscode/**.history
+
+# Local environment overrides (already partially covered above)
+.env.development.local
+.env.test.local
+.env.production.local
