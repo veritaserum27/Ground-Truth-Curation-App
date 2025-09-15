@@ -39,7 +39,7 @@ public class GroundTruthRepository : IGroundTruthRepository
 
     public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter filter)
     {
-        string baseSql = "SELECT * FROM GroundTruthDefinitions";
+        string baseSql = "SELECT * FROM [dbo].[GROUND_TRUTH_DEFINITION]";
 
         DynamicParameters parameters = new DynamicParameters();
 
@@ -77,8 +77,16 @@ public class GroundTruthRepository : IGroundTruthRepository
         // connect to database
         using (var connection = new SqlConnection(_connectionString))
         {
-            var results = await connection.QueryAsync<GroundTruthDefinition>(baseSql, parameters);
-            return results;
+            try
+            {
+                var results = await connection.QueryAsync<GroundTruthDefinition>(baseSql, parameters);
+                return results;
+            }
+            catch (Exception ex)
+            {
+                // Log exception (not implemented here)
+                throw new Exception("Error executing SQL query", ex);
+            }
         }
     }
 
