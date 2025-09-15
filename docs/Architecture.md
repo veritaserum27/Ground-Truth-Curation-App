@@ -2,14 +2,28 @@
 
 ## High-Level Components
 
-System Datastore
-Ground Truth Database
-API
-UI
+![High-Level Archiecture of Ground Truth Application](./assets/Architecture.png)
+
+### Front End
+
+ReactJS user interface to faciliate workflows for the Subject Matter Expert (SME) and Data Curator personas.
+
+### Back End
+
+C# .Net back end to implement programmatic workflows for building and retrieving ground truth definitions and interactions with datastores.
+
+The Ground Truth database stores the actual ground truth definition datasets.
+
+### Existing System Datastores
+
+These datastores house datasets that will be queried by the AI System being tested.
+The Ground Truth Application queries them as part of the ground truth definition and curation process.
+Any type of datastore can be supported as long as there is a querying language to retrieve the relevant records.
 
 ## Sequence Diagrams
 
 ```mermaid
+
 ```
 
 ## Flow Charts
@@ -62,7 +76,6 @@ flowchart LR
 - **SQL DB**: Structured data queries.
 - **GraphQL API**: Flexible queries for many data models.
 - **Other Sources**: Extensible for new data providers.
-
 
 ## Data Flow
 
