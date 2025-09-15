@@ -3,10 +3,11 @@
 -- Tables are created in dependency order to respect foreign key constraints
 
 -- 1. Create GROUND_TRUTH_DEFINITION table (base entity)
-CREATE TABLE GROUND_TRUTH_DEFINITION (
+CREATE TABLE GROUND_TRUTH_DEFINITION
+(
     groundTruthId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     userQuery NVARCHAR(MAX) NOT NULL,
-    validationStatus NVARCHAR(50) NOT NULL 
+    validationStatus NVARCHAR(50) NOT NULL
         CONSTRAINT CK_ValidationStatus CHECK (validationStatus IN (
             'Validated', 'Revisions Requested', 'Revised', 'Pending', 
             'Out of Scope', 'New', 'New, Data Curated'
@@ -19,7 +20,8 @@ CREATE TABLE GROUND_TRUTH_DEFINITION (
 );
 
 -- 2. Create GROUND_TRUTH_ENTRY table
-CREATE TABLE GROUND_TRUTH_ENTRY (
+CREATE TABLE GROUND_TRUTH_ENTRY
+(
     groundTruthEntryId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     groundTruthId UNIQUEIDENTIFIER NOT NULL,
     response NVARCHAR(MAX) NOT NULL,
@@ -32,7 +34,8 @@ CREATE TABLE GROUND_TRUTH_ENTRY (
 );
 
 -- 3. Create DATA_QUERY_DEFINITION table
-CREATE TABLE DATA_QUERY_DEFINITION (
+CREATE TABLE DATA_QUERY_DEFINITION
+(
     dataQueryId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     groundTruthId UNIQUEIDENTIFIER NOT NULL,
     datastoreType NVARCHAR(50) NOT NULL,
@@ -50,7 +53,8 @@ CREATE TABLE DATA_QUERY_DEFINITION (
 );
 
 -- 4. Create CONTEXT table
-CREATE TABLE CONTEXT (
+CREATE TABLE GROUND_TRUTH_CONTEXT
+(
     contextId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     groundTruthId UNIQUEIDENTIFIER,
     groundTruthEntryId UNIQUEIDENTIFIER,
@@ -60,17 +64,19 @@ CREATE TABLE CONTEXT (
 );
 
 -- 5. Create CONTEXT_PARAMETER table
-CREATE TABLE CONTEXT_PARAMETER (
+CREATE TABLE CONTEXT_PARAMETER
+(
     parameterId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     contextId UNIQUEIDENTIFIER NOT NULL,
     parameterName NVARCHAR(100) NOT NULL,
     parameterValue NVARCHAR(MAX) NOT NULL,
     dataType NVARCHAR(50) NOT NULL,
-    FOREIGN KEY (contextId) REFERENCES CONTEXT(contextId)
+    FOREIGN KEY (contextId) REFERENCES GROUND_TRUTH_CONTEXT(contextId)
 );
 
 -- 6. Create COMMENT table
-CREATE TABLE COMMENT (
+CREATE TABLE COMMENT
+(
     commentId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     groundTruthId UNIQUEIDENTIFIER NOT NULL,
     comment NVARCHAR(MAX) NOT NULL,
@@ -81,20 +87,23 @@ CREATE TABLE COMMENT (
 );
 
 -- 7. Create TAG table
-CREATE TABLE TAG (
+CREATE TABLE TAG
+(
     tagId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     name NVARCHAR(100) NOT NULL UNIQUE
 );
 
 -- 8. Create CONVERSATION table
-CREATE TABLE CONVERSATION (
+CREATE TABLE CONVERSATION
+(
     conversationId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     contextId UNIQUEIDENTIFIER NOT NULL,
-    FOREIGN KEY (contextId) REFERENCES CONTEXT(contextId)
+    FOREIGN KEY (contextId) REFERENCES GROUND_TRUTH_CONTEXT(contextId)
 );
 
 -- 9. Create GROUND_TRUTH_DEFINITION_CONVERSATION relationship table
-CREATE TABLE GROUND_TRUTH_DEFINITION_CONVERSATION (
+CREATE TABLE GROUND_TRUTH_DEFINITION_CONVERSATION
+(
     conversationId UNIQUEIDENTIFIER NOT NULL,
     groundTruthId UNIQUEIDENTIFIER NOT NULL,
     PRIMARY KEY (conversationId, groundTruthId),
@@ -116,9 +125,9 @@ CREATE INDEX IX_data_query_definition_datastore_type ON DATA_QUERY_DEFINITION(da
 CREATE INDEX IX_data_query_definition_datastore_name ON DATA_QUERY_DEFINITION(datastoreName);
 CREATE INDEX IX_data_query_definition_query_target ON DATA_QUERY_DEFINITION(queryTarget);
 
-CREATE INDEX IX_context_ground_truth_id ON CONTEXT(groundTruthId);
-CREATE INDEX IX_context_ground_truth_entry_id ON CONTEXT(groundTruthEntryId);
-CREATE INDEX IX_context_context_type ON CONTEXT(contextType);
+CREATE INDEX IX_ground_truth_context_ground_truth_id ON GROUND_TRUTH_CONTEXT(groundTruthId);
+CREATE INDEX IX_ground_truth_context_ground_truth_entry_id ON GROUND_TRUTH_CONTEXT(groundTruthEntryId);
+CREATE INDEX IX_ground_truth_context_context_type ON GROUND_TRUTH_CONTEXT(contextType);
 
 CREATE INDEX IX_context_parameter_context_id ON CONTEXT_PARAMETER(contextId);
 CREATE INDEX IX_context_parameter_parameter_name ON CONTEXT_PARAMETER(parameterName);

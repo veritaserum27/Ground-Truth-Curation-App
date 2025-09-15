@@ -28,3 +28,8 @@ Content-Type: application/json
 
 ### Get a specific definition (replace {id} with actual ID)
 GET https://localhost:5001/api/groundtruth/definitions/{id}
+
+### Get all ground truth definitions
+GET http://localhost:5105/definitions
+
+## Get all ground truth definitions with filter

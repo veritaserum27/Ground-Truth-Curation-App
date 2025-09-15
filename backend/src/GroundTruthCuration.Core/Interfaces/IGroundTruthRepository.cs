@@ -1,4 +1,5 @@
 using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Core.DTOs;
 
 namespace GroundTruthCuration.Core.Interfaces;
 
@@ -18,7 +19,7 @@ public interface IGroundTruthRepository
     /// Retrieves all ground truth definitions from the repository.
     /// </summary>
     /// <returns>A collection of all ground truth definitions.</returns>
-    Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync();
+    Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter filter);
 
     /// <summary>
     /// Retrieves all ground truth definitions associated with a specific user.
