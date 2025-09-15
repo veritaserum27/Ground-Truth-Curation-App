@@ -2,6 +2,18 @@
 
 ## High-Level Components
 
+System Datastore
+Ground Truth Database
+API
+UI
+
+## Sequence Diagrams
+
+```mermaid
+```
+
+## Flow Charts
+
 ```mermaid
 flowchart LR
     subgraph UI[User Interface]
