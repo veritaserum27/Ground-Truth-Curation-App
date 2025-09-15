@@ -31,13 +31,27 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Use HTTPS redirection only when not explicitly disabled
-var disableHttpsRedirection = builder.Configuration.GetValue<bool>("CertificateSettings:GenerateAspNetCertificate") == false;
-if (!disableHttpsRedirection)
+// HTTPS redirection: enable only if explicitly requested via config (CertificateSettings:GenerateAspNetCertificate=true)
+var enableHttpsRedirection = builder.Configuration.GetValue<bool>("CertificateSettings:GenerateAspNetCertificate");
+if (enableHttpsRedirection)
 {
-    app.UseHttpsRedirection();
+     app.UseHttpsRedirection();
 }
 
 app.MapControllers();
+
+// Minimal endpoints for quick container / readiness checks
+app.MapGet("/", () => Results.Ok(new { message = "Ground Truth Curation API running", time = DateTime.UtcNow }))
+    .WithName("Root")
+    .WithDescription("Root liveness endpoint.");
+
+app.MapGet("/healthz", () => Results.Ok("healthy"))
+    .WithName("Healthz")
+    .WithDescription("Basic health probe.");
+
+// Optional namespaced health for API grouping
+app.MapGet("/api/healthz", () => Results.Ok(new { status = "ok" }))
+    .WithName("ApiHealthz")
+    .WithDescription("API health endpoint.");
 
 app.Run();
