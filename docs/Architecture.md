@@ -14,7 +14,7 @@ ReactJS user interface to faciliate workflows for the Subject Matter Expert (SME
 
 ### Back End
 
-C# .Net back end to implement programmatic workflows for building and retrieving ground truth definitions and interactions with datastores.
+C# .Net back end to implement programmatic workflows for building and retrieving ground truth definitions and interactions with datastores. See the [Back End README](../backend/README.md) for more details
 
 The Ground Truth database stores the actual ground truth definition datasets.
 
