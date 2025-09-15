@@ -1,0 +1,33 @@
+name: deploy-backend-appservice (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      webapp-name:
+        description: 'Azure Web App (Linux) name'
+        required: true
+        type: string
+      artifact-name:
+        description: 'Artifact name produced by build workflow'
+        required: true
+        type: string
+    secrets:
+      AZURE_WEBAPP_PUBLISH_PROFILE:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: deploy
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ inputs.webapp-name }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: deploy/${{ inputs.artifact-name }}.zip

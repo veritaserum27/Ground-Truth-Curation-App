@@ -1,0 +1,61 @@
+name: build-backend (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      project-path:
+        description: 'Path to the API .csproj file (relative to repo root)'
+        required: true
+        type: string
+      dotnet-version:
+        description: 'Dotnet version to setup'
+        required: false
+        default: '8.0.x'
+        type: string
+      configuration:
+        description: 'Build configuration'
+        required: false
+        default: 'Release'
+        type: string
+      artifact-name:
+        description: 'Artifact name to publish'
+        required: false
+        default: 'backend-publish'
+        type: string
+    outputs:
+      artifact-name:
+        description: 'Name of created artifact'
+        value: ${{ inputs.artifact-name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+          cache: true
+
+      - name: Restore
+        run: dotnet restore "${{ inputs.project-path }}"
+
+      - name: Build
+        run: dotnet build "${{ inputs.project-path }}" -c ${{ inputs.configuration }} --no-restore
+
+      - name: Publish
+        run: dotnet publish "${{ inputs.project-path }}" -c ${{ inputs.configuration }} -o publish --no-build
+
+      - name: Package artifact
+        run: |
+          zip -r ${{ inputs.artifact-name }}.zip publish/*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.artifact-name }}.zip
+          retention-days: 7
