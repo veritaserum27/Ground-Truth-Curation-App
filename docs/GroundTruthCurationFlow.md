@@ -1,7 +1,7 @@
 # Ground Truth Curation Flow Chart
 
 - Author: Laura Lund
-- Last Updated: 2025-08-16
+- Last Updated: 2025-09-15
 - Tool: [Mermaid Chart](https://mermaid.js.org/)
 - Docs: [Mermaid Syntax](https://docs.mermaidchart.com/mermaid-oss/syntax/flowchart.html#a-node-default)
 
@@ -31,7 +31,7 @@ flowchart TD
     F-->E
 ```
 
-## Ground Truth Definition Updates
+## Ground Truth Definition Validation Status Updates
 
 ```mermaid
 flowchart LR
@@ -41,7 +41,7 @@ flowchart LR
     and response correct?"}
     C-- Yes -->D["Mark the Ground Truth Definition
     as status Validated."]
-    C-- No -->E["Mark the Ground Truth Definition 
+    C-- No -->E["Mark the Ground Truth Definition
     as status Revisions Requested and
     add a comment explaining
     what needs to change."]
@@ -57,7 +57,7 @@ flowchart LR
     I-- Not Sure-->K["Mark Ground Truth Definition
     as status Pending and
     leave a comment explaining
-    what investigation 
+    what investigation
     will be done."]
     K-->L[Complete investigation.]
     L-->I

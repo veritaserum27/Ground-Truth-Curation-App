@@ -1,5 +1,9 @@
 # Ground Truth Curation App – Architecture Overview
 
+- Author: Laura Lund
+- Last Updated: 2025-09-15
+- Tool: [Mermaid Chart](https://mermaid.js.org/)
+
 ## High-Level Components
 
 ![High-Level Archiecture of Ground Truth Application](./assets/Architecture.png)
@@ -23,38 +27,45 @@ Any type of datastore can be supported as long as there is a querying language t
 ## Sequence Diagrams
 
 ```mermaid
+sequenceDiagram
+    participant User
+    participant Front End
+    participant Back End
+    participant DB as Ground Truth DB
+    participant DS as System Datastore
 
-```
-
-## Flow Charts
-
-```mermaid
-flowchart LR
-    subgraph UI[User Interface]
-        CURATOR[Curator]
-        VALIDATOR[Validator]
-    end
-    subgraph APP[Ground Truth Curation App]
-        ENTRY[Entry Management]
-        TAGS[Tagging System]
-        VALIDATION[Validation Workflow]
-        EXPORT[Export Module]
-    end
-    subgraph DATA[Data Sources]
-        SQL[SQL DB]
-        GRAPHQL[GraphQL API]
-        OTHER[Other Sources]
-    end
-    CURATOR --> APP
-    VALIDATOR --> APP
-    APP --> ENTRY
-    APP --> TAGS
-    APP --> VALIDATION
-    APP --> EXPORT
-    ENTRY --> DATA
-    VALIDATION --> ENTRY
-    EXPORT --> ENTRY
-    DATA -->|Raw Data| ENTRY
+    User->>Front End: Open app / login
+    Front End->>Back End: Fetch ground truth entries
+    Back End->>DB: Query entries
+    DB-->>Back End: Return entries
+    Back End-->>Front End: Return entries
+    Front End-->>User: Display entries
+    User->>Front End: Select entry / edit
+    Front End->>Back End: Submit update
+    Back End->>DS: Query raw data
+    DS-->>Back End: Return raw data
+    Back End->>DB: Update entry
+    DB-->>Back End: Confirm update
+    Back End-->>Front End: Update success
+    Front End-->>User: Show update
+    User->>Front End: Add tag to entry
+    Front End->>Back End: Submit tag
+    Back End->>DB: Update entry / tag table
+    DB-->>Back End: Confirm update
+    Back End-->>Front End: Update success
+    Front End-->>User: Show update
+    User->>Front End: Change validation status
+    Front End->>Back End: Submit validation status
+    Back End->>DB: Update validation status
+    DB-->>Back End: Confirm validation status
+    Back End-->>Front End: Validation status success
+    Front End-->>User: Show validation status
+    User->>Front End: Export data
+    Front End->>Back End: Request export
+    Back End->>DB: Fetch export data
+    DB-->>Back End: Return export data
+    Back End-->>Front End: Provide export file
+    Front End-->>User: Download file
 ```
 
 ## Component Blocks
@@ -90,22 +101,23 @@ flowchart LR
 ```mermaid
 sequenceDiagram
     actor User
-    participant GTUI as User Interface
-    participant App as AppBackend
+    participant GTUI as Front End
+    participant App as Back End
     participant Data as Data Sources
 
+    GTUI->>App: Create/update entry
+    App->>Data: Query for raw/context data
+    Data->>App: Return raw data
     User->>GTUI: Submit or review entry
     GTUI->>App: Send entry data
     User->>GTUI: Apply tags
     User->>GTUI: Manage validation
-    GTUI->>App: Create/update entry
-    App->>Data: Query for raw/context data
-    Data->>App: Return raw data
     User->>GTUI: Export validated entry
-    GTUI->>App: Provide data for downstream use
+    GTUI->>App: Retrieve ground truth definitions
+    App->>GTUI: Provide ground truths for use in experiments
 ```
 
 ## References
 
-- See `docs/GroundTruthCurationProcess.md` for process details.
-- See `docs/GroundTruthERD.md` for entity relationships.
+- See [docs/GroundTruthCurationProcess.md](./GroundTruthCurationProcess.md) for process details.
+- See [docs/GroundTruthERD.md](./GroundTruthERD.md) for entity relationships.
