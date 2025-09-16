@@ -140,7 +140,18 @@ export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: Tag
               <button
                 key={tag.id}
                 onClick={() => handleToggleTag(tag.id)}
-                className={`px-3 py-1 rounded text-sm transition-all cursor-pointer hover:scale-105 ${tag.color.replace('text-', 'text-').replace('bg-', 'bg-opacity-50 bg-')} hover:${tag.color}`}
+                className={`px-3 py-1 rounded text-sm transition-all cursor-pointer hover:scale-105 ${tag.color} ${
+                  tag.color
+                    .split(' ')
+                    .map(c =>
+                      c.startsWith('bg-')
+                        ? `hover:${c}`
+                        : c.startsWith('text-')
+                        ? `hover:${c}`
+                        : ''
+                    )
+                    .join(' ')
+                }`}
               >
                 {tag.name}
                 {tag.isPredefined && (
