@@ -34,7 +34,7 @@ Write-Host "[CI-LOCAL] dotnet --version" -ForegroundColor Yellow
  dotnet --version
 
 Write-Host "[CI-LOCAL] Restoring solution" -ForegroundColor Yellow
- dotnet restore backend/GroundTruthCuration.sln
+ dotnet restore backend/GroundTruthCuration.sln --force-evaluate
 
 Write-Host "[CI-LOCAL] Building solution" -ForegroundColor Yellow
  dotnet build backend/GroundTruthCuration.sln -c $Configuration --no-restore

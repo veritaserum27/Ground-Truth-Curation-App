@@ -24,7 +24,7 @@ jobs:
           cache-dependency-path: 'backend/src/*/packages.lock.json'
 
       - name: Restore
-        run: dotnet restore backend/GroundTruthCuration.sln
+        run: dotnet restore backend/GroundTruthCuration.sln --force-evaluate
 
       - name: Build (Release)
         run: dotnet build backend/GroundTruthCuration.sln -c Release --no-restore
