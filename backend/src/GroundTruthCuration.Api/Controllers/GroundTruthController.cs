@@ -25,9 +25,14 @@ public class GroundTruthController : ControllerBase
             var definitions = await _groundTruthCurationService.GetAllGroundTruthDefinitionsAsync(filter);
             return Ok(definitions);
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message); // 400
+        }
         catch (Exception ex)
         {
-            return BadRequest($"Error retrieving ground truth definitions: {ex.Message}");
+            // Optionally log ex
+            return StatusCode(500, $"Internal server error: {ex.Message}"); // 500
         }
     }
 
