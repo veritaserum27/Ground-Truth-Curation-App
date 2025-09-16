@@ -8,6 +8,4 @@ public class Comment
     public DateTime CommentDateTime { get; set; }
     public string UserId { get; set; } = string.Empty;
     public string CommentType { get; set; } = string.Empty;
-    
-    public GroundTruthDefinition GroundTruthDefinition { get; set; } = null!;
 }

@@ -19,6 +19,7 @@ infra/data/defects_data_with_company.csv
 infra/data/Manufacturing_defects.zip
 infra/.env.backup
 
+.fake
 
 
 # --------------------------------------------------
@@ -69,4 +70,5 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .react-router/
+
 

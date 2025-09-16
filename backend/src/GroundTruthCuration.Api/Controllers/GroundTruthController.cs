@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using GroundTruthCuration.Core.Services;
 using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Core.DTOs;
+using GroundTruthCuration.Core.Interfaces;
 
 namespace GroundTruthCuration.Api.Controllers;
 
@@ -15,24 +17,29 @@ public class GroundTruthController : ControllerBase
         _groundTruthCurationService = groundTruthCurationService;
     }
 
-    [HttpPost("definitions")]
-    public async Task<ActionResult<GroundTruthDefinition>> CreateDefinition([FromBody] CreateDefinitionRequest request)
+    [HttpGet("definitions")]
+    public async Task<ActionResult<IEnumerable<GroundTruthDefinition>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
     {
         try
         {
-            var groundTruthDefinition = await _groundTruthCurationService.CreateGroundTruthDefinitionAsync(
-                request.UserQuery,
-                request.UserId);
-
-            return CreatedAtAction(
-                nameof(GetDefinition),
-                new { id = groundTruthDefinition.GroundTruthId },
-                groundTruthDefinition);
+            var definitions = await _groundTruthCurationService.GetAllGroundTruthDefinitionsAsync(filter);
+            return Ok(definitions);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message); // 400
         }
         catch (Exception ex)
         {
-            return BadRequest($"Error creating ground truth definition: {ex.Message}");
+            // Optionally log ex
+            return StatusCode(500, $"Internal server error: {ex.Message}"); // 500
         }
+    }
+
+    [HttpPost("definitions")]
+    public async Task<ActionResult<GroundTruthDefinition>> CreateDefinition([FromBody] CreateDefinitionRequest request)
+    {
+        throw new NotImplementedException();
     }
 
     [HttpGet("definitions/{id}")]
@@ -59,24 +66,7 @@ public class GroundTruthController : ControllerBase
     [HttpPost("definitions/{id}/entries")]
     public async Task<ActionResult<GroundTruthEntry>> AddEntry(Guid id, [FromBody] CreateEntryRequest request)
     {
-        try
-        {
-            var groundTruthEntry = await _groundTruthCurationService.AddGroundTruthEntryAsync(
-                id,
-                request.Response,
-                request.RequiredValuesJson,
-                request.RawDataJson);
-
-            return Created($"api/groundtruth/entries/{groundTruthEntry.GroundTruthEntryId}", groundTruthEntry);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest($"Error adding ground truth entry: {ex.Message}");
-        }
+        throw new NotImplementedException();
     }
 
     [HttpPut("definitions/{id}/validation-status")]
@@ -84,25 +74,10 @@ public class GroundTruthController : ControllerBase
         Guid id,
         [FromBody] UpdateValidationStatusRequest request)
     {
-        try
-        {
-            var updatedDefinition = await _groundTruthCurationService.UpdateValidationStatusAsync(
-                id,
-                request.ValidationStatus,
-                request.UserId);
-
-            return Ok(updatedDefinition);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest($"Error updating validation status: {ex.Message}");
-        }
+        throw new NotImplementedException();
     }
 }
+
 
 // Request DTOs
 public record CreateDefinitionRequest(string UserQuery, string UserId);
