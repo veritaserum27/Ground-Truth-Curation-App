@@ -30,6 +30,6 @@ Content-Type: application/json
 GET https://localhost:5001/api/groundtruth/definitions/{id}
 
 ### Get all ground truth definitions
-GET http://localhost:5105/definitions
+GET http://localhost:5105/api/GroundTruth/definitions
 
 ## Get all ground truth definitions with filter
