@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Download, FileText, Filter } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { GroundTruth, Tag, GroundTruthStatus } from '../types';
+import type { GroundTruth, Tag, GroundTruthStatus } from '../types';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -14,11 +14,11 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
   const { groundTruths, tags, getTagsForGroundTruth } = useData();
   const [format, setFormat] = useState<ExportFormat>('jsonl');
   const [isExporting, setIsExporting] = useState(false);
-  
+
   // Export filtering state
   const [statusFilters, setStatusFilters] = useState<GroundTruthStatus[]>([]);
   const [tagFilters, setTagFilters] = useState<string[]>([]);
-  
+
   // Get filtered ground truths based on export filters
   const getExportFilteredGroundTruths = () => {
     return groundTruths.filter(gt => {
@@ -32,8 +32,8 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
 
   // Handle status filter toggle
   const toggleStatusFilter = (status: GroundTruthStatus) => {
-    setStatusFilters(prev => 
-      prev.includes(status) 
+    setStatusFilters(prev =>
+      prev.includes(status)
         ? prev.filter(s => s !== status)
         : [...prev, status]
     );
@@ -41,8 +41,8 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
 
   // Handle tag filter toggle
   const toggleTagFilter = (tagId: string) => {
-    setTagFilters(prev => 
-      prev.includes(tagId) 
+    setTagFilters(prev =>
+      prev.includes(tagId)
         ? prev.filter(t => t !== tagId)
         : [...prev, tagId]
     );
@@ -55,12 +55,12 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
   };
 
   // Format status for display
-  const formatStatus = (status: GroundTruthStatus) => 
+  const formatStatus = (status: GroundTruthStatus) =>
     status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   const formatExportData = (groundTruth: GroundTruth) => {
     const tags = getTagsForGroundTruth(groundTruth);
-    
+
     // Get primary context and data query (first one if multiple exist)
     const primaryContext = groundTruth.contexts[0];
     const primaryDataQuery = groundTruth.dataQueryDefinitions[0];
@@ -110,7 +110,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
   const exportAsJSONL = () => {
     const exportData = filteredGroundTruths.map(gt => formatExportData(gt));
     const jsonlContent = exportData.map(item => JSON.stringify(item)).join('\n');
-    
+
     const blob = new Blob([jsonlContent], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -131,7 +131,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
 
   const exportAsCSV = () => {
     const exportData = filteredGroundTruths.map(gt => formatExportData(gt));
-    
+
     // CSV Headers
     const headers = [
       'ID',
@@ -187,7 +187,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
     ];
 
     const csvContent = csvRows.join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -201,16 +201,16 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
 
   const handleExport = async () => {
     setIsExporting(true);
-    
+
     // Add a small delay for UX
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     if (format === 'jsonl') {
       exportAsJSONL();
     } else {
       exportAsCSV();
     }
-    
+
     setIsExporting(false);
     onClose();
   };
@@ -232,7 +232,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="p-6 space-y-6">
           <div className="space-y-4">
             <div>
@@ -247,7 +247,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                 <p className="text-destructive text-sm mt-1">No entries match the selected filters.</p>
               )}
             </div>
-            
+
             <div className="space-y-3">
               <label>Export Format</label>
               <div className="space-y-2">
@@ -268,7 +268,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                 <p className="text-xs text-muted-foreground ml-6">
                   Each ground truth entry as a single JSON object per line
                 </p>
-                
+
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -300,10 +300,10 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
               </ul>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <h3 className="font-medium">Filter Export</h3>
-            
+
             <div className="space-y-2">
               <label className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
@@ -315,8 +315,8 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                     key={status}
                     onClick={() => toggleStatusFilter(status as GroundTruthStatus)}
                     className={`px-2 py-1 rounded text-xs ${
-                      statusFilters.includes(status as GroundTruthStatus) 
-                        ? 'bg-primary text-primary-foreground' 
+                      statusFilters.includes(status as GroundTruthStatus)
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-muted hover:bg-muted/50'
                     }`}
                   >
@@ -325,7 +325,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                 ))}
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
@@ -337,8 +337,8 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                     key={tag.id}
                     onClick={() => toggleTagFilter(tag.id)}
                     className={`px-2 py-1 rounded text-xs ${
-                      tagFilters.includes(tag.id) 
-                        ? 'bg-primary text-primary-foreground' 
+                      tagFilters.includes(tag.id)
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-muted hover:bg-muted/50'
                     }`}
                   >
@@ -347,7 +347,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                 ))}
               </div>
             </div>
-            
+
             <button
               onClick={clearFilters}
               className="px-2 py-1 text-xs text-muted-foreground hover:bg-muted rounded"
@@ -356,7 +356,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
             </button>
           </div>
         </div>
-        
+
         <div className="flex justify-end gap-3 p-6 border-t bg-muted/25">
           <button
             onClick={onClose}
