@@ -63,10 +63,10 @@ From the repo root (or `backend/` folder):
 dotnet run --project src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj
 ```
 
-Default ASP.NET binding (if not overridden) is <http://localhost:5000> or <https://localhost:7000>. Our container build exposes port 8080; you can align local dev by setting:
+Default ASP.NET binding (if not overridden) is <http://localhost:5000> or <https://localhost:7000>. Our container build exposes port 5105 for development; you can align local dev by setting:
 
 ```bash
-export ASPNETCORE_URLS=http://localhost:8080
+export ASPNETCORE_URLS=http://localhost:5105
 dotnet run --project src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj
 ```
 
@@ -76,20 +76,20 @@ From repository root (pass the backend folder as build context):
 
 ```bash
 docker build -f backend/Dockerfile -t ground-truth-api:local backend
-docker run --name ground-truth-api --rm -p 8080:8080 ground-truth-api:local
+docker run --name ground-truth-api --rm -p 5105:5105 ground-truth-api:local
 ```
 
 Already inside `backend/` directory (context is already correct):
 
 ```bash
 docker build -t ground-truth-api:local .
-docker run --name ground-truth-api --rm -p 8080:8080 ground-truth-api:local
+docker run --name ground-truth-api --rm -p 5105:5105 ground-truth-api:local
 ```
 
 Detached mode & logs:
 
 ```bash
-docker run -d --name ground-truth-api -p 8080:8080 ground-truth-api:local
+docker run -d --name ground-truth-api -p 5105:5105 ground-truth-api:local
 docker logs -f ground-truth-api
 ```
 
@@ -104,8 +104,18 @@ docker rm -f ground-truth-api
 Adjust path based on actual controller route (example assumes `HelloController`):
 
 ```bash
-curl http://localhost:8080/hello
+curl http://localhost:5105/api/Hello
 ```
+
+### Access Swagger UI
+
+When running in Development mode (both locally and in Docker), Swagger UI is available at:
+
+```url
+http://localhost:5105/swagger/index.html
+```
+
+The application automatically redirects from the root URL (`http://localhost:5105/`) to Swagger for easy API discovery.
 
 ## GitHub Workflows Summary
 
@@ -181,15 +191,15 @@ Implemented minimal endpoints for fast container readiness checks:
 Quick manual checks:
 
 ```bash
-curl http://localhost:8080/
-curl http://localhost:8080/healthz
+curl http://localhost:5105/
+curl http://localhost:5105/healthz
 ```
 
 When adding a Dockerfile health check later you can use:
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD curl -f http://localhost:8080/healthz || exit 1
+  CMD curl -f http://localhost:5105/healthz || exit 1
 ```
 
 ## Local CI Emulation Script
@@ -206,7 +216,7 @@ pwsh ./scripts/local-ci-backend.ps1
 | Issue                         | Symptom              | Fix                                                                     |
 | ----------------------------- | -------------------- | ----------------------------------------------------------------------- |
 | Docker build fails on restore | NuGet timeout / rate | Re-run; ensure network; consider local `~/.nuget` cache                 |
-| API not responding on 8080    | Connection refused   | Confirm `ASPNETCORE_URLS` inside container, port mapping `-p 8080:8080` |
+| API not responding on 5105    | Connection refused   | Confirm `ASPNETCORE_URLS` inside container, port mapping `-p 5105:5105` |
 | Tests skipped                 | No test project      | Confirm test csproj added to solution & CI updated                      |
 | Rollback needed               | Bad deploy           | Use previous commit image tag via `az containerapp update`              |
 

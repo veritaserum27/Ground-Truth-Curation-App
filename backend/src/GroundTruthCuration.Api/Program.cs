@@ -38,13 +38,6 @@ if (enableHttpsRedirection)
      app.UseHttpsRedirection();
 }
 
-app.MapControllers();
-
-// Minimal endpoints for quick container / readiness checks
-app.MapGet("/", () => Results.Ok(new { message = "Ground Truth Curation API running", time = DateTime.UtcNow }))
-    .WithName("Root")
-    .WithDescription("Root liveness endpoint.");
-
 app.MapGet("/healthz", () => Results.Ok("healthy"))
     .WithName("Healthz")
     .WithDescription("Basic health probe.");
@@ -53,5 +46,25 @@ app.MapGet("/healthz", () => Results.Ok("healthy"))
 app.MapGet("/api/healthz", () => Results.Ok(new { status = "ok" }))
     .WithName("ApiHealthz")
     .WithDescription("API health endpoint.");
+
+app.MapControllers();
+
+// Log user-friendly URLs using proper logging
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "5105";
+    
+    // Add a small delay to ensure this appears after built-in messages
+    Task.Run(async () =>
+    {
+        await Task.Delay(100);
+        logger.LogInformation("");
+        logger.LogInformation("🚀 Ground Truth Curation API is running!");
+        logger.LogInformation("📖 Swagger UI: http://localhost:{Port}/swagger/index.html", port);
+        logger.LogInformation("🏥 Health Check: http://localhost:{Port}/healthz", port);
+        logger.LogInformation("");
+    });
+});
 
 app.Run();

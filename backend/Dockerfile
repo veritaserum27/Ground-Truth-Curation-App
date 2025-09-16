@@ -36,16 +36,20 @@ WORKDIR /app
 
 # Set non-root user later if needed; Azure Container Apps runs as root by default unless configured.
 
-# Environment (Azure Container Apps typically scans ingress on this port if specified)
-ENV ASPNETCORE_URLS=http://+:8080 \
-    DOTNET_EnableDiagnostics=0
+# Environment - configurable port for flexibility between dev (5105) and production
+ARG PORT=5105
+ENV ASPNETCORE_URLS=http://*:${PORT} \
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_EnableDiagnostics=0 \
+    Logging__Console__FormatterName=simple \
+    ASPNETCORE_SUPPRESSSTATUSMESSAGES=true
 
 # Copy published output
 COPY --from=build /app/publish .
 
-# (Optional) Health check endpoint assumption: /healthz (add later in API)
-# HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:8080/healthz || exit 1
+# Health check using the port (defaulting to 5105)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -f http://localhost:${PORT}/healthz || exit 1
 
-EXPOSE 8080
+EXPOSE ${PORT}
 
 ENTRYPOINT ["dotnet", "GroundTruthCuration.Api.dll"]
