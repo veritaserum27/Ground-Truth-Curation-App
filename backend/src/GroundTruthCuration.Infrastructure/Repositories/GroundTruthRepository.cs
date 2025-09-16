@@ -39,7 +39,60 @@ public class GroundTruthRepository : IGroundTruthRepository
 
     public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter filter)
     {
-        string baseSql = "SELECT * FROM [dbo].[GROUND_TRUTH_DEFINITION]";
+        string baseSql = @"SELECT
+            -- GroundTruthDefinition
+            gtd.groundTruthId AS GroundTruthId,
+            gtd.userQuery AS UserQuery,
+            gtd.validationStatus AS ValidationStatus,
+            gtd.userCreated AS UserCreated,
+            gtd.userUpdated AS UserUpdated,
+            gtd.creationDateTime AS CreationDateTime,
+            gtd.startDateTime AS StartDateTime,
+            gtd.endDateTime AS EndDateTime,
+
+            -- GroundTruthEntry
+            gte.groundTruthEntryId AS GroundTruthEntryId,
+            gte.groundTruthId AS GroundTruthId_Entry,
+            gte.response AS Response,
+            gte.requiredValuesJSON AS RequiredValuesJson,
+            gte.rawDataJSON AS RawDataJson,
+            gte.creationDateTime AS CreationDateTime_Entry,
+            gte.startDateTime AS StartDateTime_Entry,
+            gte.endDateTime AS EndDateTime_Entry,
+
+            -- DataQueryDefinition
+            dqd.dataQueryId AS DataQueryId,
+            dqd.groundTruthId AS GroundTruthId_DataQuery,
+            dqd.datastoreType AS DatastoreType,
+            dqd.datastoreName AS DatastoreName,
+            dqd.queryTarget AS QueryTarget,
+            dqd.queryDefinition AS QueryDefinition,
+            dqd.isFullQuery AS IsFullQuery,
+            dqd.requiredPropertiesJSON AS RequiredPropertiesJson,
+            dqd.userCreated AS UserCreated_DataQuery,
+            dqd.userUpdated AS UserUpdated_DataQuery,
+            dqd.creationDateTime AS CreationDateTime_DataQuery,
+            dqd.startDateTime AS StartDateTime_DataQuery,
+            dqd.endDateTime AS EndDateTime_DataQuery,
+
+            -- Comment
+            c.commentId AS CommentId,
+            c.groundTruthId AS GroundTruthId_Comment,
+            c.comment AS CommentText,
+            c.commentDateTime AS CommentDateTime,
+            c.userId AS UserId,
+            c.commentType AS CommentType,
+
+            -- Tag
+            t.tagId AS TagId,
+            t.name AS Name
+
+            FROM [dbo].[GROUND_TRUTH_DEFINITION] gtd
+            LEFT JOIN [dbo].[GROUND_TRUTH_ENTRY] gte ON gtd.groundTruthId = gte.groundTruthId
+            LEFT JOIN [dbo].[DATA_QUERY_DEFINITION] dqd ON gtd.groundTruthId = dqd.groundTruthId
+            LEFT JOIN [dbo].[COMMENT] c ON gtd.groundTruthId = c.groundTruthId
+            LEFT JOIN [dbo].[GROUND_TRUTH_TAG] gtdt ON gtd.groundTruthId = gtdt.groundTruthId
+            LEFT JOIN [dbo].[TAG] t ON gtdt.tagId = t.tagId";
 
         DynamicParameters parameters = new DynamicParameters();
 
