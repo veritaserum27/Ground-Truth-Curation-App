@@ -40,21 +40,6 @@ public class GroundTruthController : ControllerBase
     public async Task<ActionResult<GroundTruthDefinition>> CreateDefinition([FromBody] CreateDefinitionRequest request)
     {
         throw new NotImplementedException();
-        // try
-        // {
-        //     var groundTruthDefinition = await _groundTruthCurationService.CreateGroundTruthDefinitionAsync(
-        //         request.UserQuery,
-        //         request.UserId);
-
-        //     return CreatedAtAction(
-        //         nameof(GetDefinition),
-        //         new { id = groundTruthDefinition.GroundTruthId },
-        //         groundTruthDefinition);
-        // }
-        // catch (Exception ex)
-        // {
-        //     return BadRequest($"Error creating ground truth definition: {ex.Message}");
-        // }
     }
 
     [HttpGet("definitions/{id}")]
@@ -82,24 +67,6 @@ public class GroundTruthController : ControllerBase
     public async Task<ActionResult<GroundTruthEntry>> AddEntry(Guid id, [FromBody] CreateEntryRequest request)
     {
         throw new NotImplementedException();
-        // try
-        // {
-        //     var groundTruthEntry = await _groundTruthCurationService.AddGroundTruthEntryAsync(
-        //         id,
-        //         request.Response,
-        //         request.RequiredValuesJson,
-        //         request.RawDataJson);
-
-        //     return Created($"api/groundtruth/entries/{groundTruthEntry.GroundTruthEntryId}", groundTruthEntry);
-        // }
-        // catch (ArgumentException ex)
-        // {
-        //     return NotFound(ex.Message);
-        // }
-        // catch (Exception ex)
-        // {
-        //     return BadRequest($"Error adding ground truth entry: {ex.Message}");
-        // }
     }
 
     [HttpPut("definitions/{id}/validation-status")]
@@ -108,22 +75,6 @@ public class GroundTruthController : ControllerBase
         [FromBody] UpdateValidationStatusRequest request)
     {
         throw new NotImplementedException();
-        // try
-        // {
-        //     var updatedDefinition = await _groundTruthCurationService.UpdateValidationStatusAsync(
-        //         id,
-        //         request.ValidationStatus,
-        //         request.UserId);
-
-        //     return Ok(updatedDefinition);
-        // }
-        // catch (ArgumentException ex)
-        // {
-        //     return NotFound(ex.Message);
-        // }
-        // catch (Exception ex)
-        // {
-        //     return BadRequest($"Error updating validation status: {ex.Message}");
     }
 }
 
