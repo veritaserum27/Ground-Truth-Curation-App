@@ -1,11 +1,11 @@
 
-import { Eye, FileText, MessageSquare, ChevronDown, Tag as TagIcon, Download } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
-import { useAuth } from '../contexts/AuthContext';
-import type { GroundTruthCategory, GroundTruthStatus } from '../types/index';
-import { ExportModal } from '../components/ExportModal';
+import { ChevronDown, Download, Eye, FileText, MessageSquare, Tag as TagIcon } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from "react-router";
+import { ExportModal } from '../components/ExportModal';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
+import type { GroundTruthCategory, GroundTruthStatus } from '../types/index';
 
 export async function clientLoader() {
   return {
@@ -37,7 +37,8 @@ const getCategoryIcon = (category: GroundTruthCategory) => {
   }
 };
 
-export default function GroundTruthListPage({loaderData}) {
+export default function GroundTruthListPage({ loaderData }) {
+  console.log('Loader Data:', loaderData);
   const { user } = useAuth();
   const {
     categoryFilter,
@@ -160,7 +161,7 @@ export default function GroundTruthListPage({loaderData}) {
                   </div>
 
                   <NavLink
-                  to={`/ground-truths/${gt.id}`}
+                    to={`/ground-truths/${gt.id}`}
                     className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted rounded-md"
                   >
                     <Eye className="w-4 h-4" />
