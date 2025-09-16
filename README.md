@@ -106,19 +106,97 @@ dotnet run --project src/GroundTruthCuration.Api
 
 ### Frontend
 
-TBD - Frontend setup instructions will be added when frontend is implemented.
+The frontend is a Vite + React Router v7 ("react-router" / RSC capable) application located in `frontend/`.
+It uses `pnpm` (lockfile present) but you can substitute `npm` or `yarn` if desired.
 
-1. **Configuration**
+#### 1. Prerequisites
 
-- Review [infra setup](./infra/README.md).
-- Review any `.env.example` or configuration files and create your own `.env` if required.
-- Set up environment variables for database, API keys, or other integrations.
+- Node.js 20+ recommended (features used by Vite 6 and React 18).
+- pnpm installed globally (optional): `npm i -g pnpm`.
 
-1. **Run the Application**
+#### 2. Install Dependencies
 
-- Start backend and frontend services as described in future usage instructions.
+```sh
+cd frontend
+pnpm install   # or: npm install / yarn install
+```
 
-Refer to future documentation for advanced workflows, API usage, and integration details.
+#### 3. Configuration
+
+Environment variables (none strictly required yet) can be added via a `.env` file in `frontend/`.
+Vite exposes variables prefixed with `VITE_` to the client. A starter file is provided:
+
+```sh
+cp frontend/.env.example frontend/.env
+```
+
+Common (planned) variables:
+
+- `VITE_API_BASE_URL`  Base URL for the backend API (e.g. http://localhost:5000 or https://localhost:5001).
+- `VITE_LOG_LEVEL`     Optional log verbosity (e.g. debug|info|warn|error).
+
+If you have not started the backend yet, follow the backend steps first so the API is reachable.
+
+#### 4. Run in Development
+
+From the `frontend/` directory:
+
+```sh
+pnpm dev
+```
+
+This launches the React Router dev server (default port `3000`, auto-opens browser). Adjust the port in `vite.config.ts` if needed.
+
+Access: http://localhost:3000
+
+#### 5. Building for Production
+
+```sh
+pnpm build
+```
+
+The optimized bundle is emitted to `frontend/build/` (configured via `build.outDir` in `vite.config.ts`). Serve that directory with any static file host.
+
+#### 6. Typical Full Stack Workflow
+
+1. Terminal A: run backend API:
+	```sh
+	dotnet run --project backend/src/GroundTruthCuration.Api
+	```
+2. Terminal B: run frontend dev server:
+	```sh
+	cd frontend && pnpm dev
+	```
+3. (Optional) Update `VITE_API_BASE_URL` in `frontend/.env` if the backend runs on a non-default port.
+
+#### 7. Project Structure Highlights
+
+- `src/routes.ts` & generated `.react-router/` directory: route definitions (React Router compiler output).
+- `src/contexts/` holds in-memory mock data (`DataContext.tsx`). No network calls yet—future integration will replace mock data with API requests using the configured base URL.
+- `src/components/ui/` contains reusable UI primitives (largely Radix + Tailwind patterns).
+
+#### 8. Adding API Integration (Future)
+
+When backend endpoints are ready, introduce a lightweight API layer (e.g. `src/lib/api.ts`) that reads `import.meta.env.VITE_API_BASE_URL`. Until then, the app operates entirely on mock data defined in `DataContext`.
+
+#### 9. Linting / Testing (Planned)
+
+Currently no dedicated lint/test scripts are defined. Recommended future additions:
+
+```json
+"scripts": {
+  "lint": "eslint src --ext .ts,.tsx",
+  "preview": "vite preview"
+}
+```
+
+#### 10. Troubleshooting
+
+- Blank page: ensure Node 20+ and reinstall dependencies.
+- Environment variable not showing: confirm it is prefixed with `VITE_` and restart dev server.
+- Port conflict: adjust `server.port` in `vite.config.ts`.
+
+Refer to future documentation for advanced workflows (SSR builds, API auth, deployment) as they are implemented.
 
 ## Usage instructions
 
