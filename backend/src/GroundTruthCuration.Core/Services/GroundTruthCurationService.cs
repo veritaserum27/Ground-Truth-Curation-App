@@ -43,7 +43,7 @@ namespace GroundTruthCuration.Core.Services
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter filter)
+        public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter)
         {
             return await _groundTruthRepository.GetAllGroundTruthDefinitionsAsync(filter);
         }

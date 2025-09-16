@@ -20,6 +20,11 @@ public class GroundTruthController : ControllerBase
     }
 
     [HttpGet("definitions")]
+    /// <summary>
+    /// Retrieves a list of ground truth definitions based on the provided filter. If no filter is provided, returns all.
+    /// </summary>
+    /// <param name="filter">Optional filter criteria for retrieving ground truth definitions.</param>
+    /// <returns>A list of ground truth definitions matching the filter criteria.</returns>
     public async Task<ActionResult<IEnumerable<GroundTruthDefinition>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
     {
         _logger.LogInformation("Fetching ground truth definitions with filter: {@Filter}", filter);
