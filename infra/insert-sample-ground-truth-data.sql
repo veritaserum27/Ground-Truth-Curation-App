@@ -1,7 +1,4 @@
--- Fixed sample data insert script
--- This version uses variables to store generated GUIDs for foreign key relationships
-
--- Declare variables to store the generated GUIDs
+--Declare variables to store the generated GUIDs
 DECLARE @groundTruthId1 UNIQUEIDENTIFIER = NEWID();
 DECLARE @groundTruthId2 UNIQUEIDENTIFIER = NEWID();
 DECLARE @groundTruthId3 UNIQUEIDENTIFIER = NEWID();
@@ -29,83 +26,150 @@ DECLARE @conversationId1 UNIQUEIDENTIFIER = NEWID();
 DECLARE @conversationId2 UNIQUEIDENTIFIER = NEWID();
 
 -- Sample Ground Truth Definitions
-INSERT INTO GROUND_TRUTH_DEFINITION (groundTruthId, userQuery, validationStatus, userCreated, userUpdated) VALUES 
+INSERT INTO GROUND_TRUTH_DEFINITION
+    (groundTruthId, userQuery, validationStatus, userCreated, userUpdated)
+VALUES
     (@groundTruthId1, 'What are the top 5 most common product defects in manufacturing?', 'New, Data Curated', 'user1@company.com', 'user1@company.com'),
     (@groundTruthId2, 'How many support tickets were created last month by priority level?', 'Validated', 'user2@company.com', 'user2@company.com'),
     (@groundTruthId3, 'What is the average resolution time for high-priority customer issues?', 'Pending', 'user1@company.com', 'user3@company.com');
 
 -- Sample Data Query Definitions
-INSERT INTO DATA_QUERY_DEFINITION (dataQueryId, groundTruthId, datastoreType, datastoreName, queryTarget, queryDefinition, isFullQuery, requiredPropertiesJSON, userCreated) VALUES 
+INSERT INTO DATA_QUERY_DEFINITION
+    (dataQueryId, groundTruthId, datastoreType, datastoreName, queryTarget, queryDefinition, isFullQuery, requiredPropertiesJSON, userCreated)
+VALUES
     (@dataQueryId1, @groundTruthId1, 'SQL', 'ManufacturingDataRelDB', 'support_tickets', 'SELECT product_area, COUNT(*) as defect_count FROM support_tickets WHERE (data_loss_flag = 1 OR payment_impact_flag = 1) AND priority = @severity_threshold AND DATEPART(quarter, GETDATE()) = @analysis_quarter GROUP BY product_area ORDER BY defect_count DESC', 1, '["product_area", "defect_count"]', 'user1@company.com'),
     (@dataQueryId2, @groundTruthId2, 'SQL', 'ManufacturingDataRelDB', 'support_tickets', 'SELECT priority, COUNT(*) as ticket_count FROM support_tickets WHERE DATEPART(month, GETDATE()) = DATEPART(month, DATEADD(month, -1, GETDATE())) GROUP BY priority ORDER BY priority_cat', 1, '["priority", "ticket_count"]', 'user2@company.com'),
     (@dataQueryId3, @groundTruthId3, 'CosmosDB', 'ManufacturingDataDocDB', 'repairs', 'SELECT r.repair_type, AVG(r.resolution_time_hours) as avg_resolution_time FROM repairs r WHERE r.priority = ''High'' AND r.status = ''Completed'' AND r.region = @region AND r.created_date >= DateTimeAdd(''day'', -@time_window_days, GetCurrentDateTime()) GROUP BY r.repair_type', 1, '["repair_type", "avg_resolution_time"]', 'user3@company.com');
 
 -- Sample Ground Truth Entries
-INSERT INTO GROUND_TRUTH_ENTRY (groundTruthEntryId, groundTruthId, response, requiredValuesJSON, rawDataJSON) VALUES 
+INSERT INTO GROUND_TRUTH_ENTRY
+    (groundTruthEntryId, groundTruthId, response, requiredValuesJSON, rawDataJSON)
+VALUES
     (@groundTruthEntryId1, @groundTruthId1, 'The top 5 product areas with the most defects (data loss or payment impact) are: 1) Authentication (127 incidents), 2) Payment Processing (89 incidents), 3) Data Management (76 incidents), 4) API Gateway (45 incidents), 5) User Interface (32 incidents)', '["Authentication", "Payment Processing", "Data Management", "API Gateway", "User Interface"]', '[{"product_area": "Authentication", "defect_count": 127}, {"product_area": "Payment Processing", "defect_count": 89}, {"product_area": "Data Management", "defect_count": 76}, {"product_area": "API Gateway", "defect_count": 45}, {"product_area": "User Interface", "defect_count": 32}]'),
     (@groundTruthEntryId2, @groundTruthId2, 'Last month had 1,247 support tickets distributed as follows: High priority (156 tickets), Medium priority (623 tickets), Low priority (468 tickets)', '["High", "Medium", "Low", "156", "623", "468"]', '[{"priority": "High", "ticket_count": 156}, {"priority": "Medium", "ticket_count": 623}, {"priority": "Low", "ticket_count": 468}]'),
     (@groundTruthEntryId3, @groundTruthId3, 'Average resolution time for high-priority repairs by type: Hardware repairs (4.2 hours), Software repairs (2.8 hours), Network repairs (6.1 hours), Security repairs (8.3 hours)', '["Hardware repairs", "Software repairs", "Network repairs", "Security repairs", "4.2", "2.8", "6.1", "8.3"]', '[{"repair_type": "Hardware", "avg_resolution_time": 4.2}, {"repair_type": "Software", "avg_resolution_time": 2.8}, {"repair_type": "Network", "avg_resolution_time": 6.1}, {"repair_type": "Security", "avg_resolution_time": 8.3}]');
 
 -- Sample Context
-INSERT INTO CONTEXT (contextId, groundTruthId, groundTruthEntryId, contextType) VALUES 
+INSERT INTO GROUND_TRUTH_CONTEXT
+    (contextId, groundTruthId, groundTruthEntryId, contextType)
+VALUES
     (@contextId1, @groundTruthId1, @groundTruthEntryId1, 'Product Analysis'),
     (@contextId2, @groundTruthId3, @groundTruthEntryId3, 'Repair System');
 
 -- Sample Context Parameters
-INSERT INTO CONTEXT_PARAMETER (parameterId, contextId, parameterName, parameterValue, dataType) VALUES 
+INSERT INTO CONTEXT_PARAMETER
+    (parameterId, contextId, parameterName, parameterValue, dataType)
+VALUES
     (@parameterId1, @contextId1, 'analysis_quarter', '3', 'int'),
     (@parameterId2, @contextId1, 'severity_threshold', 'High', 'string'),
     (@parameterId3, @contextId2, 'region', 'North America', 'string'),
     (@parameterId4, @contextId2, 'time_window_days', '30', 'int');
 
 -- Sample Comments
-INSERT INTO COMMENT (commentId, groundTruthId, comment, userId, commentType) VALUES 
+INSERT INTO COMMENT
+    (commentId, groundTruthId, comment, userId, commentType)
+VALUES
     (@commentId1, @groundTruthId1, 'This query captures the essential defect patterns but we should consider seasonal variations.', 'reviewer1@company.com', 'Review'),
     (@commentId2, @groundTruthId2, 'Data looks accurate and matches our monthly reporting. Ready for validation.', 'curator1@company.com', 'Curator Note');
 
 -- Sample Conversation
-INSERT INTO CONVERSATION (conversationId, contextId) VALUES 
+INSERT INTO CONVERSATION
+    (conversationId, contextId)
+VALUES
     (@conversationId1, @contextId1),
     (@conversationId2, @contextId2);
 
 -- Sample Ground Truth Definition - Conversation relationships
-INSERT INTO GROUND_TRUTH_DEFINITION_CONVERSATION (conversationId, groundTruthId) VALUES 
+INSERT INTO GROUND_TRUTH_DEFINITION_CONVERSATION
+    (conversationId, groundTruthId)
+VALUES
     (@conversationId1, @groundTruthId1),
     (@conversationId1, @groundTruthId2),
     (@conversationId2, @groundTruthId3);
 
--- Sample Ground Truth - Tag relationships (requires TAG table to be populated first)
-INSERT INTO GROUND_TRUTH_TAG (groundTruthId, tagId, createdBy) VALUES 
-    -- First ground truth entry (manufacturing defects): Draft, Answerable, Product Defect
-    (@groundTruthId1, (SELECT tagId FROM TAG WHERE name = 'Draft'), 'user1@company.com'),
-    (@groundTruthId1, (SELECT tagId FROM TAG WHERE name = 'Answerable'), 'user1@company.com'),
-    (@groundTruthId1, (SELECT tagId FROM TAG WHERE name = 'Product Defect'), 'user1@company.com'),
-    
-    -- Second ground truth entry (support tickets): Validated, Universal, Customer Issue
-    (@groundTruthId2, (SELECT tagId FROM TAG WHERE name = 'Validated'), 'user2@company.com'),
-    (@groundTruthId2, (SELECT tagId FROM TAG WHERE name = 'Universal'), 'user2@company.com'),
-    (@groundTruthId2, (SELECT tagId FROM TAG WHERE name = 'Customer Issue'), 'user2@company.com'),
-    
-    -- Third ground truth entry (resolution time): Answerable, High Priority, Performance
-    (@groundTruthId3, (SELECT tagId FROM TAG WHERE name = 'Answerable'), 'user3@company.com'),
-    (@groundTruthId3, (SELECT tagId FROM TAG WHERE name = 'High Priority'), 'user3@company.com'),
-    (@groundTruthId3, (SELECT tagId FROM TAG WHERE name = 'Performance'), 'user3@company.com');
+INSERT INTO TAG
+    (tagId, name, description)
+VALUES
+    (NEWID(), 'Draft', 'Indicates the ground truth is in draft status'),
+    (NEWID(), 'Validated', 'Indicates the ground truth has been validated'),
+    (NEWID(), 'Answerable', 'Indicates the ground truth is answerable'),
+    (NEWID(), 'Universal', 'Indicates the ground truth is universally applicable'),
+    (NEWID(), 'Unanswerable', 'Indicates the ground truth is unanswerable'),
+    (NEWID(), 'Product Defect', 'Related to product defects'),
+    (NEWID(), 'Customer Issue', 'Related to customer issues'),
+    (NEWID(), 'Performance', 'Related to performance metrics'),
+    (NEWID(), 'High Priority', 'Indicates high priority items');
+
+-- First ground truth entry (manufacturing defects): Draft, Answerable, Product Defect
+-- Tag: Draft
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'user1@company.com'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery = 'What are the top 5 most common product defects in manufacturing?'
+    AND t.name = 'Draft';
+
+-- Tag: Answerable
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'system'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery = 'What are the top 5 most common product defects in manufacturing?'
+    AND t.name = 'Answerable';
+
+-- Tag: Product Defect
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'user1@company.com'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery = 'What are the top 5 most common product defects in manufacturing?'
+    AND t.name = 'Product Defect';
+
+-- Second ground truth entry (support tickets)
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'user2@company.com'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery LIKE '%support tickets%'
+    AND t.name = 'Customer Issue';
+
+-- Third ground truth entry (resolution time)
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'system'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery LIKE '%resolution time%'
+    AND t.name = 'Customer Issue';
 
 -- Display summary of inserted data
-SELECT 'Ground Truth Definitions' as TableName, COUNT(*) as RecordCount FROM GROUND_TRUTH_DEFINITION
+    SELECT 'Ground Truth Definitions' as TableName, COUNT(*) as RecordCount
+    FROM GROUND_TRUTH_DEFINITION
 UNION ALL
-SELECT 'Data Query Definitions', COUNT(*) FROM DATA_QUERY_DEFINITION
-UNION ALL  
-SELECT 'Ground Truth Entries', COUNT(*) FROM GROUND_TRUTH_ENTRY
+    SELECT 'Data Query Definitions', COUNT(*)
+    FROM DATA_QUERY_DEFINITION
 UNION ALL
-SELECT 'Context Records', COUNT(*) FROM CONTEXT
+    SELECT 'Ground Truth Entries', COUNT(*)
+    FROM GROUND_TRUTH_ENTRY
 UNION ALL
-SELECT 'Context Parameters', COUNT(*) FROM CONTEXT_PARAMETER
+    SELECT 'Context Records', COUNT(*)
+    FROM GROUND_TRUTH_CONTEXT
 UNION ALL
-SELECT 'Comments', COUNT(*) FROM COMMENT
+    SELECT 'Context Parameters', COUNT(*)
+    FROM CONTEXT_PARAMETER
 UNION ALL
-SELECT 'Conversations', COUNT(*) FROM CONVERSATION
+    SELECT 'Comments', COUNT(*)
+    FROM COMMENT
 UNION ALL
-SELECT 'GT-Conversation Links', COUNT(*) FROM GROUND_TRUTH_DEFINITION_CONVERSATION
+    SELECT 'Conversations', COUNT(*)
+    FROM CONVERSATION
 UNION ALL
-SELECT 'Ground Truth Tags', COUNT(*) FROM GROUND_TRUTH_TAG;
+    SELECT 'GT-Conversation Links', COUNT(*)
+    FROM GROUND_TRUTH_DEFINITION_CONVERSATION
+UNION ALL
+    SELECT 'Ground Truth Tags', COUNT(*)
+    FROM GROUND_TRUTH_TAG;
