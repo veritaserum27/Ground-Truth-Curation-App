@@ -1,4 +1,5 @@
 
+import { listGroundTruthDefinitions } from '@/services/groundTruthService';
 import { ChevronDown, Download, Eye, FileText, MessageSquare, Tag as TagIcon } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from "react-router";
@@ -8,6 +9,9 @@ import { useData } from '../contexts/DataContext';
 import type { GroundTruthCategory, GroundTruthStatus } from '../types/index';
 
 export async function clientLoader() {
+  const groundTruths = await listGroundTruthDefinitions()
+
+  console.log({ groundTruths })
   return {
     title: "Sample Title"
   }

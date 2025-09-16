@@ -5,6 +5,51 @@
 
   ## Running the code
 
-  Run `npm i` to install the dependencies.
+  Using pnpm (recommended):
 
-  Run `npm run dev` to start the development server.
+  ```sh
+  pnpm install
+  pnpm dev
+  ```
+
+  Or with npm:
+
+  ```sh
+  npm install
+  npm run dev
+  ```
+
+  ## Environment Variable
+  - `VITE_API_BASE_URL` (default http://localhost:5000)
+
+  ## Ground Truth Service
+  The service in `src/services/groundTruthService.ts` interfaces with the backend:
+
+  | Method | Description | Notes |
+  | ------ | ----------- | ----- |
+  | `listGroundTruthDefinitions(filter?)` | Fetch array of definitions | Validated & mapped |
+  | `getGroundTruthDefinition(id)` | Fetch single definition | Validated & mapped |
+  | `createGroundTruthDefinition` | Placeholder (501) | Backend not implemented |
+  | `addGroundTruthEntry` | Placeholder (501) | Backend not implemented |
+  | `updateValidationStatus` | Placeholder (501) | Backend not implemented |
+
+  ### Validation
+  Responses are validated with Zod (`schemas.ts`). Invalid payloads raise an `ApiError` with `status=422` and `issues` describing schema failures.
+
+  ### Example
+  ```ts
+  import { groundTruthService } from '~/services/groundTruthService';
+
+  async function loadDefs() {
+    try {
+      const defs = await groundTruthService.listGroundTruthDefinitions({ validationStatus: 'validated' });
+      console.log(defs);
+    } catch (e: any) {
+      if (e.status === 422) console.error('Schema issues', e.issues);
+    }
+  }
+  ```
+
+  ### Mapping Notes
+  - Backend PascalCase -> frontend camelCase performed in mapper functions.
+  - Placeholder values (category, contexts, etc.) will evolve as backend adds richer fields.
