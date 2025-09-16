@@ -48,7 +48,9 @@ We use three projects to adhere to the [Clean Architecture approach](https://lea
 
 ## Restore & Build Locally
 
-```pwsh
+From the `backend/` folder:
+
+```bash
 dotnet restore GroundTruthCuration.sln
 dotnet build GroundTruthCuration.sln -c Release
 ```
@@ -57,14 +59,14 @@ dotnet build GroundTruthCuration.sln -c Release
 
 From the repo root (or `backend/` folder):
 
-```pwsh
+```bash
 dotnet run --project src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj
 ```
 
 Default ASP.NET binding (if not overridden) is <http://localhost:5000> or <https://localhost:7000>. Our container build exposes port 8080; you can align local dev by setting:
 
-```pwsh
-$env:ASPNETCORE_URLS = 'http://localhost:8080'
+```bash
+export ASPNETCORE_URLS=http://localhost:8080
 dotnet run --project src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj
 ```
 
@@ -72,28 +74,28 @@ dotnet run --project src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj
 
 From repository root (pass the backend folder as build context):
 
-```pwsh
+```bash
 docker build -f backend/Dockerfile -t ground-truth-api:local backend
 docker run --name ground-truth-api --rm -p 8080:8080 ground-truth-api:local
 ```
 
 Already inside `backend/` directory (context is already correct):
 
-```pwsh
+```bash
 docker build -t ground-truth-api:local .
 docker run --name ground-truth-api --rm -p 8080:8080 ground-truth-api:local
 ```
 
 Detached mode & logs:
 
-```pwsh
+```bash
 docker run -d --name ground-truth-api -p 8080:8080 ground-truth-api:local
 docker logs -f ground-truth-api
 ```
 
 Stop & cleanup (if detached without --rm):
 
-```pwsh
+```bash
 docker rm -f ground-truth-api
 ```
 
@@ -101,24 +103,22 @@ docker rm -f ground-truth-api
 
 Adjust path based on actual controller route (example assumes `HelloController`):
 
-```pwsh
+```bash
 curl http://localhost:8080/hello
 ```
 
 ## GitHub Workflows Summary
 
-| Workflow                          | Purpose                                                   | Trigger                                       |
-| --------------------------------- | --------------------------------------------------------- | --------------------------------------------- |
-| `ci-backend.yml`                  | Restore, build, Docker build (no push, no tests)          | Pull Requests (main, develop) + manual        |
-| `deploy-backend-containerapp.yml` | Reusable: build & push image + update Azure Container App | Called by future orchestrator (merge to main) |
-| `markdown-lint.yml`               | Lints Markdown docs                                       | PR / push (depending config)                  |
-
-Deprecated placeholders (scheduled for deletion): `deprecated-build-backend`, `deprecated-cd-backend-appservice`, `deprecated-deploy-backend-appservice`.
+| Workflow                          | Purpose                                                                   | Trigger                                       |
+| --------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------- |
+| `ci-backend.yml`                  | Restore, build, Docker build (no push, no tests)                          | Pull Requests (main, develop) + manual        |
+| `deploy-backend-containerapp.yml` | Once implemented, it will build & push image + update Azure Container App | Called by future orchestrator (merge to main) |
+| `markdown-lint.yml`               | Lints Markdown docs                                                       | PR / push (depending config)                  |
 
 ## Expected Container App Deployment Flow (Current State)
 
 1. CI validates build + Docker image (no tests) on PR via `ci-backend.yml`.
-2. On merge to `main` (or a future orchestrator workflow), call the reusable `deploy-backend-containerapp.yml` passing parameters:
+2. On merge to `main` (or a future orchestrator workflow), call a `deploy-backend-containerapp.yml` passing parameters:
 
    Parameters:
 
@@ -134,9 +134,9 @@ Deprecated placeholders (scheduled for deletion): `deprecated-build-backend`, `d
 Use immutable commit-based tags: `myregistry.azurecr.io/ground-truth-api:sha-<short-sha>`.
 Optional moving tag (e.g. `:main`) for quick rollback reference.
 
-## Rollback (Manual)
+## Rollback (Manual - in the Future)
 
-```pwsh
+```bash
 az acr repository show-tags -n <ACR_NAME> --repository ground-truth-api --top 10 --orderby time_desc
 az containerapp update --name <APP_NAME> --resource-group <RG> --image myregistry.azurecr.io/ground-truth-api:sha-<previous-sha>
 ```
@@ -145,7 +145,7 @@ az containerapp update --name <APP_NAME> --resource-group <RG> --image myregistr
 
 1. Create a test project:
 
-   ```pwsh
+   ```bash
    dotnet new xunit -n GroundTruthCuration.Core.Tests -o backend/tests/GroundTruthCuration.Core.Tests
    dotnet sln backend/GroundTruthCuration.sln add backend/tests/GroundTruthCuration.Core.Tests/GroundTruthCuration.Core.Tests.csproj
    ```
@@ -162,11 +162,11 @@ az containerapp update --name <APP_NAME> --resource-group <RG> --image myregistr
    }
    ```
 
-3. Update `ci-backend.yml` to re-enable a `dotnet test` step before the Docker build.
+3. Update `ci-backend.yml` to enable a `dotnet test` step before the Docker build.
 
 Run tests locally:
 
-```pwsh
+```bash
 dotnet test GroundTruthCuration.sln --no-build --verbosity minimal
 ```
 
@@ -180,7 +180,7 @@ Implemented minimal endpoints for fast container readiness checks:
 
 Quick manual checks:
 
-```pwsh
+```bash
 curl http://localhost:8080/
 curl http://localhost:8080/healthz
 ```
@@ -197,7 +197,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 Use `scripts/local-ci-backend.ps1` to mimic the GitHub Actions build (restore,
 build, Docker image build with commit SHA tagging logic).
 
-```pwsh
+```bash
 pwsh ./scripts/local-ci-backend.ps1
 ```
 
@@ -217,7 +217,3 @@ pwsh ./scripts/local-ci-backend.ps1
 - Move to OIDC-based Azure login (remove stored SP secret).
 - Key Vault for secrets and managed identity for downstream services.
 - Add coverage reporting & quality gates.
-
----
-
-For any questions during the hack, drop them in the team chat with a link to the relevant file path.
