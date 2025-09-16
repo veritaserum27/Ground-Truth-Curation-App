@@ -21,6 +21,6 @@ namespace GroundTruthCuration.Core.DTOs
         /// Gets or sets the date range to filter ground truth definitions by creation date.
         /// </summary>
         public (DateTime? Start, DateTime? End)? CreatedDateRange { get; set; }
-        public GroundTruthContext? GroundTruthContext { get; set; }
+        public string? ContextId { get; set; }
     }
 }

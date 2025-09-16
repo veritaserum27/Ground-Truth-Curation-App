@@ -10,16 +10,19 @@ namespace GroundTruthCuration.Api.Controllers;
 [Route("api/[controller]")]
 public class GroundTruthController : ControllerBase
 {
+    private readonly ILogger<GroundTruthController> _logger;
     private readonly IGroundTruthCurationService _groundTruthCurationService;
 
-    public GroundTruthController(IGroundTruthCurationService groundTruthCurationService)
+    public GroundTruthController(ILogger<GroundTruthController> logger, IGroundTruthCurationService groundTruthCurationService)
     {
-        _groundTruthCurationService = groundTruthCurationService;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _groundTruthCurationService = groundTruthCurationService ?? throw new ArgumentNullException(nameof(groundTruthCurationService));
     }
 
     [HttpGet("definitions")]
     public async Task<ActionResult<IEnumerable<GroundTruthDefinition>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
     {
+        _logger.LogInformation("Fetching ground truth definitions with filter: {@Filter}", filter);
         try
         {
             var definitions = await _groundTruthCurationService.GetAllGroundTruthDefinitionsAsync(filter);
@@ -27,11 +30,12 @@ public class GroundTruthController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message); // 400
+            _logger.LogError(ex, "Error fetching ground truth definitions");
+            return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            // Optionally log ex
+            _logger.LogError(ex, "Unexpected error fetching ground truth definitions");
             return StatusCode(500, $"Internal server error: {ex.Message}"); // 500
         }
     }
