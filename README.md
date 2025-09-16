@@ -90,6 +90,14 @@ cd Ground-Truth-Curation-App
 
 ### Backend (C# .NET 8)
 
+#### App Settings
+
+1. Copy [./backend/src/GroundTruthCuration.API/appsettings.json](./backend/src/GroundTruthCuration.API/appsettings.json) as `appsettings.Development.json`.
+1. Replace `server_name` with the acutal SQL Server name and `your_username@your_domain.com` with your Entra ID email associated with the Azure resource group.
+1. Save.
+
+#### Running Locally
+
 ```sh
 # Navigate to the backend directory
 cd backend

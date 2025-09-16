@@ -10,7 +10,6 @@ public class GroundTruthDefinition
     public DateTime CreationDateTime { get; set; }
     public DateTime StartDateTime { get; set; }
     public DateTime EndDateTime { get; set; }
-    
     public ICollection<GroundTruthEntry> GroundTruthEntries { get; set; } = new List<GroundTruthEntry>();
     public ICollection<DataQueryDefinition> DataQueryDefinitions { get; set; } = new List<DataQueryDefinition>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
