@@ -1,0 +1,30 @@
+### Submit a new export job
+POST https://localhost:5001/api/jobs
+Content-Type: application/json
+
+{
+  "type": "Export"
+}
+
+### Submit a data query execution job
+POST https://localhost:5001/api/jobs
+Content-Type: application/json
+
+{
+  "type": "DataQueryExecution"
+}
+
+### Get job status
+GET https://localhost:5001/api/jobs/{{jobId}}
+
+### List all jobs
+GET https://localhost:5001/api/jobs
+
+### List running or queued jobs
+GET https://localhost:5001/api/jobs?status=Queued&status=Running
+
+### Attempt cancellation
+DELETE https://localhost:5001/api/jobs/{{jobId}}
+
+### Fetch job result
+GET https://localhost:5001/api/jobs/{{jobId}}/result

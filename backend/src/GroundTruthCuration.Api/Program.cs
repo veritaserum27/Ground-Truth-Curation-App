@@ -1,6 +1,8 @@
 using GroundTruthCuration.Core;
 using GroundTruthCuration.Core.Interfaces;
 using GroundTruthCuration.Core.Services;
+using GroundTruthCuration.Infrastructure.Processing;
+using GroundTruthCuration.Infrastructure.Queues;
 using GroundTruthCuration.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +23,13 @@ builder.Services.AddSingleton<IGroundTruthEntryRepository, InMemoryGroundTruthEn
 
 // Core layer (domain services) - depends on abstractions (interfaces)
 builder.Services.AddScoped<IGroundTruthCurationService, GroundTruthCurationService>();
+
+// Background job processing registrations
+builder.Services.AddSingleton<IBackgroundJobRepository, InMemoryBackgroundJobRepository>();
+builder.Services.AddSingleton<IBackgroundJobQueue, ChannelBackgroundJobQueue>();
+builder.Services.AddSingleton<IBackgroundJobExecutor, BackgroundJobExecutor>();
+builder.Services.AddScoped<IBackgroundJobService, BackgroundJobService>();
+builder.Services.AddHostedService<BackgroundJobProcessor>();
 
 var app = builder.Build();
 
