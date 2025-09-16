@@ -105,12 +105,6 @@ Adjust path based on actual controller route (example assumes `HelloController`)
 curl http://localhost:8080/hello
 ```
 
-## Current Test Status
-
-Tests are temporarily removed during the hackathon to optimize iteration
-speed. CI intentionally skips any test phase. See "Re‑introducing Tests"
-below when you're ready to add them back.
-
 ## GitHub Workflows Summary
 
 | Workflow                          | Purpose                                                   | Trigger                                       |
@@ -216,7 +210,7 @@ pwsh ./scripts/local-ci-backend.ps1
 | Tests skipped                 | No test project      | Confirm test csproj added to solution & CI updated                      |
 | Rollback needed               | Bad deploy           | Use previous commit image tag via `az containerapp update`              |
 
-## Roadmap (Post-Hackathon)
+## TODOS (Post-Hackathon?)
 
 - Add Docker `HEALTHCHECK` instruction (endpoints already exist).
 - Add integration tests using `WebApplicationFactory`.
