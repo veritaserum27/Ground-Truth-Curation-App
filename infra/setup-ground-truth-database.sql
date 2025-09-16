@@ -20,16 +20,16 @@ Execute the following SQL scripts in this exact order:
 PRINT 'Ground Truth Curation database setup complete!';
 
 -- Verify table creation
-SELECT 
-    TABLE_SCHEMA,
-    TABLE_NAME,
-    TABLE_TYPE
-FROM INFORMATION_SCHEMA.TABLES 
+SELECT
+   TABLE_SCHEMA,
+   TABLE_NAME,
+   TABLE_TYPE
+FROM INFORMATION_SCHEMA.TABLES
 WHERE TABLE_NAME IN (
     'GROUND_TRUTH_DEFINITION',
     'GROUND_TRUTH_ENTRY', 
     'DATA_QUERY_DEFINITION',
-    'CONTEXT',
+    'GROUND_TRUTH_CONTEXT',
     'CONTEXT_PARAMETER',
     'COMMENT',
     'TAG',
