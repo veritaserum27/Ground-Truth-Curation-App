@@ -1,15 +1,23 @@
+
 import { Eye, FileText, MessageSquare, ChevronDown, Tag as TagIcon, Download } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { GroundTruthCategory, GroundTruthStatus } from '../types';
-import { ExportModal } from './ExportModal';
+import type { GroundTruthCategory, GroundTruthStatus } from '../types/index';
+import { ExportModal } from '../components/ExportModal';
 import { useState } from 'react';
+import { NavLink } from "react-router";
+
+export async function clientLoader() {
+  return {
+    title: "Sample Title"
+  }
+}
 
 // Helper functions
-const formatCategory = (category: GroundTruthCategory) => 
+const formatCategory = (category: GroundTruthCategory) =>
   category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-const formatStatus = (status: GroundTruthStatus) => 
+const formatStatus = (status: GroundTruthStatus) =>
   status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
 const getStatusColor = (status: GroundTruthStatus) => {
@@ -29,7 +37,7 @@ const getCategoryIcon = (category: GroundTruthCategory) => {
   }
 };
 
-export const GroundTruthList = () => {
+export default function GroundTruthListPage({loaderData}) {
   const { user } = useAuth();
   const {
     categoryFilter,
@@ -47,7 +55,6 @@ export const GroundTruthList = () => {
 
   const filteredGroundTruths = getFilteredGroundTruths();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-
   return (
     <div className="space-y-6">
       <div className="flex gap-4 items-center">
@@ -57,11 +64,11 @@ export const GroundTruthList = () => {
             {filteredGroundTruths.length} of {groundTruths.length} items
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <div className="relative">
-            <select 
-              value={categoryFilter} 
+            <select
+              value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as GroundTruthCategory | 'all')}
               className="w-48 p-3 border rounded-md bg-white appearance-none cursor-pointer pr-10"
             >
@@ -72,10 +79,10 @@ export const GroundTruthList = () => {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
-          
+
           <div className="relative">
-            <select 
-              value={statusFilter} 
+            <select
+              value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as GroundTruthStatus | 'all')}
               className="w-48 p-3 border rounded-md bg-white appearance-none cursor-pointer pr-10"
             >
@@ -89,8 +96,8 @@ export const GroundTruthList = () => {
           </div>
 
           <div className="relative">
-            <select 
-              value={tagFilter} 
+            <select
+              value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value as string | 'all')}
               className="w-48 p-3 border rounded-md bg-white appearance-none cursor-pointer pr-10"
             >
@@ -144,27 +151,27 @@ export const GroundTruthList = () => {
                   </span>
                 </div>
               </div>
-              
+
               <div className="px-6 pb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span>{gt.generatedResponses.length} answers</span>
                     <span>{gt.reviews.length} reviews</span>
                   </div>
-                  
-                  <button 
-                    onClick={() => setSelectedGroundTruth(gt.id)}
+
+                  <NavLink
+                  to={`/ground-truths/${gt.id}`}
                     className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted rounded-md"
                   >
                     <Eye className="w-4 h-4" />
                     View Details
-                  </button>
+                  </NavLink>
                 </div>
               </div>
             </div>
           );
         })}
-        
+
         {filteredGroundTruths.length === 0 && (
           <div className="bg-white rounded-lg border shadow">
             <div className="text-center py-8">
@@ -188,9 +195,9 @@ export const GroundTruthList = () => {
       )}
 
       {isExportModalOpen && (
-        <ExportModal 
-          isOpen={isExportModalOpen} 
-          onClose={() => setIsExportModalOpen(false)} 
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
         />
       )}
     </div>

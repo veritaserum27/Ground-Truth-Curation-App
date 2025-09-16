@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, X, Tag as TagIcon } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Tag } from '../types';
+import type { Tag } from "../types/index";
 
 interface TagManagerProps {
   selectedTags: string[];
@@ -30,7 +30,7 @@ export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: Tag
 
   const handleToggleTag = (tagId: string) => {
     if (disabled) return;
-    
+
     if (selectedTags.includes(tagId)) {
       onTagsChange(selectedTags.filter(id => id !== tagId));
     } else {
@@ -99,7 +99,7 @@ export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: Tag
         <TagIcon className="w-4 h-4 text-muted-foreground" />
         <label>Tags</label>
       </div>
-      
+
       {/* Selected Tags Section */}
       {selectedTagsData.length > 0 && (
         <div className="space-y-2">
@@ -130,7 +130,7 @@ export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: Tag
           </div>
         </div>
       )}
-      
+
       {/* Available Tags Section */}
       {!disabled && unselectedTags.length > 0 && (
         <div className="space-y-2">
@@ -151,7 +151,7 @@ export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: Tag
           </div>
         </div>
       )}
-      
+
       {/* Add New Tag Section */}
       {!disabled && (
         <div className="space-y-2">
@@ -191,7 +191,7 @@ export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: Tag
           )}
         </div>
       )}
-      
+
       {/* Summary */}
       {selectedTags.length > 0 && (
         <div className="text-sm text-muted-foreground">

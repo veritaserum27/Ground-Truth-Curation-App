@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { GroundTruth, GroundTruthCategory, GroundTruthStatus, Review, Context, DataQueryDefinition, DataStoreType, Tag, Parameter } from '../types';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import type { GroundTruth, GroundTruthCategory, GroundTruthStatus, Review, Context, DataQueryDefinition, DataStoreType, Tag, Parameter } from '../types';
 
 interface DataContextType {
   groundTruths: GroundTruth[];
@@ -10,18 +10,18 @@ interface DataContextType {
   tagFilter: string | 'all';
   isEditing: boolean;
   editForm: Partial<GroundTruth>;
-  
+
   // Actions
   setSelectedGroundTruth: (id: string | null) => void;
   setCategoryFilter: (filter: GroundTruthCategory | 'all') => void;
   setStatusFilter: (filter: GroundTruthStatus | 'all') => void;
   setTagFilter: (filter: string | 'all') => void;
   setIsEditing: (editing: boolean) => void;
-  setEditForm: (form: Partial<GroundTruth>) => void;
+  setEditForm: React.Dispatch<React.SetStateAction<Partial<GroundTruth>>>;
   updateGroundTruth: (id: string, updates: Partial<GroundTruth>) => void;
   addReview: (groundTruthId: string, review: Omit<Review, 'id' | 'timestamp'>) => void;
   addTag: (tag: Omit<Tag, 'id' | 'createdAt'>) => void;
-  
+
   // Helper functions
   getSelectedGroundTruth: () => GroundTruth | undefined;
   getFilteredGroundTruths: () => GroundTruth[];
@@ -121,7 +121,7 @@ const mockData: GroundTruth[] = [
           "description": "Optimize database indexes and clean up old data"
         },
         {
-          "name": "Security Updates", 
+          "name": "Security Updates",
           "description": "Apply latest security patches and updates"
         },
         {
@@ -410,7 +410,7 @@ ORDER BY m.next_maintenance_due ASC;`,
                 "next_maintenance_due": "2024-01-20"
               },
               {
-                "machine_id": "MACH-A-001", 
+                "machine_id": "MACH-A-001",
                 "name": "HVAC System",
                 "last_maintenance": "2023-11-05",
                 "next_maintenance_due": "2024-02-05"
@@ -444,7 +444,7 @@ ORDER BY m.next_maintenance_due ASC;`,
                   },
                   {
                     "id": "MACH-A-005",
-                    "name": "Backup Generator", 
+                    "name": "Backup Generator",
                     "maintenanceSchedule": {
                       "nextDue": "2024-01-20T00:00:00Z",
                       "overdue": true
@@ -547,14 +547,14 @@ LIMIT @maxResults;`,
     "measurement_time": "2024-01-15T08:30:00Z"
   },
   {
-    "equipment_id": "H-205", 
+    "equipment_id": "H-205",
     "name": "HVAC System H-205",
     "performance_score": 94.8,
     "measurement_time": "2024-01-15T09:15:00Z"
   },
   {
     "equipment_id": "G-102",
-    "name": "Generator G-102", 
+    "name": "Generator G-102",
     "performance_score": 92.1,
     "measurement_time": "2024-01-15T07:45:00Z"
   }
@@ -590,7 +590,7 @@ export const DataProvider = ({ children }: DataProviderProps) => {
   };
 
   const updateGroundTruth = (id: string, updates: Partial<GroundTruth>) => {
-    setGroundTruths(prev => prev.map(gt => 
+    setGroundTruths(prev => prev.map(gt =>
       gt.id === id ? { ...gt, ...updates, updatedAt: new Date() } : gt
     ));
   };
@@ -602,8 +602,8 @@ export const DataProvider = ({ children }: DataProviderProps) => {
       timestamp: new Date()
     };
 
-    setGroundTruths(prev => prev.map(gt => 
-      gt.id === groundTruthId 
+    setGroundTruths(prev => prev.map(gt =>
+      gt.id === groundTruthId
         ? { ...gt, reviews: [...gt.reviews, newReview], updatedAt: new Date() }
         : gt
     ));

@@ -1,10 +1,10 @@
 
   import { defineConfig } from 'vite';
-  import react from '@vitejs/plugin-react-swc';
+  import { reactRouter } from '@react-router/dev/vite'
   import path from 'path';
 
   export default defineConfig({
-    plugins: [react()],
+    plugins: [reactRouter()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
