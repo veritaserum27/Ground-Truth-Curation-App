@@ -80,6 +80,7 @@ erDiagram
     TAG {
         UUID tagId PK
         string name
+        string description
     }
     CONVERSATION {
         UUID conversationId PK

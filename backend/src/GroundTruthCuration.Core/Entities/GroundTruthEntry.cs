@@ -10,6 +10,4 @@ public class GroundTruthEntry
     public DateTime CreationDateTime { get; set; }
     public DateTime StartDateTime { get; set; }
     public DateTime EndDateTime { get; set; }
-    
-    public GroundTruthDefinition GroundTruthDefinition { get; set; } = null!;
 }

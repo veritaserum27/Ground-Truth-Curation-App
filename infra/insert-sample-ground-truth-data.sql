@@ -1,7 +1,4 @@
--- Fixed sample data insert script
--- This version uses variables to store generated GUIDs for foreign key relationships
-
--- Declare variables to store the generated GUIDs
+--Declare variables to store the generated GUIDs
 DECLARE @groundTruthId1 UNIQUEIDENTIFIER = NEWID();
 DECLARE @groundTruthId2 UNIQUEIDENTIFIER = NEWID();
 DECLARE @groundTruthId3 UNIQUEIDENTIFIER = NEWID();
@@ -90,42 +87,64 @@ VALUES
     (@conversationId1, @groundTruthId2),
     (@conversationId2, @groundTruthId3);
 
--- Sample Ground Truth - Tag relationships (requires TAG table to be populated first)
+INSERT INTO TAG
+    (tagId, name, description)
+VALUES
+    (NEWID(), 'Draft', 'Indicates the ground truth is in draft status'),
+    (NEWID(), 'Validated', 'Indicates the ground truth has been validated'),
+    (NEWID(), 'Answerable', 'Indicates the ground truth is answerable'),
+    (NEWID(), 'Universal', 'Indicates the ground truth is universally applicable'),
+    (NEWID(), 'Unanswerable', 'Indicates the ground truth is unanswerable'),
+    (NEWID(), 'Product Defect', 'Related to product defects'),
+    (NEWID(), 'Customer Issue', 'Related to customer issues'),
+    (NEWID(), 'Performance', 'Related to performance metrics'),
+    (NEWID(), 'High Priority', 'Indicates high priority items');
+
+-- First ground truth entry (manufacturing defects): Draft, Answerable, Product Defect
+-- Tag: Draft
 INSERT INTO GROUND_TRUTH_TAG
     (groundTruthId, tagId, createdBy)
-VALUES
-    -- First ground truth entry (manufacturing defects): Draft, Answerable, Product Defect
-    (@groundTruthId1, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Draft'), 'user1@company.com'),
-    (@groundTruthId1, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Answerable'), 'user1@company.com'),
-    (@groundTruthId1, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Product Defect'), 'user1@company.com'),
+SELECT g.groundTruthId, t.tagId, 'user1@company.com'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery = 'What are the top 5 most common product defects in manufacturing?'
+    AND t.name = 'Draft';
 
-    -- Second ground truth entry (support tickets): Validated, Universal, Customer Issue
-    (@groundTruthId2, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Validated'), 'user2@company.com'),
-    (@groundTruthId2, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Universal'), 'user2@company.com'),
-    (@groundTruthId2, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Customer Issue'), 'user2@company.com'),
+-- Tag: Answerable
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'system'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery = 'What are the top 5 most common product defects in manufacturing?'
+    AND t.name = 'Answerable';
 
-    -- Third ground truth entry (resolution time): Answerable, High Priority, Performance
-    (@groundTruthId3, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Answerable'), 'user3@company.com'),
-    (@groundTruthId3, (SELECT tagId
-        FROM TAG
-        WHERE name = 'High Priority'), 'user3@company.com'),
-    (@groundTruthId3, (SELECT tagId
-        FROM TAG
-        WHERE name = 'Performance'), 'user3@company.com');
+-- Tag: Product Defect
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'user1@company.com'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery = 'What are the top 5 most common product defects in manufacturing?'
+    AND t.name = 'Product Defect';
+
+-- Second ground truth entry (support tickets)
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'user2@company.com'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery LIKE '%support tickets%'
+    AND t.name = 'Customer Issue';
+
+-- Third ground truth entry (resolution time)
+INSERT INTO GROUND_TRUTH_TAG
+    (groundTruthId, tagId, createdBy)
+SELECT g.groundTruthId, t.tagId, 'system'
+FROM GROUND_TRUTH_DEFINITION g
+    CROSS JOIN TAG t
+WHERE g.userQuery LIKE '%resolution time%'
+    AND t.name = 'Customer Issue';
 
 -- Display summary of inserted data
     SELECT 'Ground Truth Definitions' as TableName, COUNT(*) as RecordCount

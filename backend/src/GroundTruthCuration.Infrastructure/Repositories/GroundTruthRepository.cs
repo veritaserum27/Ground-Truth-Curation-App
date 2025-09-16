@@ -40,59 +40,55 @@ public class GroundTruthRepository : IGroundTruthRepository
     public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter filter)
     {
         string baseSql = @"SELECT
-            -- GroundTruthDefinition
-            gtd.groundTruthId AS GroundTruthId,
-            gtd.userQuery AS UserQuery,
-            gtd.validationStatus AS ValidationStatus,
-            gtd.userCreated AS UserCreated,
-            gtd.userUpdated AS UserUpdated,
-            gtd.creationDateTime AS CreationDateTime,
-            gtd.startDateTime AS StartDateTime,
-            gtd.endDateTime AS EndDateTime,
+        gtd.groundTruthId AS GroundTruthId,
+        gtd.userQuery AS UserQuery,
+        gtd.validationStatus AS ValidationStatus,
+        gtd.userCreated AS UserCreated,
+        gtd.userUpdated AS UserUpdated,
+        gtd.creationDateTime AS CreationDateTime,
+        gtd.startDateTime AS StartDateTime,
+        gtd.endDateTime AS EndDateTime,
 
-            -- GroundTruthEntry
-            gte.groundTruthEntryId AS GroundTruthEntryId,
-            gte.groundTruthId AS GroundTruthId_Entry,
-            gte.response AS Response,
-            gte.requiredValuesJSON AS RequiredValuesJson,
-            gte.rawDataJSON AS RawDataJson,
-            gte.creationDateTime AS CreationDateTime_Entry,
-            gte.startDateTime AS StartDateTime_Entry,
-            gte.endDateTime AS EndDateTime_Entry,
+        gte.groundTruthEntryId AS GroundTruthEntryId,
+        gte.groundTruthId AS GroundTruthId_Entry,
+        gte.response AS Response,
+        gte.requiredValuesJSON AS RequiredValuesJson,
+        gte.rawDataJSON AS RawDataJson,
+        gte.creationDateTime AS CreationDateTime_Entry,
+        gte.startDateTime AS StartDateTime_Entry,
+        gte.endDateTime AS EndDateTime_Entry,
 
-            -- DataQueryDefinition
-            dqd.dataQueryId AS DataQueryId,
-            dqd.groundTruthId AS GroundTruthId_DataQuery,
-            dqd.datastoreType AS DatastoreType,
-            dqd.datastoreName AS DatastoreName,
-            dqd.queryTarget AS QueryTarget,
-            dqd.queryDefinition AS QueryDefinition,
-            dqd.isFullQuery AS IsFullQuery,
-            dqd.requiredPropertiesJSON AS RequiredPropertiesJson,
-            dqd.userCreated AS UserCreated_DataQuery,
-            dqd.userUpdated AS UserUpdated_DataQuery,
-            dqd.creationDateTime AS CreationDateTime_DataQuery,
-            dqd.startDateTime AS StartDateTime_DataQuery,
-            dqd.endDateTime AS EndDateTime_DataQuery,
+        dqd.dataQueryId AS DataQueryId,
+        dqd.groundTruthId AS GroundTruthId_DataQuery,
+        dqd.datastoreType AS DatastoreType,
+        dqd.datastoreName AS DatastoreName,
+        dqd.queryTarget AS QueryTarget,
+        dqd.queryDefinition AS QueryDefinition,
+        dqd.isFullQuery AS IsFullQuery,
+        dqd.requiredPropertiesJSON AS RequiredPropertiesJson,
+        dqd.userCreated AS UserCreated_DataQuery,
+        dqd.userUpdated AS UserUpdated_DataQuery,
+        dqd.creationDateTime AS CreationDateTime_DataQuery,
+        dqd.startDateTime AS StartDateTime_DataQuery,
+        dqd.endDateTime AS EndDateTime_DataQuery,
 
-            -- Comment
-            c.commentId AS CommentId,
-            c.groundTruthId AS GroundTruthId_Comment,
-            c.comment AS CommentText,
-            c.commentDateTime AS CommentDateTime,
-            c.userId AS UserId,
-            c.commentType AS CommentType,
+        c.commentId AS CommentId,
+        c.groundTruthId AS GroundTruthId_Comment,
+        c.comment AS CommentText,
+        c.commentDateTime AS CommentDateTime,
+        c.userId AS UserId,
+        c.commentType AS CommentType,
 
-            -- Tag
-            t.tagId AS TagId,
-            t.name AS Name
+        t.tagId AS TagId,
+        t.name AS Name,
+        t.description AS Description
 
-            FROM [dbo].[GROUND_TRUTH_DEFINITION] gtd
-            LEFT JOIN [dbo].[GROUND_TRUTH_ENTRY] gte ON gtd.groundTruthId = gte.groundTruthId
-            LEFT JOIN [dbo].[DATA_QUERY_DEFINITION] dqd ON gtd.groundTruthId = dqd.groundTruthId
-            LEFT JOIN [dbo].[COMMENT] c ON gtd.groundTruthId = c.groundTruthId
-            LEFT JOIN [dbo].[GROUND_TRUTH_TAG] gtdt ON gtd.groundTruthId = gtdt.groundTruthId
-            LEFT JOIN [dbo].[TAG] t ON gtdt.tagId = t.tagId";
+        FROM [dbo].[GROUND_TRUTH_DEFINITION] gtd
+        LEFT JOIN [dbo].[GROUND_TRUTH_ENTRY] gte ON gtd.groundTruthId = gte.groundTruthId
+        LEFT JOIN [dbo].[DATA_QUERY_DEFINITION] dqd ON gtd.groundTruthId = dqd.groundTruthId
+        LEFT JOIN [dbo].[COMMENT] c ON gtd.groundTruthId = c.groundTruthId
+        LEFT JOIN [dbo].[GROUND_TRUTH_TAG] gtdt ON gtd.groundTruthId = gtdt.groundTruthId
+        LEFT JOIN [dbo].[TAG] t ON gtdt.tagId = t.tagId";
 
         DynamicParameters parameters = new DynamicParameters();
 
@@ -132,8 +128,45 @@ public class GroundTruthRepository : IGroundTruthRepository
         {
             try
             {
-                var results = await connection.QueryAsync<GroundTruthDefinition>(baseSql, parameters);
-                return results;
+                var groundTruthDict = new Dictionary<Guid, GroundTruthDefinition>();
+
+                var results = await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthDefinition>(
+                    baseSql,
+                    (gtd, entry, dq, comment, tag) =>
+                    {
+                        if (!groundTruthDict.TryGetValue(gtd.GroundTruthId, out var groundTruth))
+                        {
+                            groundTruth = gtd;
+                            groundTruth.GroundTruthEntries = new List<GroundTruthEntry>();
+                            groundTruth.DataQueryDefinitions = new List<DataQueryDefinition>();
+                            groundTruth.Comments = new List<Comment>();
+                            groundTruth.Tags = new List<Tag>();
+                            groundTruthDict.Add(groundTruth.GroundTruthId, groundTruth);
+                        }
+
+                        if (entry != null && entry.GroundTruthEntryId != Guid.Empty && !groundTruth.GroundTruthEntries.Any(e => e.GroundTruthEntryId == entry.GroundTruthEntryId))
+                        {
+                            groundTruth.GroundTruthEntries.Add(entry);
+                        }
+                        if (dq != null && dq.DataQueryId != Guid.Empty && !groundTruth.DataQueryDefinitions.Any(d => d.DataQueryId == dq.DataQueryId))
+                        {
+                            groundTruth.DataQueryDefinitions.Add(dq);
+                        }
+                        if (comment != null && comment.CommentId != Guid.Empty && !groundTruth.Comments.Any(c => c.CommentId == comment.CommentId))
+                        {
+                            groundTruth.Comments.Add(comment);
+                        }
+                        if (tag != null && tag.TagId != Guid.Empty && !groundTruth.Tags.Any(tg => tg.TagId == tag.TagId))
+                        {
+                            groundTruth.Tags.Add(tag);
+                        }
+
+                        return groundTruth;
+                    },
+                    splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId"
+                );
+
+                return groundTruthDict.Values;
             }
             catch (Exception ex)
             {
