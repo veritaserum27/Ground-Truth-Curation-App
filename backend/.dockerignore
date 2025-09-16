@@ -1,0 +1,26 @@
+# Exclude build outputs and temporary files to keep image context small
+bin/
+obj/
+**/bin/
+**/obj/
+
+# User-specific files
+*.user
+*.suo
+*.swp
+
+# IDE / tooling
+.vscode/
+.idea/
+*.iml
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+
+# Other
+Dockerfile
+.dockerignore
