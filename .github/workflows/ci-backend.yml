@@ -21,6 +21,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
           cache: true
+          cache-dependency-path: 'backend/src/*/packages.lock.json'
 
       - name: Restore
         run: dotnet restore backend/GroundTruthCuration.sln
