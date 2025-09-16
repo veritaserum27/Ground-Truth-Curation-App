@@ -20,6 +20,11 @@ public class GroundTruthRepository : IGroundTruthRepository
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
         _connectionString = _configuration.GetConnectionString("GroundTruthConnectionString");
+
+        if (string.IsNullOrWhiteSpace(_connectionString))
+        {
+            throw new InvalidOperationException("The connection string 'GroundTruthConnectionString' was not found in the configuration.");
+        }
     }
 
     public Task<GroundTruthDefinition> AddGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition)
@@ -50,30 +55,30 @@ public class GroundTruthRepository : IGroundTruthRepository
         gtd.endDateTime AS EndDateTime,
 
         gte.groundTruthEntryId AS GroundTruthEntryId,
-        gte.groundTruthId AS GroundTruthId_Entry,
+        gte.groundTruthId AS GroundTruthId,
         gte.response AS Response,
         gte.requiredValuesJSON AS RequiredValuesJson,
         gte.rawDataJSON AS RawDataJson,
-        gte.creationDateTime AS CreationDateTime_Entry,
-        gte.startDateTime AS StartDateTime_Entry,
-        gte.endDateTime AS EndDateTime_Entry,
+        gte.creationDateTime AS CreationDateTime,
+        gte.startDateTime AS StartDateTime,
+        gte.endDateTime AS EndDateTime,
 
         dqd.dataQueryId AS DataQueryId,
-        dqd.groundTruthId AS GroundTruthId_DataQuery,
+        dqd.groundTruthId AS GroundTruthId,
         dqd.datastoreType AS DatastoreType,
         dqd.datastoreName AS DatastoreName,
         dqd.queryTarget AS QueryTarget,
         dqd.queryDefinition AS QueryDefinition,
         dqd.isFullQuery AS IsFullQuery,
         dqd.requiredPropertiesJSON AS RequiredPropertiesJson,
-        dqd.userCreated AS UserCreated_DataQuery,
-        dqd.userUpdated AS UserUpdated_DataQuery,
-        dqd.creationDateTime AS CreationDateTime_DataQuery,
-        dqd.startDateTime AS StartDateTime_DataQuery,
-        dqd.endDateTime AS EndDateTime_DataQuery,
+        dqd.userCreated AS UserCreated,
+        dqd.userUpdated AS UserUpdated,
+        dqd.creationDateTime AS CreationDateTime,
+        dqd.startDateTime AS StartDateTime,
+        dqd.endDateTime AS EndDateTime,
 
         c.commentId AS CommentId,
-        c.groundTruthId AS GroundTruthId_Comment,
+        c.groundTruthId AS GroundTruthId,
         c.comment AS CommentText,
         c.commentDateTime AS CommentDateTime,
         c.userId AS UserId,
@@ -118,7 +123,28 @@ public class GroundTruthRepository : IGroundTruthRepository
 
         if (parameters.ParameterNames.Any())
         {
-            baseSql += " WHERE " + string.Join(" AND ", parameters.ParameterNames.Select(name => $"{name} = @{name}"));
+            var whereClauses = new List<string>();
+            if (parameters.ParameterNames.Contains("UserId"))
+            {
+                whereClauses.Add("gtd.userCreated = @UserId");
+            }
+            if (parameters.ParameterNames.Contains("ValidationStatus"))
+            {
+                whereClauses.Add("gtd.validationStatus = @ValidationStatus");
+            }
+            if (parameters.ParameterNames.Contains("StartDate"))
+            {
+                whereClauses.Add("gtd.createdAt >= @StartDate");
+            }
+            if (parameters.ParameterNames.Contains("EndDate"))
+            {
+                whereClauses.Add("gtd.createdAt <= @EndDate");
+            }
+            // Add more mappings as needed for other filters
+            if (whereClauses.Any())
+            {
+                baseSql += " WHERE " + string.Join(" AND ", whereClauses);
+            }
         }
 
         baseSql += ";";
