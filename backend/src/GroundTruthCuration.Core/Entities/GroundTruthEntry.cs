@@ -32,32 +32,32 @@ public class GroundTruthEntry
     /// Gets or sets the required values as a collection of strings for this entry.
     /// This property is not mapped to the database and is derived from <see cref="RequiredValuesJson"/>.
     /// </summary>
-    [NotMapped]
-    public ICollection<string> RequiredValues
-    {
-        get => string.IsNullOrWhiteSpace(RequiredValuesJson)
-            ? new List<string>()
-            : JsonSerializer.Deserialize<List<string>>(RequiredValuesJson) ?? new List<string>();
-        set => RequiredValuesJson = JsonSerializer.Serialize(value ?? new List<string>());
-    }
+    // [NotMapped]
+    // public ICollection<string> RequiredValues
+    // {
+    //     get => string.IsNullOrWhiteSpace(RequiredValuesJson)
+    //         ? new List<string>()
+    //         : JsonSerializer.Deserialize<List<string>>(RequiredValuesJson) ?? new List<string>();
+    //     set => RequiredValuesJson = JsonSerializer.Serialize(value ?? new List<string>());
+    // }
 
     /// <summary>
     /// Gets or sets the raw data in JSON format for this entry.
     /// </summary>
     public string RawDataJson { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets the raw data as a dictionary for this entry.
-    /// This property is not mapped to the database and is derived from <see cref="RawDataJson"/>.
-    /// </summary>
-    [NotMapped]
-    public ICollection<Dictionary<string, object>> RawData
-    {
-        get => string.IsNullOrWhiteSpace(RawDataJson)
-            ? new List<Dictionary<string, object>>()
-            : JsonSerializer.Deserialize<List<Dictionary<string, object>>>(RawDataJson) ?? new List<Dictionary<string, object>>();
-        set => RawDataJson = JsonSerializer.Serialize(value ?? new List<Dictionary<string, object>>());
-    }
+    // /// <summary>
+    // /// Gets or sets the raw data as a dictionary for this entry.
+    // /// This property is not mapped to the database and is derived from <see cref="RawDataJson"/>.
+    // /// </summary>
+    // [NotMapped]
+    // public ICollection<Dictionary<string, object>> RawData
+    // {
+    //     get => string.IsNullOrWhiteSpace(RawDataJson)
+    //         ? new List<Dictionary<string, object>>()
+    //         : JsonSerializer.Deserialize<List<Dictionary<string, object>>>(RawDataJson) ?? new List<Dictionary<string, object>>();
+    //     set => RawDataJson = JsonSerializer.Serialize(value ?? new List<Dictionary<string, object>>());
+    // }
 
     /// <summary>
     /// Gets or sets the date and time when this entry was created (in UTC, ISO 8601 format when serialized).
@@ -73,6 +73,11 @@ public class GroundTruthEntry
     /// Gets or sets the end date and time for this entry (in UTC, ISO 8601 format when serialized). May be null if not ended.
     /// </summary>
     public DateTime? EndDateTime { get; set; } = null;
+
+    /// <summary>
+    /// Gets or sets the context information for this ground truth entry.
+    /// </summary>
+    public GroundTruthContext? GroundTruthContext { get; set; } = null;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundTruthEntry"/> class, setting <see cref="CreationDateTime"/> and <see cref="StartDateTime"/> to the same UTC value.
