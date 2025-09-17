@@ -73,56 +73,7 @@ public class GroundTruthRepository : IGroundTruthRepository
     /// <returns>A collection of ground truth definitions.</returns>
     public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter)
     {
-        string baseSql = @"SELECT
-        gtd.groundTruthId AS GroundTruthId,
-        gtd.userQuery AS UserQuery,
-        gtd.validationStatus AS ValidationStatus,
-        gtd.userCreated AS UserCreated,
-        gtd.userUpdated AS UserUpdated,
-        gtd.creationDateTime AS CreationDateTime,
-        gtd.startDateTime AS StartDateTime,
-        gtd.endDateTime AS EndDateTime,
-
-        gte.groundTruthEntryId AS GroundTruthEntryId,
-        gte.groundTruthId AS GroundTruthId,
-        gte.response AS Response,
-        gte.requiredValuesJSON AS RequiredValuesJson,
-        gte.rawDataJSON AS RawDataJson,
-        gte.creationDateTime AS CreationDateTime,
-        gte.startDateTime AS StartDateTime,
-        gte.endDateTime AS EndDateTime,
-
-        dqd.dataQueryId AS DataQueryId,
-        dqd.groundTruthId AS GroundTruthId,
-        dqd.datastoreType AS DatastoreType,
-        dqd.datastoreName AS DatastoreName,
-        dqd.queryTarget AS QueryTarget,
-        dqd.queryDefinition AS QueryDefinition,
-        dqd.isFullQuery AS IsFullQuery,
-        dqd.requiredPropertiesJSON AS RequiredPropertiesJson,
-        dqd.userCreated AS UserCreated,
-        dqd.userUpdated AS UserUpdated,
-        dqd.creationDateTime AS CreationDateTime,
-        dqd.startDateTime AS StartDateTime,
-        dqd.endDateTime AS EndDateTime,
-
-        c.commentId AS CommentId,
-        c.groundTruthId AS GroundTruthId,
-        c.comment AS CommentText,
-        c.commentDateTime AS CommentDateTime,
-        c.userId AS UserId,
-        c.commentType AS CommentType,
-
-        t.tagId AS TagId,
-        t.name AS Name,
-        t.description AS Description
-
-        FROM [dbo].[GROUND_TRUTH_DEFINITION] gtd
-        LEFT JOIN [dbo].[GROUND_TRUTH_ENTRY] gte ON gtd.groundTruthId = gte.groundTruthId
-        LEFT JOIN [dbo].[DATA_QUERY_DEFINITION] dqd ON gtd.groundTruthId = dqd.groundTruthId
-        LEFT JOIN [dbo].[COMMENT] c ON gtd.groundTruthId = c.groundTruthId
-        LEFT JOIN [dbo].[GROUND_TRUTH_TAG] gtdt ON gtd.groundTruthId = gtdt.groundTruthId
-        LEFT JOIN [dbo].[TAG] t ON gtdt.tagId = t.tagId";
+        string baseSql = GetBaseSql();
 
         DynamicParameters parameters = BuildSqlParametersFromFilter(filter);
 
@@ -144,6 +95,7 @@ public class GroundTruthRepository : IGroundTruthRepository
                 await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthDefinition>(
                     baseSql,
                     (gtd, entry, dq, comment, tag) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag),
+                    param: parameters,
                     splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId"
                 );
 
@@ -156,6 +108,67 @@ public class GroundTruthRepository : IGroundTruthRepository
             }
         }
     }
+
+    /// <summary>
+    /// Retrieves a ground truth definition by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the ground truth definition.</param>
+    /// <returns>The ground truth definition if found; otherwise, null.</returns>
+    public async Task<GroundTruthDefinition?> GetGroundTruthDefinitionByIdAsync(Guid id)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("The ground truth ID cannot be an empty GUID.", nameof(id));
+        }
+
+        string sql = GetBaseSql() + " WHERE gtd.groundTruthId = @id;";
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            var groundTruthDict = new Dictionary<Guid, GroundTruthDefinition>();
+
+            // Leverage Dapper's multi-mapping feature to map related entities to build full object graph
+            await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthDefinition>(
+                sql,
+                (gtd, entry, dq, comment, tag) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag),
+                new { id },
+                splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId"
+            );
+            // Should only have one or zero results
+            return groundTruthDict.Values.FirstOrDefault();
+        }
+    }
+
+    /// <summary>
+    /// Retrieves ground truth definitions created by a specific user.
+    /// </summary>
+    /// <param name="userId">The user identifier.</param>
+    /// <returns>A collection of ground truth definitions created by the user.</returns>
+    public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByUserAsync(string userId)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Retrieves ground truth definitions by their validation status.
+    /// </summary>
+    /// <param name="validationStatus">The validation status to filter by.</param>
+    /// <returns>A collection of ground truth definitions with the specified validation status.</returns>
+    public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByValidationStatusAsync(string validationStatus)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Updates an existing ground truth definition in the database.
+    /// </summary>
+    /// <param name="groundTruthDefinition">The ground truth definition to update.</param>
+    /// <returns>The updated ground truth definition.</returns>
+    public Task<GroundTruthDefinition> UpdateGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition)
+    {
+        throw new NotImplementedException();
+    }
+
 
     /// <summary>
     /// Maps the results of a Dapper multi-mapping query to a GroundTruthDefinition and its related entities.
@@ -234,46 +247,6 @@ public class GroundTruthRepository : IGroundTruthRepository
         return whereClauses.Any() ? string.Join(" AND ", whereClauses) : string.Empty;
     }
 
-    /// <summary>
-    /// Retrieves a ground truth definition by its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the ground truth definition.</param>
-    /// <returns>The ground truth definition if found; otherwise, null.</returns>
-    public Task<GroundTruthDefinition?> GetGroundTruthDefinitionByIdAsync(Guid id)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Retrieves ground truth definitions created by a specific user.
-    /// </summary>
-    /// <param name="userId">The user identifier.</param>
-    /// <returns>A collection of ground truth definitions created by the user.</returns>
-    public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByUserAsync(string userId)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Retrieves ground truth definitions by their validation status.
-    /// </summary>
-    /// <param name="validationStatus">The validation status to filter by.</param>
-    /// <returns>A collection of ground truth definitions with the specified validation status.</returns>
-    public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByValidationStatusAsync(string validationStatus)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Updates an existing ground truth definition in the database.
-    /// </summary>
-    /// <param name="groundTruthDefinition">The ground truth definition to update.</param>
-    /// <returns>The updated ground truth definition.</returns>
-    public Task<GroundTruthDefinition> UpdateGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition)
-    {
-        throw new NotImplementedException();
-    }
-
     private static DynamicParameters BuildSqlParametersFromFilter(GroundTruthDefinitionFilter? filter)
     {
         var parameters = new DynamicParameters();
@@ -303,5 +276,59 @@ public class GroundTruthRepository : IGroundTruthRepository
         }
 
         return parameters;
+    }
+
+    private static string GetBaseSql()
+    {
+        return @"SELECT
+        gtd.groundTruthId AS GroundTruthId,
+        gtd.userQuery AS UserQuery,
+        gtd.validationStatus AS ValidationStatus,
+        gtd.userCreated AS UserCreated,
+        gtd.userUpdated AS UserUpdated,
+        gtd.creationDateTime AS CreationDateTime,
+        gtd.startDateTime AS StartDateTime,
+        gtd.endDateTime AS EndDateTime,
+
+        gte.groundTruthEntryId AS GroundTruthEntryId,
+        gte.groundTruthId AS GroundTruthId,
+        gte.response AS Response,
+        gte.requiredValuesJSON AS RequiredValuesJson,
+        gte.rawDataJSON AS RawDataJson,
+        gte.creationDateTime AS CreationDateTime,
+        gte.startDateTime AS StartDateTime,
+        gte.endDateTime AS EndDateTime,
+
+        dqd.dataQueryId AS DataQueryId,
+        dqd.groundTruthId AS GroundTruthId,
+        dqd.datastoreType AS DatastoreType,
+        dqd.datastoreName AS DatastoreName,
+        dqd.queryTarget AS QueryTarget,
+        dqd.queryDefinition AS QueryDefinition,
+        dqd.isFullQuery AS IsFullQuery,
+        dqd.requiredPropertiesJSON AS RequiredPropertiesJson,
+        dqd.userCreated AS UserCreated,
+        dqd.userUpdated AS UserUpdated,
+        dqd.creationDateTime AS CreationDateTime,
+        dqd.startDateTime AS StartDateTime,
+        dqd.endDateTime AS EndDateTime,
+
+        c.commentId AS CommentId,
+        c.groundTruthId AS GroundTruthId,
+        c.comment AS CommentText,
+        c.commentDateTime AS CommentDateTime,
+        c.userId AS UserId,
+        c.commentType AS CommentType,
+
+        t.tagId AS TagId,
+        t.name AS Name,
+        t.description AS Description
+
+        FROM [dbo].[GROUND_TRUTH_DEFINITION] gtd
+        LEFT JOIN [dbo].[GROUND_TRUTH_ENTRY] gte ON gtd.groundTruthId = gte.groundTruthId
+        LEFT JOIN [dbo].[DATA_QUERY_DEFINITION] dqd ON gtd.groundTruthId = dqd.groundTruthId
+        LEFT JOIN [dbo].[COMMENT] c ON gtd.groundTruthId = c.groundTruthId
+        LEFT JOIN [dbo].[GROUND_TRUTH_TAG] gtdt ON gtd.groundTruthId = gtdt.groundTruthId
+        LEFT JOIN [dbo].[TAG] t ON gtdt.tagId = t.tagId";
     }
 }

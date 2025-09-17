@@ -49,9 +49,9 @@ namespace GroundTruthCuration.Core.Services
         }
 
         /// <inheritdoc/>
-        public Task<GroundTruthDefinition?> GetGroundTruthDefinitionByIdAsync(Guid id)
+        public async Task<GroundTruthDefinition?> GetGroundTruthDefinitionByIdAsync(Guid id)
         {
-            throw new NotImplementedException();
+            return await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(id);
         }
 
         /// <inheritdoc/>

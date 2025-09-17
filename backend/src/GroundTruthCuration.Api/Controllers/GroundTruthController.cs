@@ -6,6 +6,10 @@ using GroundTruthCuration.Core.Interfaces;
 
 namespace GroundTruthCuration.Api.Controllers;
 
+
+/// <summary>
+/// API controller for managing ground truth curation operations.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class GroundTruthController : ControllerBase
@@ -13,18 +17,23 @@ public class GroundTruthController : ControllerBase
     private readonly ILogger<GroundTruthController> _logger;
     private readonly IGroundTruthCurationService _groundTruthCurationService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GroundTruthController"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance for logging information and errors.</param>
+    /// <param name="groundTruthCurationService">The service for managing ground truth curation operations.</param>
     public GroundTruthController(ILogger<GroundTruthController> logger, IGroundTruthCurationService groundTruthCurationService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _groundTruthCurationService = groundTruthCurationService ?? throw new ArgumentNullException(nameof(groundTruthCurationService));
     }
 
-    [HttpGet("definitions")]
     /// <summary>
     /// Retrieves a list of ground truth definitions based on the provided filter. If no filter is provided, returns all.
     /// </summary>
     /// <param name="filter">Optional filter criteria for retrieving ground truth definitions.</param>
     /// <returns>A list of ground truth definitions matching the filter criteria.</returns>
+    [HttpGet("definitions")]
     public async Task<ActionResult<IEnumerable<GroundTruthDefinition>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
     {
         _logger.LogInformation("Fetching ground truth definitions with filter: {@Filter}", filter);
@@ -51,6 +60,11 @@ public class GroundTruthController : ControllerBase
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Retrieves a specific ground truth definition by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the ground truth definition.</param>
+    /// <returns>The ground truth definition if found, or a NotFound result if not.</returns>
     [HttpGet("definitions/{id}")]
     public async Task<ActionResult<GroundTruthDefinition>> GetDefinition(Guid id)
     {

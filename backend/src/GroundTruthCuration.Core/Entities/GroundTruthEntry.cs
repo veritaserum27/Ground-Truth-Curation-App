@@ -51,12 +51,12 @@ public class GroundTruthEntry
     /// This property is not mapped to the database and is derived from <see cref="RawDataJson"/>.
     /// </summary>
     [NotMapped]
-    public Dictionary<string, object> RawData
+    public ICollection<Dictionary<string, object>> RawData
     {
         get => string.IsNullOrWhiteSpace(RawDataJson)
-            ? new Dictionary<string, object>()
-            : JsonSerializer.Deserialize<Dictionary<string, object>>(RawDataJson) ?? new Dictionary<string, object>();
-        set => RawDataJson = JsonSerializer.Serialize(value ?? new Dictionary<string, object>());
+            ? new List<Dictionary<string, object>>()
+            : JsonSerializer.Deserialize<List<Dictionary<string, object>>>(RawDataJson) ?? new List<Dictionary<string, object>>();
+        set => RawDataJson = JsonSerializer.Serialize(value ?? new List<Dictionary<string, object>>());
     }
 
     /// <summary>
