@@ -1,0 +1,47 @@
+name: ci-backend
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: 'backend/src/*/packages.lock.json'
+
+      - name: Restore
+        run: dotnet restore backend/GroundTruthCuration.sln --force-evaluate
+
+      - name: Build (Release)
+        run: dotnet build backend/GroundTruthCuration.sln -c Release --no-restore
+
+      # Tests temporarily removed; step intentionally skipped.
+      - name: Skip tests (none present)
+        run: echo "No tests in solution; skipping."
+
+      - name: Docker build (no push)
+        id: docker_build
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          tags: ground-truth-api:ci-${{ github.sha }}
+
+      - name: Show image digest
+        if: steps.docker_build.outputs.digest
+        run: echo "Image digest ${{ steps.docker_build.outputs.digest }}"

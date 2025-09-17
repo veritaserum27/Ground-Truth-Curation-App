@@ -31,13 +31,40 @@ if (app.Environment.IsDevelopment())
     app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
-// Use HTTPS redirection only when not explicitly disabled
-var disableHttpsRedirection = builder.Configuration.GetValue<bool>("CertificateSettings:GenerateAspNetCertificate") == false;
-if (!disableHttpsRedirection)
+// HTTPS redirection: enable only if explicitly requested via config (CertificateSettings:GenerateAspNetCertificate=true)
+var enableHttpsRedirection = builder.Configuration.GetValue<bool>("CertificateSettings:GenerateAspNetCertificate");
+if (enableHttpsRedirection)
 {
-    app.UseHttpsRedirection();
+     app.UseHttpsRedirection();
 }
 
+app.MapGet("/healthz", () => Results.Ok("healthy"))
+    .WithName("Healthz")
+    .WithDescription("Basic health probe.");
+
+// Optional namespaced health for API grouping
+app.MapGet("/api/healthz", () => Results.Ok(new { status = "ok" }))
+    .WithName("ApiHealthz")
+    .WithDescription("API health endpoint.");
+
 app.MapControllers();
+
+// Log user-friendly URLs using proper logging
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "5105";
+    
+    // Add a small delay to ensure this appears after built-in messages
+    Task.Run(async () =>
+    {
+        await Task.Delay(100);
+        logger.LogInformation("");
+        logger.LogInformation("🚀 Ground Truth Curation API is running!");
+        logger.LogInformation("📖 Swagger UI: http://localhost:{Port}/swagger/index.html", port);
+        logger.LogInformation("🏥 Health Check: http://localhost:{Port}/healthz", port);
+        logger.LogInformation("");
+    });
+});
 
 app.Run();

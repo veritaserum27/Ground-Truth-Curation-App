@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Enable NuGet package lock file for dependency reproducibility -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Include dev dependencies in lock file -->
+    <RestoreLockedMode Condition="$(CI) == 'true'">true</RestoreLockedMode>
+    <!-- Suppress missing XML comment warnings across all projects under this directory -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+</Project>
