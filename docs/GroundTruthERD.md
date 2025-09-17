@@ -25,6 +25,7 @@ erDiagram
         UUID groundTruthId PK
         string userQuery
         string validationStatus
+        string category
         string userCreated
         string userUpdated
         datetime creationDateTime
@@ -115,6 +116,7 @@ This is the base entity.
 - `groundTruthId`: The primary key unique identifier for this ground truth definition
 - `userQuery`: The natural language user query or question
 - `validationStatus`: The validation status of this version of the ground truth definition
+- `category`: The general type of question this user query is
 
 ### Ground Truth Entry
 
