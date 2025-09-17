@@ -8,7 +8,8 @@ We use three projects to adhere to the [Clean Architecture approach](https://lea
 - **Dependencies:** No dependencies on external frameworks or infrastructure
 - **Contents:**
 
-  - Entities (GroundTruthEntry, Tag, User, etc.)
+  - Entities (GroundTruthEntry, Tag, Comment, GroundTruthDefinition,
+    DataQueryDefinition)
   - Business rules and domain services
   - Interfaces for repositories and external services
   - DTOs for data transfer
@@ -35,44 +36,194 @@ We use three projects to adhere to the [Clean Architecture approach](https://lea
   - API models/DTOs
   - Dependency injection configuration
 
-## Asynchronous Background Jobs
+---
 
-Long-running operations (exports, data queries, response generation) are executed asynchronously using an in-memory job queue + hosted background processor.
+## Developer Quick Start (Hackathon Focus)
 
-### Architecture Components
-- `BackgroundJob` entity with lifecycle fields
-- Repository abstraction `IBackgroundJobRepository` (in-memory implementation)
-- Queue abstraction `IBackgroundJobQueue` (channel-based implementation)
-- Service `IBackgroundJobService` for submission, status, cancellation, result access
-- Hosted processor `BackgroundJobProcessor` that dequeues and executes jobs via `IBackgroundJobExecutor`
+## Prerequisites
 
-### Job Lifecycle
-Queued -> Running -> (Succeeded | Failed | Canceled)
+- .NET 8 SDK
+- Docker Desktop (for container build/run)
+- (Optional) Azure CLI if you want to manually interact with the deployed Container App.
 
-### Endpoints
-| Method | Route | Description |
-| ------ | ----- | ----------- |
-| POST | `/api/jobs` | Submit a new job (returns 202 + Location header) |
-| GET | `/api/jobs/{id}` | Retrieve job metadata/status |
-| GET | `/api/jobs` | List jobs (optional `?status=Queued&status=Running`) |
-| DELETE | `/api/jobs/{id}` | Cancel a queued job |
-| GET | `/api/jobs/{id}/result` | Retrieve result JSON (200), 202 if pending, 404 if not found/terminal without result |
+## Restore & Build Locally
 
-### Sample Workflow
-1. Submit: `POST /api/jobs { "type": "Export" }`
-2. Poll status: `GET /api/jobs/{id}` until `Succeeded`
-3. Fetch result: `GET /api/jobs/{id}/result`
+From the `backend/` folder:
 
-### Extension Strategy
-- Add new job types to `BackgroundJobType`
-- Implement logic in `BackgroundJobExecutor` (or future specialized executors/dispatcher)
-- Replace in-memory repository with persistent store by implementing `IBackgroundJobRepository`
+```bash
+dotnet restore GroundTruthCuration.sln
+dotnet build GroundTruthCuration.sln -c Release
+```
 
-### Future Enhancements (Planned)
-- Persistent storage (database) implementation
-- Progress streaming (SignalR/WebSockets)
-- Authorization / multi-tenant job scoping
-- Externalized large result storage with signed URL retrieval
+## Run the API Locally (No Docker)
 
-### Notes
-Current implementation is memory-only and suitable for development/testing. All jobs are lost on process restart.
+From the repo root (or `backend/` folder):
+
+```bash
+dotnet run --project src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj
+```
+
+Default ASP.NET binding (if not overridden) is <http://localhost:5000> or <https://localhost:7000>. Our container build exposes port 5105 for development; you can align local dev by setting:
+
+```bash
+export ASPNETCORE_URLS=http://localhost:5105
+dotnet run --project src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj
+```
+
+## Docker Build & Run
+
+From repository root (pass the backend folder as build context):
+
+```bash
+docker build -f backend/Dockerfile -t ground-truth-api:local backend
+docker run --name ground-truth-api --rm -p 5105:5105 ground-truth-api:local
+```
+
+Already inside `backend/` directory (context is already correct):
+
+```bash
+docker build -t ground-truth-api:local .
+docker run --name ground-truth-api --rm -p 5105:5105 ground-truth-api:local
+```
+
+Detached mode & logs:
+
+```bash
+docker run -d --name ground-truth-api -p 5105:5105 ground-truth-api:local
+docker logs -f ground-truth-api
+```
+
+Stop & cleanup (if detached without --rm):
+
+```bash
+docker rm -f ground-truth-api
+```
+
+### Test an Endpoint
+
+Adjust path based on actual controller route (example assumes `HelloController`):
+
+```bash
+curl http://localhost:5105/api/Hello
+```
+
+### Access Swagger UI
+
+When running in Development mode (both locally and in Docker), Swagger UI is available at:
+
+```url
+http://localhost:5105/swagger/index.html
+```
+
+The application automatically redirects from the root URL (`http://localhost:5105/`) to Swagger for easy API discovery.
+
+## GitHub Workflows Summary
+
+| Workflow                          | Purpose                                                                   | Trigger                                       |
+| --------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------- |
+| `ci-backend.yml`                  | Restore, build, Docker build (no push, no tests)                          | Pull Requests (main, develop) + manual        |
+| `deploy-backend-containerapp.yml` | Once implemented, it will build & push image + update Azure Container App | Called by future orchestrator (merge to main) |
+| `markdown-lint.yml`               | Lints Markdown docs                                                       | PR / push (depending config)                  |
+
+## Expected Container App Deployment Flow (Current State)
+
+1. CI validates build + Docker image (no tests) on PR via `ci-backend.yml`.
+2. On merge to `main` (or a future orchestrator workflow), call a `deploy-backend-containerapp.yml` passing parameters:
+
+   Parameters:
+
+   - `containerapp-name`
+   - `resource-group`
+   - `dockerfile-path` (e.g. `backend/Dockerfile`)
+   - `image-name` (e.g. `myregistry.azurecr.io/ground-truth-api:sha-<commit-sha>`)
+
+3. Workflow logs in to Azure & ACR, builds, pushes, and updates the Container App with the new image.
+
+## Image Tagging Guidance
+
+Use immutable commit-based tags: `myregistry.azurecr.io/ground-truth-api:sha-<short-sha>`.
+Optional moving tag (e.g. `:main`) for quick rollback reference.
+
+## Rollback (Manual - in the Future)
+
+```bash
+az acr repository show-tags -n <ACR_NAME> --repository ground-truth-api --top 10 --orderby time_desc
+az containerapp update --name <APP_NAME> --resource-group <RG> --image myregistry.azurecr.io/ground-truth-api:sha-<previous-sha>
+```
+
+## Re-introducing Tests (Optional Post-Hackathon)
+
+1. Create a test project:
+
+   ```bash
+   dotnet new xunit -n GroundTruthCuration.Core.Tests -o backend/tests/GroundTruthCuration.Core.Tests
+   dotnet sln backend/GroundTruthCuration.sln add backend/tests/GroundTruthCuration.Core.Tests/GroundTruthCuration.Core.Tests.csproj
+   ```
+
+2. Add a sample test:
+
+   ```csharp
+   using Xunit;
+   namespace GroundTruthCuration.Core.Tests;
+   public class SmokeTests
+   {
+       [Fact]
+       public void AlwaysTrue() => Assert.True(true);
+   }
+   ```
+
+3. Update `ci-backend.yml` to enable a `dotnet test` step before the Docker build.
+
+Run tests locally:
+
+```bash
+dotnet test GroundTruthCuration.sln --no-build --verbosity minimal
+```
+
+## Health Endpoints
+
+Implemented minimal endpoints for fast container readiness checks:
+
+- `/` (root) returns a simple identifier string.
+- `/healthz` plain health probe.
+- `/api/healthz` namespaced variant for future versioning.
+
+Quick manual checks:
+
+```bash
+curl http://localhost:5105/
+curl http://localhost:5105/healthz
+```
+
+When adding a Dockerfile health check later you can use:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD curl -f http://localhost:5105/healthz || exit 1
+```
+
+## Local CI Emulation Script
+
+Use `scripts/local-ci-backend.ps1` to mimic the GitHub Actions build (restore,
+build, Docker image build with commit SHA tagging logic).
+
+```bash
+pwsh ./scripts/local-ci-backend.ps1
+```
+
+## Common Issues
+
+| Issue                         | Symptom              | Fix                                                                     |
+| ----------------------------- | -------------------- | ----------------------------------------------------------------------- |
+| Docker build fails on restore | NuGet timeout / rate | Re-run; ensure network; consider local `~/.nuget` cache                 |
+| API not responding on 5105    | Connection refused   | Confirm `ASPNETCORE_URLS` inside container, port mapping `-p 5105:5105` |
+| Tests skipped                 | No test project      | Confirm test csproj added to solution & CI updated                      |
+| Rollback needed               | Bad deploy           | Use previous commit image tag via `az containerapp update`              |
+
+## TODOS (Post-Hackathon?)
+
+- Add Docker `HEALTHCHECK` instruction (endpoints already exist).
+- Add integration tests using `WebApplicationFactory`.
+- Move to OIDC-based Azure login (remove stored SP secret).
+- Key Vault for secrets and managed identity for downstream services.
+- Add coverage reporting & quality gates.
