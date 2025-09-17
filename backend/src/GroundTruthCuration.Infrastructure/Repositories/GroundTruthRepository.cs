@@ -23,8 +23,9 @@ public class GroundTruthRepository : IGroundTruthRepository
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundTruthRepository"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance for logging repository operations.</param>
     /// <param name="configuration">The application configuration containing connection strings.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="configuration"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="logger"/> or <paramref name="configuration"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the connection string is missing.</exception>
     public GroundTruthRepository(ILogger<GroundTruthRepository> logger, IConfiguration configuration)
     {
@@ -77,17 +78,17 @@ public class GroundTruthRepository : IGroundTruthRepository
     public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter)
     {
         _logger.LogInformation("Retrieving all ground truth definitions with filter: {@Filter}", filter);
-        string baseSql = GetBaseSql();
+        string sql = baseSql;
 
         DynamicParameters parameters = BuildSqlParametersFromFilter(filter);
 
         string whereClause = BuildWhereClauseFromParameters(parameters);
         if (!string.IsNullOrEmpty(whereClause))
         {
-            baseSql += " WHERE " + whereClause;
+            sql += " WHERE " + whereClause;
         }
 
-        baseSql += ";";
+        sql += ";";
 
         // connect to database
         using (var connection = new SqlConnection(_connectionString))
@@ -96,11 +97,11 @@ public class GroundTruthRepository : IGroundTruthRepository
             {
                 var groundTruthDict = new Dictionary<Guid, GroundTruthDefinition>();
 
-                await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthDefinition>(
-                    baseSql,
-                    (gtd, entry, dq, comment, tag) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag),
+                await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthContext, ContextParameter, GroundTruthDefinition>(
+                    sql,
+                    (gtd, entry, dq, comment, tag, context, contextParam) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag, context, contextParam),
                     param: parameters,
-                    splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId"
+                    splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId,ContextId,ParameterId"
                 );
 
                 return groundTruthDict.Values;
@@ -126,7 +127,7 @@ public class GroundTruthRepository : IGroundTruthRepository
             throw new ArgumentException("The ground truth ID cannot be an empty GUID.", nameof(id));
         }
 
-        string sql = GetBaseSql() + " WHERE gtd.groundTruthId = @id;";
+        string sql = baseSql + " WHERE gtd.groundTruthId = @id;";
 
         try
         {
@@ -135,11 +136,11 @@ public class GroundTruthRepository : IGroundTruthRepository
                 var groundTruthDict = new Dictionary<Guid, GroundTruthDefinition>();
 
                 // Leverage Dapper's multi-mapping feature to map related entities to build full object graph
-                await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthDefinition>(
+                await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthContext, ContextParameter, GroundTruthDefinition>(
                     sql,
-                    (gtd, entry, dq, comment, tag) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag),
+                    (gtd, entry, dq, comment, tag, context, contextParam) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag, context, contextParam),
                     new { id },
-                    splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId"
+                    splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId,ContextId,ParameterId"
                 );
                 // Should only have one or zero results
                 return groundTruthDict.Values.FirstOrDefault();
@@ -192,6 +193,8 @@ public class GroundTruthRepository : IGroundTruthRepository
     /// <param name="dq">The DataQueryDefinition entity.</param>
     /// <param name="comment">The Comment entity.</param>
     /// <param name="tag">The Tag entity.</param>
+    /// <param name="context">The GroundTruthContext entity.</param>
+    /// <param name="contextParam">The ContextParameter entity.</param>
     /// <returns>The mapped GroundTruthDefinition.</returns>
     private static GroundTruthDefinition MapGroundTruthDefinition(
         Dictionary<Guid, GroundTruthDefinition> groundTruthDict,
@@ -199,9 +202,10 @@ public class GroundTruthRepository : IGroundTruthRepository
         GroundTruthEntry entry,
         DataQueryDefinition dq,
         Comment comment,
-        Tag tag)
+        Tag tag,
+        GroundTruthContext context,
+        ContextParameter contextParam)
     {
-
         if (!groundTruthDict.TryGetValue(gtd.GroundTruthId, out var groundTruth))
         {
             groundTruth = gtd;
@@ -212,21 +216,56 @@ public class GroundTruthRepository : IGroundTruthRepository
             groundTruthDict.Add(groundTruth.GroundTruthId, groundTruth);
         }
 
-        if (entry != null && entry.GroundTruthEntryId != Guid.Empty && !groundTruth.GroundTruthEntries.Any(e => e.GroundTruthEntryId == entry.GroundTruthEntryId))
+        // Map GroundTruthEntry
+        GroundTruthEntry entryRef = null;
+        if (entry != null && entry.GroundTruthEntryId != Guid.Empty)
         {
-            groundTruth.GroundTruthEntries.Add(entry);
+            entryRef = groundTruth.GroundTruthEntries.FirstOrDefault(e => e.GroundTruthEntryId == entry.GroundTruthEntryId);
+            if (entryRef == null)
+            {
+                groundTruth.GroundTruthEntries.Add(entry);
+                entryRef = entry;
+            }
         }
+
+        // Map DataQueryDefinition
         if (dq != null && dq.DataQueryId != Guid.Empty && !groundTruth.DataQueryDefinitions.Any(d => d.DataQueryId == dq.DataQueryId))
         {
             groundTruth.DataQueryDefinitions.Add(dq);
         }
+        // Map Comment
         if (comment != null && comment.CommentId != Guid.Empty && !groundTruth.Comments.Any(c => c.CommentId == comment.CommentId))
         {
             groundTruth.Comments.Add(comment);
         }
+        // Map Tag
         if (tag != null && tag.TagId != Guid.Empty && !groundTruth.Tags.Any(tg => tg.TagId == tag.TagId))
         {
             groundTruth.Tags.Add(tag);
+        }
+
+        // Map GroundTruthContext to GroundTruthEntry (at most one context per entry, only if entry ids match)
+        GroundTruthContext contextRef = null;
+        if (context != null && context.ContextId != Guid.Empty && entryRef != null)
+        {
+            // Only set context if it matches the entry's GroundTruthEntryId
+            if (context.GroundTruthEntryId == entryRef.GroundTruthEntryId)
+            {
+                if (entryRef.GroundTruthContext == null || entryRef.GroundTruthContext.ContextId != context.ContextId)
+                {
+                    entryRef.GroundTruthContext = context;
+                }
+                contextRef = entryRef.GroundTruthContext;
+            }
+        }
+
+        // Map ContextParameter to GroundTruthContext
+        if (contextParam != null && contextParam.ParameterId != Guid.Empty && contextRef != null)
+        {
+            if (!contextRef.ContextParameters.Any(p => p.ParameterId == contextParam.ParameterId))
+            {
+                contextRef.ContextParameters.Add(contextParam);
+            }
         }
 
         return groundTruth;
@@ -269,9 +308,7 @@ public class GroundTruthRepository : IGroundTruthRepository
         return parameters;
     }
 
-    private static string GetBaseSql()
-    {
-        return @"SELECT
+    private static string baseSql = @"SELECT
         gtd.groundTruthId AS GroundTruthId,
         gtd.userQuery AS UserQuery,
         gtd.validationStatus AS ValidationStatus,
@@ -313,13 +350,25 @@ public class GroundTruthRepository : IGroundTruthRepository
 
         t.tagId AS TagId,
         t.name AS Name,
-        t.description AS Description
+        t.description AS Description,
+
+        gtc.contextId AS ContextId,
+        gtc.groundTruthId AS GroundTruthId,
+        gtc.groundTruthEntryId AS GroundTruthEntryId,
+        gtc.contextType AS ContextType,
+
+        cp.parameterId AS ParameterId,
+        cp.contextId AS ParameterContextId,
+        cp.parameterName AS ParameterName,
+        cp.parameterValue AS ParameterValue,
+        cp.dataType AS ParameterDataType
 
         FROM [dbo].[GROUND_TRUTH_DEFINITION] gtd
         LEFT JOIN [dbo].[GROUND_TRUTH_ENTRY] gte ON gtd.groundTruthId = gte.groundTruthId
         LEFT JOIN [dbo].[DATA_QUERY_DEFINITION] dqd ON gtd.groundTruthId = dqd.groundTruthId
         LEFT JOIN [dbo].[COMMENT] c ON gtd.groundTruthId = c.groundTruthId
         LEFT JOIN [dbo].[GROUND_TRUTH_TAG] gtdt ON gtd.groundTruthId = gtdt.groundTruthId
-        LEFT JOIN [dbo].[TAG] t ON gtdt.tagId = t.tagId";
-    }
+        LEFT JOIN [dbo].[TAG] t ON gtdt.tagId = t.tagId
+        LEFT JOIN [dbo].[GROUND_TRUTH_CONTEXT] gtc ON gtc.groundTruthEntryId = gte.groundTruthEntryId
+        LEFT JOIN [dbo].[CONTEXT_PARAMETER] cp ON cp.contextId = gtc.contextId";
 }

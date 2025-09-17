@@ -18,6 +18,7 @@ infra/data/defects_data.csv
 infra/data/defects_data_with_company.csv
 infra/data/Manufacturing_defects.zip
 infra/.env.backup
+infra/databaseScripts/*
 
 .fake
 

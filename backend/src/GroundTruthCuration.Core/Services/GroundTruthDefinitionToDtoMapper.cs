@@ -75,8 +75,9 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
         return new GroundTruthContextDto
         {
             ContextId = context.ContextId,
-            Name = context.Name,
-            Description = context.Description,
+            ContextType = context.ContextType,
+            GroundTruthId = context.GroundTruthId,
+            GroundTruthEntryId = context.GroundTruthEntryId,
             ContextParameters = context.ContextParameters?
                 .Select(param => Map(param))
                 .Where(mappedParam => mappedParam != null)

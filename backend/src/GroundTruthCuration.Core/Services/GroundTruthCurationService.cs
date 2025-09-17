@@ -48,8 +48,7 @@ namespace GroundTruthCuration.Core.Services
         /// <inheritdoc/>
         public async Task<IEnumerable<GroundTruthDefinitionDto>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter)
         {
-            List<GroundTruthDefinition> groundTruthDefinitionEntities = (List<GroundTruthDefinition>)await _groundTruthRepository.GetAllGroundTruthDefinitionsAsync(filter);
-
+            var groundTruthDefinitionEntities = (await _groundTruthRepository.GetAllGroundTruthDefinitionsAsync(filter)).ToList();
             // map entities to DTOs
             return groundTruthDefinitionEntities.Select(entity => _groundTruthDefinitionToDtoMapper.Map(entity)).ToList();
         }

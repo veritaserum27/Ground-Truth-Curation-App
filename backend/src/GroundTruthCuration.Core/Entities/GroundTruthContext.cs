@@ -10,15 +10,9 @@ namespace GroundTruthCuration.Core.Entities
         /// </summary>
         public Guid ContextId { get; set; }
 
-        /// <summary>
-        /// Gets or sets the name of the context.
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the description of the context.
-        /// </summary>
-        public string Description { get; set; } = string.Empty;
+        public Guid GroundTruthId { get; set; } // FK to GroundTruthDefinition
+        public Guid GroundTruthEntryId { get; set; } // FK to GroundTruthEntry
+        public string ContextType { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the collection of parameters associated with this context.

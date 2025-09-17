@@ -34,7 +34,7 @@ public class GroundTruthController : ControllerBase
     /// <param name="filter">Optional filter object containing query parameters for retrieving ground truth definitions (e.g., ValidationStatus, UserQuery).</param>
     /// <returns>A list of ground truth definitions matching the filter criteria.</returns>
     [HttpGet("definitions")]
-    public async Task<ActionResult<IEnumerable<GroundTruthDefinition>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
+    public async Task<ActionResult<IEnumerable<GroundTruthDefinitionDto>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
     {
         _logger.LogInformation("Fetching ground truth definitions with filter: {@Filter}", filter);
         try
@@ -66,7 +66,7 @@ public class GroundTruthController : ControllerBase
     /// <param name="id">The unique identifier of the ground truth definition.</param>
     /// <returns>The ground truth definition if found, or a NotFound result if not.</returns>
     [HttpGet("definitions/{id}")]
-    public async Task<ActionResult<GroundTruthDefinition>> GetDefinition(Guid id)
+    public async Task<ActionResult<GroundTruthDefinitionDto>> GetDefinition(Guid id)
     {
         try
         {
