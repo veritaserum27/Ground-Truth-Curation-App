@@ -21,6 +21,7 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
             GroundTruthId = source.GroundTruthId,
             UserQuery = source.UserQuery,
             ValidationStatus = source.ValidationStatus,
+            Category = source.Category,
             UserCreated = source.UserCreated,
             UserUpdated = source.UserUpdated,
             CreationDateTime = source.CreationDateTime,

@@ -5,6 +5,7 @@ public class GroundTruthDefinitionDto
     public Guid GroundTruthId { get; set; }
     public string UserQuery { get; set; } = string.Empty;
     public string ValidationStatus { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
     public string UserCreated { get; set; } = string.Empty;
     public string? UserUpdated { get; set; }
     public DateTime CreationDateTime { get; set; }

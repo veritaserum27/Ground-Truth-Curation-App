@@ -16,6 +16,7 @@ BEGIN
                 'Validated', 'Revisions Requested', 'Revised', 'Pending', 
                 'Out of Scope', 'New', 'New, Data Curated'
             )),
+        category NVARCHAR(100),
         userCreated NVARCHAR(100) NOT NULL,
         userUpdated NVARCHAR(100),
         creationDateTime DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
@@ -129,35 +130,7 @@ BEGIN
     );
 END
 
--- 8. Create CONVERSATION table
-IF NOT EXISTS (SELECT *
-FROM sys.tables
-WHERE name = 'CONVERSATION')
-BEGIN
-    CREATE TABLE CONVERSATION
-    (
-        conversationId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-        contextId UNIQUEIDENTIFIER NOT NULL UNIQUE,
-        FOREIGN KEY (contextId) REFERENCES GROUND_TRUTH_CONTEXT(contextId)
-    );
-END
-
--- 9. Create GROUND_TRUTH_DEFINITION_CONVERSATION relationship table
-IF NOT EXISTS (SELECT *
-FROM sys.tables
-WHERE name = 'GROUND_TRUTH_DEFINITION_CONVERSATION')
-BEGIN
-    CREATE TABLE GROUND_TRUTH_DEFINITION_CONVERSATION
-    (
-        conversationId UNIQUEIDENTIFIER NOT NULL,
-        groundTruthId UNIQUEIDENTIFIER NOT NULL,
-        PRIMARY KEY (conversationId, groundTruthId),
-        FOREIGN KEY (conversationId) REFERENCES CONVERSATION(conversationId),
-        FOREIGN KEY (groundTruthId) REFERENCES GROUND_TRUTH_DEFINITION(groundTruthId)
-    );
-END
-
--- 10. Create GROUND_TRUTH_DEFINITION_TAG relationship table
+-- 8. Create GROUND_TRUTH_DEFINITION_TAG relationship table
 IF NOT EXISTS (SELECT *
 FROM sys.tables
 WHERE name = 'GROUND_TRUTH_TAG')
@@ -260,17 +233,3 @@ IF NOT EXISTS (SELECT *
 FROM sys.indexes
 WHERE name = 'IX_tag_name')
     CREATE INDEX IX_tag_name ON TAG(name);
-
-IF NOT EXISTS (SELECT *
-FROM sys.indexes
-WHERE name = 'IX_conversation_context_id')
-    CREATE INDEX IX_conversation_context_id ON CONVERSATION(contextId);
-
-IF NOT EXISTS (SELECT *
-FROM sys.indexes
-WHERE name = 'IX_gt_def_conv_conversation_id')
-    CREATE INDEX IX_gt_def_conv_conversation_id ON GROUND_TRUTH_DEFINITION_CONVERSATION(conversationId);
-IF NOT EXISTS (SELECT *
-FROM sys.indexes
-WHERE name = 'IX_gt_def_conv_ground_truth_id')
-    CREATE INDEX IX_gt_def_conv_ground_truth_id ON GROUND_TRUTH_DEFINITION_CONVERSATION(groundTruthId);
