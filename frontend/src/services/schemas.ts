@@ -3,61 +3,63 @@ import { z } from 'zod';
 // Enumerations / constrained value sets inferred from frontend domain types
 export const ValidationStatusSchema = z.enum(['new', 'revisions_requested', 'validated', 'out-of-scope']);
 
+// camelCase version matching ASP.NET Core default JSON output
 export const TagSchema = z.object({
-  TagId: z.string().uuid(),
-  Name: z.string(),
-  Description: z.string().optional().default('')
+  tagId: z.string().uuid(),
+  name: z.string(),
+  description: z.string().optional().default('')
 });
 
 export const CommentSchema = z.object({
-  CommentId: z.string().uuid(),
-  GroundTruthId: z.string().uuid(),
-  CommentText: z.string(),
-  CommentDateTime: z.string(),
-  UserId: z.string(),
-  CommentType: z.string().optional().default('')
+  commentId: z.string().uuid(),
+  groundTruthId: z.string().uuid(),
+  commentText: z.string(),
+  commentDateTime: z.string(),
+  userId: z.string(),
+  commentType: z.string().optional().default('')
 });
 
 export const DataQueryDefinitionSchema = z.object({
-  DataQueryId: z.string().uuid(),
-  GroundTruthId: z.string().uuid(),
-  DatastoreType: z.string(),
-  DatastoreName: z.string().optional().default(''),
-  QueryTarget: z.string().optional().default(''),
-  QueryDefinition: z.string(),
-  IsFullQuery: z.boolean(),
-  RequiredPropertiesJson: z.string().optional().default(''),
-  UserCreated: z.string().optional().default(''),
-  UserUpdated: z.string().optional().default(''),
-  CreationDateTime: z.string(),
-  StartDateTime: z.string(),
-  EndDateTime: z.string()
+  dataQueryId: z.string().uuid(),
+  groundTruthId: z.string().uuid(),
+  datastoreType: z.string(),
+  datastoreName: z.string().optional().default(''),
+  queryTarget: z.string().optional().default(''),
+  queryDefinition: z.string(),
+  isFullQuery: z.boolean(),
+  requiredPropertiesJson: z.string().optional().default(''),
+  userCreated: z.string().optional().default(''),
+  userUpdated: z.string().optional().default(''),
+  creationDateTime: z.string(),
+  startDateTime: z.string(),
+  endDateTime: z.string()
 });
 
 export const GroundTruthEntrySchema = z.object({
-  GroundTruthEntryId: z.string().uuid(),
-  GroundTruthId: z.string().uuid(),
-  Response: z.string().optional().default(''),
-  RequiredValuesJson: z.string().optional().default(''),
-  RawDataJson: z.string().optional().default(''),
-  CreationDateTime: z.string(),
-  StartDateTime: z.string(),
-  EndDateTime: z.string()
+  groundTruthEntryId: z.string().uuid(),
+  groundTruthId: z.string().uuid(),
+  response: z.string().optional().default(''),
+  requiredValuesJson: z.string().optional().default(''),
+  rawDataJson: z.string().optional().default(''),
+  creationDateTime: z.string(),
+  startDateTime: z.string(),
+  endDateTime: z.string()
 });
 
 export const GroundTruthDefinitionSchema = z.object({
-  GroundTruthId: z.string().uuid(),
-  UserQuery: z.string(),
-  ValidationStatus: ValidationStatusSchema,
-  UserCreated: z.string().optional().default(''),
-  UserUpdated: z.string().optional().default(''),
-  CreationDateTime: z.string(),
-  StartDateTime: z.string(),
-  EndDateTime: z.string(),
-  GroundTruthEntries: z.array(GroundTruthEntrySchema).default([]),
-  DataQueryDefinitions: z.array(DataQueryDefinitionSchema).default([]),
-  Comments: z.array(CommentSchema).default([]),
-  Tags: z.array(TagSchema).default([])
+  groundTruthId: z.string().uuid(),
+  userQuery: z.string(),
+  // Accept any string from backend then canonicalize later in service mapping
+  validationStatus: z.string(),
+  userCreated: z.string().optional().default(''),
+  userUpdated: z.string().optional().default(''),
+  creationDateTime: z.string(),
+  startDateTime: z.string(),
+  endDateTime: z.string(),
+  groundTruthEntries: z.array(GroundTruthEntrySchema).default([]),
+  dataQueryDefinitions: z.array(DataQueryDefinitionSchema).default([]),
+  comments: z.array(CommentSchema).default([]),
+  tags: z.array(TagSchema).default([])
 });
 
 export const GroundTruthDefinitionArraySchema = z.array(GroundTruthDefinitionSchema);

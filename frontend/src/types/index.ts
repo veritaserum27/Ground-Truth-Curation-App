@@ -93,3 +93,20 @@ export interface GroundTruth {
   generatedResponses: GeneratedResponse[];
   reviews: Review[];
 }
+
+// Phase 5 Placeholder Type
+// Intention: When backend offers a slimmer list endpoint we can switch list loaders to use this lighter type
+// to reduce payload (e.g., exclude heavy response/context arrays). For now it's identical to a projected subset.
+export interface GroundTruthListItem {
+  id: string;
+  prompt: string;
+  category: GroundTruthCategory;
+  status: GroundTruthStatus;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+  // Counts for UI badges (can be derived today but may be returned directly later)
+  generatedResponseCount?: number;
+  reviewCount?: number;
+}

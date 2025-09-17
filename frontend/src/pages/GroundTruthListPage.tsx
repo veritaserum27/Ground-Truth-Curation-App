@@ -1,64 +1,40 @@
 
-import { listGroundTruthDefinitions } from '@/services/groundTruthService';
-import { ChevronDown, Download, Eye, FileText, MessageSquare, Tag as TagIcon } from 'lucide-react';
-import { useState } from 'react';
-import { NavLink } from "react-router";
-import { ExportModal } from '../components/ExportModal';
-import { useAuth } from '../contexts/AuthContext';
-import { useData } from '../contexts/DataContext';
-import type { GroundTruthCategory, GroundTruthStatus } from '../types/index';
+import { ChevronDown, Download, Eye, Tag as TagIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { NavLink, useLoaderData } from "react-router";
+import { ExportModal } from '~/components/ExportModal';
+import { CategoryIcon } from '~/components/ui/categoryIcon';
+import { useAuth } from '~/contexts/AuthContext';
+import { useEditingData } from '~/contexts/EditingContext';
+import type { GroundTruth, GroundTruthCategory, GroundTruthStatus } from '~/types';
+import { filterGroundTruths } from '~/utils/groundTruthFilters';
+import { formatCategory, formatStatus, getStatusColorClass } from "~/utils/groundTruthFormatting";
+// Re-export external loader so React Router picks it up
+export { groundTruthsListLoader as clientLoader } from "../routes/loaders/groundTruthsListLoader";
 
-export async function clientLoader() {
-  const groundTruths = await listGroundTruthDefinitions()
+// Filtering to be moved to utility in later task (placeholder for parity)
 
-  console.log({ groundTruths })
-  return {
-    title: "Sample Title"
-  }
-}
-
-// Helper functions
-const formatCategory = (category: GroundTruthCategory) =>
-  category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-const formatStatus = (status: GroundTruthStatus) =>
-  status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-const getStatusColor = (status: GroundTruthStatus) => {
-  switch (status) {
-    case 'new': return 'bg-gray-100 text-gray-800';
-    case 'revisions_requested': return 'bg-red-100 text-red-800';
-    case 'validated': return 'bg-green-100 text-green-800';
-    case 'out-of-scope': return 'bg-yellow-100 text-yellow-800';
-  }
-};
-
-const getCategoryIcon = (category: GroundTruthCategory) => {
-  switch (category) {
-    case 'asset_knowledge': return <FileText className="w-4 h-4" />;
-    case 'unanswerable': return <MessageSquare className="w-4 h-4" />;
-    case 'maintenance_request': return <MessageSquare className="w-4 h-4" />;
-  }
-};
-
-export default function GroundTruthListPage({ loaderData }) {
-  console.log('Loader Data:', loaderData);
+export default function GroundTruthListPage() {
+  const { groundTruths } = useLoaderData() as { groundTruths: GroundTruth[] };
   const { user } = useAuth();
-  const {
-    categoryFilter,
-    statusFilter,
-    tagFilter,
-    setCategoryFilter,
-    setStatusFilter,
-    setTagFilter,
-    setSelectedGroundTruth,
-    getFilteredGroundTruths,
-    getTagsForGroundTruth,
-    tags,
-    groundTruths
-  } = useData();
+  const { tags } = useEditingData(); // retain tags from context until tag loader added
 
-  const filteredGroundTruths = getFilteredGroundTruths();
+  // Local filter state (Phase 2 Task 2.1 step 1-3)
+  const [categoryFilter, setCategoryFilter] = useState<GroundTruthCategory | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<GroundTruthStatus | 'all'>('all');
+  const [tagFilter, setTagFilter] = useState<string | 'all'>('all');
+
+  // Tag resolution helper (avoid dependency on context groundTruths filtering)
+  const getTagsForGroundTruth = (gt: any) => gt.tags
+    ? gt.tags.map((tid: string) => tags.find(t => t.id === tid)).filter(Boolean)
+    : [];
+
+  const filteredGroundTruths = useMemo(() => filterGroundTruths(groundTruths as any, {
+    category: categoryFilter === 'all' ? undefined : categoryFilter,
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    tagIds: tagFilter === 'all' ? undefined : [tagFilter],
+  }), [groundTruths, categoryFilter, statusFilter, tagFilter]);
+
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   return (
     <div className="space-y-6">
@@ -118,7 +94,7 @@ export default function GroundTruthListPage({ loaderData }) {
 
       <div className="grid gap-4">
         {filteredGroundTruths.map(gt => {
-          const groundTruthTags = getTagsForGroundTruth(gt);
+          const groundTruthTags = getTagsForGroundTruth(gt) as { id: string; name: string; color: string }[];
           return (
             <div key={gt.id} className="bg-white rounded-lg border shadow hover:shadow-md transition-shadow">
               <div className="p-6 pb-3">
@@ -128,7 +104,7 @@ export default function GroundTruthListPage({ loaderData }) {
                       {gt.prompt}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {getCategoryIcon(gt.category)}
+                      <CategoryIcon category={gt.category} />
                       <span>{formatCategory(gt.category)}</span>
                       <span>•</span>
                       <span>Created {gt.createdAt.toLocaleDateString()}</span>
@@ -139,11 +115,8 @@ export default function GroundTruthListPage({ loaderData }) {
                       <div className="flex items-center gap-2 pt-2">
                         <TagIcon className="w-4 h-4 text-muted-foreground" />
                         <div className="flex gap-1 flex-wrap">
-                          {groundTruthTags.map(tag => (
-                            <span
-                              key={tag.id}
-                              className={`px-2 py-1 rounded text-xs ${tag.color}`}
-                            >
+                          {groundTruthTags.map((tag: { id: string; name: string; color: string }) => (
+                            <span key={tag.id} className={`px-2 py-1 rounded text-xs ${tag.color}`}>
                               {tag.name}
                             </span>
                           ))}
@@ -151,7 +124,7 @@ export default function GroundTruthListPage({ loaderData }) {
                       </div>
                     )}
                   </div>
-                  <span className={`px-2 py-1 rounded text-sm ${getStatusColor(gt.status)}`}>
+                  <span className={`px-2 py-1 rounded text-sm ${getStatusColorClass(gt.status)}`}>
                     {formatStatus(gt.status)}
                   </span>
                 </div>
@@ -201,9 +174,12 @@ export default function GroundTruthListPage({ loaderData }) {
 
       {isExportModalOpen && (
         <ExportModal
+
           isOpen={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
-        />
+          groundTruths={filteredGroundTruths}
+          tags={tags}
+          getTagsForGroundTruth={getTagsForGroundTruth} />
       )}
     </div>
   );

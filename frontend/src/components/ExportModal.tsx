@@ -1,17 +1,19 @@
+import { Download, FileText, Filter, X } from 'lucide-react';
 import { useState } from 'react';
-import { X, Download, FileText, Filter } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
-import type { GroundTruth, Tag, GroundTruthStatus } from '../types';
+import type { GroundTruth, GroundTruthStatus, Tag } from '../types';
+import { formatStatus } from '../utils/groundTruthFormatting';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  groundTruths: GroundTruth[];
+  tags: Tag[];
+  getTagsForGroundTruth: (gt: GroundTruth) => Tag[];
 }
 
 type ExportFormat = 'jsonl' | 'csv';
 
-export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
-  const { groundTruths, tags, getTagsForGroundTruth } = useData();
+export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGroundTruth }: ExportModalProps) => {
   const [format, setFormat] = useState<ExportFormat>('jsonl');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -54,9 +56,7 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
     setTagFilters([]);
   };
 
-  // Format status for display
-  const formatStatus = (status: GroundTruthStatus) =>
-    status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  // Status formatting delegated to shared util
 
   const formatExportData = (groundTruth: GroundTruth) => {
     const tags = getTagsForGroundTruth(groundTruth);
@@ -314,11 +314,10 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                   <button
                     key={status}
                     onClick={() => toggleStatusFilter(status as GroundTruthStatus)}
-                    className={`px-2 py-1 rounded text-xs ${
-                      statusFilters.includes(status as GroundTruthStatus)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/50'
-                    }`}
+                    className={`px-2 py-1 rounded text-xs ${statusFilters.includes(status as GroundTruthStatus)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/50'
+                      }`}
                   >
                     {formatStatus(status as GroundTruthStatus)}
                   </button>
@@ -336,11 +335,10 @@ export const ExportModal = ({ isOpen, onClose }: ExportModalProps) => {
                   <button
                     key={tag.id}
                     onClick={() => toggleTagFilter(tag.id)}
-                    className={`px-2 py-1 rounded text-xs ${
-                      tagFilters.includes(tag.id)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/50'
-                    }`}
+                    className={`px-2 py-1 rounded text-xs ${tagFilters.includes(tag.id)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/50'
+                      }`}
                   >
                     {tag.name}
                   </button>

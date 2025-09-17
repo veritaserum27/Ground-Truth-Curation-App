@@ -1,33 +1,29 @@
-import { useState } from "react";
 import {
-  ArrowLeft,
+  ChevronDown,
+  Clock,
   Edit,
-  Save,
-  X,
-  Star,
   FileText,
   MessageSquare,
-  Clock,
-  ChevronDown,
   Plus,
+  Save,
+  Star,
   Trash2,
+  X
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
-import { useData } from "../contexts/DataContext";
+import { useState } from "react";
+import { NavLink, useLoaderData } from "react-router";
 import { ReviewForm } from "../components/ReviewForm";
 import { TagManager } from "../components/TagManager";
-import type { Route } from "./+types/product";
-
+import { useAuth } from "../contexts/AuthContext";
+import { useEditingData } from "../contexts/EditingContext";
 import type {
-  GroundTruthCategory,
-  GroundTruthStatus,
   Context,
   DataQueryDefinition,
   DataStoreType,
-  Tag,
-  GroundTruth
+  GroundTruth,
+  GroundTruthCategory,
+  GroundTruthStatus
 } from "../types";
-import { NavLink } from "react-router";
 
 // Helper functions
 const formatCategory = (category: GroundTruthCategory) =>
@@ -65,15 +61,10 @@ const getCategoryIcon = (category: GroundTruthCategory) => {
 };
 
 
-export function clientLoader({ params }: Route.ClientLoaderArgs) {
+// Re-export external loader implementation
+export { groundTruthDetailLoader as clientLoader } from "../routes/loaders/groundTruthDetailLoader";
 
-  const { id } = params;
-  return { id };
-}
-
-clientLoader.hydrate = true as const; // `as const` for type inference
-
-function BackToList({groundTruth}: { groundTruth: GroundTruth | undefined}) {
+function BackToList({ groundTruth }: { groundTruth: GroundTruth | undefined }) {
   return (
     <div className="text-center py-8">
       {!groundTruth && (
@@ -87,18 +78,11 @@ function BackToList({groundTruth}: { groundTruth: GroundTruth | undefined}) {
     </div>
   )
 }
-export default function GroundTruthDetail({ loaderData }: Route.ComponentProps) {
+export default function GroundTruthDetail() {
   const { user } = useAuth();
-
-
-  const { groundTruths, isEditing,
-    setIsEditing,
-    editForm,
-    setEditForm,
-    updateGroundTruth,
-    deepCopyGroundTruth,
-  } = useData();
-  const groundTruth = groundTruths.find((gt) => gt.id === loaderData.id);
+  const { isEditing, setIsEditing, editForm, setEditForm, applyLocalEdits, deepCopyGroundTruth, getMergedGroundTruth, getMergedReviews } = useEditingData();
+  const { groundTruth: baseGroundTruth } = useLoaderData() as { groundTruth: GroundTruth };
+  const groundTruth = getMergedGroundTruth(baseGroundTruth);
 
 
   const [activeResponseTab, setActiveResponseTab] = useState<{
@@ -118,7 +102,7 @@ export default function GroundTruthDetail({ loaderData }: Route.ComponentProps) 
   }
 
   const handleSave = () => {
-    updateGroundTruth(groundTruth.id, editForm);
+    applyLocalEdits(groundTruth.id, editForm);
     setIsEditing(false);
     setEditForm({});
   };
@@ -227,7 +211,7 @@ export default function GroundTruthDetail({ loaderData }: Route.ComponentProps) 
     <div className="space-y-6">
       {/* Detail Header */}
       <div className="flex items-center justify-between">
-        <BackToList groundTruth={groundTruth}/>
+        <BackToList groundTruth={groundTruth} />
         {canEdit && !isEditing && (
           <button
             onClick={handleEdit}
@@ -969,8 +953,8 @@ export default function GroundTruthDetail({ loaderData }: Route.ComponentProps) 
           {/* Reviews */}
           <div className="space-y-4">
             <h3>Reviews</h3>
-            {groundTruth.reviews?.length > 0 ? (
-              groundTruth.reviews.map((review) => (
+            {getMergedReviews(groundTruth.id, groundTruth.reviews)?.length > 0 ? (
+              getMergedReviews(groundTruth.id, groundTruth.reviews).map((review) => (
                 <div key={review.id} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -1051,7 +1035,7 @@ export default function GroundTruthDetail({ loaderData }: Route.ComponentProps) 
 
           {/* Add Review Form - For both data validators and curators */}
           <div>
-            <ReviewForm groundTruthId={groundTruth.id} />
+            <ReviewForm groundTruth={groundTruth} />
           </div>
         </div>
       </div>

@@ -41,26 +41,26 @@ const mapStatus = (s: string): GroundTruthStatus => (STATUS_SET.has(s.toLowerCas
 const mapDataStoreType = (v: string): DataStoreType => v.toLowerCase().includes('graph') ? 'GraphQL' : v.toLowerCase().includes('cosmos') ? 'CosmosDB' : 'SQL';
 function mapDataQueryDefinition(d: BackendDataQueryDefinition) {
   return {
-    id: d.DataQueryId,
-    dataStoreType: mapDataStoreType(d.DatastoreType),
-    query: d.QueryDefinition,
-    name: d.QueryTarget || d.DatastoreName || 'Query',
+    id: d.dataQueryId,
+    dataStoreType: mapDataStoreType(d.datastoreType),
+    query: d.queryDefinition,
+    name: d.queryTarget || d.datastoreName || 'Query',
     contextId: 'default'
   };
 }
 function mapDefinition(dto: BackendGroundTruthDefinition): GroundTruth {
   return {
-    id: dto.GroundTruthId,
-    prompt: dto.UserQuery,
-    status: mapStatus(dto.ValidationStatus),
+    id: dto.groundTruthId,
+    prompt: dto.userQuery,
+    status: mapStatus(dto.validationStatus),
     category: 'asset_knowledge',
-    createdAt: new Date(dto.CreationDateTime),
-    updatedAt: new Date(dto.StartDateTime || dto.CreationDateTime),
-    createdBy: dto.UserCreated || 'unknown',
+    createdAt: new Date(dto.creationDateTime),
+    updatedAt: new Date(dto.startDateTime || dto.creationDateTime),
+    createdBy: dto.userCreated || 'unknown',
     dataCuratorNotes: '',
     contexts: [],
-    dataQueryDefinitions: dto.DataQueryDefinitions.map(mapDataQueryDefinition),
-    tags: dto.Tags.map((t: BackendTag) => t.TagId),
+    dataQueryDefinitions: dto.dataQueryDefinitions.map(mapDataQueryDefinition),
+    tags: dto.tags.map((t: BackendTag) => t.tagId),
     generatedResponses: [],
     reviews: []
   };

@@ -5,7 +5,7 @@
 
   ## Running the code
 
-  Using pnpm (recommended):
+  Preferred package manager: pnpm (lockfile present).
 
   ```sh
   pnpm install
@@ -19,37 +19,44 @@
   npm run dev
   ```
 
-  ## Environment Variable
-  - `VITE_API_BASE_URL` (default http://localhost:5000)
+  ## Environment Variables
+
+  Copy `.env.example` to `.env` and adjust. Only variables prefixed with `VITE_` are exposed to the client.
+
+  - `VITE_API_BASE_URL` (default fallback: http://localhost:5000)
 
   ## Ground Truth Service
-  The service in `src/services/groundTruthService.ts` interfaces with the backend:
 
-  | Method | Description | Notes |
-  | ------ | ----------- | ----- |
-  | `listGroundTruthDefinitions(filter?)` | Fetch array of definitions | Validated & mapped |
-  | `getGroundTruthDefinition(id)` | Fetch single definition | Validated & mapped |
-  | `createGroundTruthDefinition` | Placeholder (501) | Backend not implemented |
-  | `addGroundTruthEntry` | Placeholder (501) | Backend not implemented |
-  | `updateValidationStatus` | Placeholder (501) | Backend not implemented |
+  The file `src/services/groundTruthService.ts` provides typed access to backend API endpoints:
 
-  ### Validation
-  Responses are validated with Zod (`schemas.ts`). Invalid payloads raise an `ApiError` with `status=422` and `issues` describing schema failures.
+  | Method | Purpose | Status |
+  | ------ | ------- | ------ |
+  | `listGroundTruthDefinitions(filter?)` | Fetch all definitions (optional userId, validationStatus filter) | Implemented |
+  | `getGroundTruthDefinition(id)` | Fetch a single definition by ID | Implemented |
+  | `createGroundTruthDefinition(payload)` | Create new definition | Placeholder (501) |
+  | `addGroundTruthEntry(payload)` | Add entry to definition | Placeholder (501) |
+  | `updateValidationStatus(payload)` | Update validation status | Placeholder (501) |
 
-  ### Example
+  ### Example Usage
+
   ```ts
-  import { groundTruthService } from '~/services/groundTruthService';
+  import { groundTruthService } from '@/services/groundTruthService';
 
-  async function loadDefs() {
+  async function load() {
     try {
       const defs = await groundTruthService.listGroundTruthDefinitions({ validationStatus: 'validated' });
       console.log(defs);
-    } catch (e: any) {
-      if (e.status === 422) console.error('Schema issues', e.issues);
+    } catch (e) {
+      console.error(e);
     }
   }
   ```
 
   ### Mapping Notes
-  - Backend PascalCase -> frontend camelCase performed in mapper functions.
-  - Placeholder values (category, contexts, etc.) will evolve as backend adds richer fields.
+  Backend entities use PascalCase; the service maps them to existing UI models, filling placeholder values (e.g., `category` always `asset_knowledge` for now). When the backend exposes richer domain fields, update the mapper instead of scattered UI changes.
+
+  ## Future Enhancements
+  - Integrate API data into `DataContext` replacing mock dataset.
+  - Implement create/update endpoints once backend adds functionality.
+  - Add caching and stale-while-revalidate layer.
+  - Add tests for mapping and error handling.
