@@ -5,7 +5,7 @@ namespace GroundTruthCuration.Core.Constants
     /// <summary>
     /// Represents the validation status of a ground truth entry.
     /// </summary>
-    public enum ValidationStatus
+    public enum GroundTruthValidationStatus
     {
         /// <summary>
         /// Indicates that the entry is newly created and has not been processed.
@@ -39,36 +39,56 @@ namespace GroundTruthCuration.Core.Constants
     }
 
     /// <summary>
-    /// Provides extension methods for the ValidationStatus enum.
+    /// Provides extension methods for the GroundTruthValidationStatus enum.
     /// </summary>
-    public static class ValidationStatusExtensions
+    public static class GroundTruthValidationStatusExtensions
     {
         /// <summary>
         /// Converts the validation status to a display-friendly string.
         /// </summary>
         /// <param name="status">The validation status.</param>
         /// <returns>A string representation of the validation status.</returns>
-        public static string ToDisplayString(this ValidationStatus status)
+        public static string ToDisplayString(this GroundTruthValidationStatus status)
         {
             switch (status)
             {
-                case ValidationStatus.New:
+                case GroundTruthValidationStatus.New:
                     return "New";
-                case ValidationStatus.NewDataCurated:
+                case GroundTruthValidationStatus.NewDataCurated:
                     return "New, Data Curated";
-                case ValidationStatus.Validated:
+                case GroundTruthValidationStatus.Validated:
                     return "Validated";
-                case ValidationStatus.OutOfScope:
+                case GroundTruthValidationStatus.OutOfScope:
                     return "Out of Scope";
-                case ValidationStatus.Revised:
+                case GroundTruthValidationStatus.Revised:
                     return "Revised";
-                case ValidationStatus.RevisionsRequested:
+                case GroundTruthValidationStatus.RevisionsRequested:
                     return "Revisions Requested";
-                case ValidationStatus.Pending:
+                case GroundTruthValidationStatus.Pending:
                     return "Pending";
                 default:
                     return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Converts a display-friendly string to the corresponding validation status.
+        /// </summary>
+        /// <param name="displayString">The display-friendly string representation of the validation status.</param>
+        /// <returns>The corresponding <see cref="GroundTruthValidationStatus"/>.</returns>
+        public static GroundTruthValidationStatus FromDisplayString(string displayString)
+        {
+            return displayString switch
+            {
+                "New" => GroundTruthValidationStatus.New,
+                "New, Data Curated" => GroundTruthValidationStatus.NewDataCurated,
+                "Validated" => GroundTruthValidationStatus.Validated,
+                "Out of Scope" => GroundTruthValidationStatus.OutOfScope,
+                "Revised" => GroundTruthValidationStatus.Revised,
+                "Revisions Requested" => GroundTruthValidationStatus.RevisionsRequested,
+                "Pending" => GroundTruthValidationStatus.Pending,
+                _ => GroundTruthValidationStatus.New, // Default case
+            };
         }
     }
 }

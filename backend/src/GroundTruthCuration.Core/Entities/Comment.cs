@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using GroundTruthCuration.Core.Constants;
 
 namespace GroundTruthCuration.Core.Entities;
@@ -35,5 +36,12 @@ public class Comment
     /// <summary>
     /// Gets or sets the type of the comment (e.g., review, note).
     /// </summary>
-    public CommentType CommentType { get; set; } = CommentType.Note;
+    public string CommentType { get; set; } = GroundTruthCommentType.Note.ToDisplayString();
+
+    /// <summary>
+    /// Gets the type of the comment as an enumeration.
+    /// </summary>
+    [NotMapped]
+    public GroundTruthCommentType CommentTypeEnum
+        => GroundTruthCommentTypeExtensions.FromDisplayString(CommentType);
 }

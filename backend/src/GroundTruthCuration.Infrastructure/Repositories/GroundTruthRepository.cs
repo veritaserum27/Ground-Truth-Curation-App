@@ -224,11 +224,11 @@ public class GroundTruthRepository : IGroundTruthRepository
         }
         if (parameters.ParameterNames.Contains("StartDate"))
         {
-            whereClauses.Add("gtd.createdAt >= @StartDate");
+            whereClauses.Add("gtd.creationDateTime >= @StartDate");
         }
         if (parameters.ParameterNames.Contains("EndDate"))
         {
-            whereClauses.Add("gtd.createdAt <= @EndDate");
+            whereClauses.Add("gtd.creationDateTime <= @EndDate");
         }
         // Add more mappings as needed for other filters
         return whereClauses.Any() ? string.Join(" AND ", whereClauses) : string.Empty;

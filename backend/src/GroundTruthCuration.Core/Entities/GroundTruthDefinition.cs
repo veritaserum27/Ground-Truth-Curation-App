@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.Tracing;
 using GroundTruthCuration.Core.Constants;
 
 namespace GroundTruthCuration.Core.Entities;
@@ -18,9 +20,15 @@ public class GroundTruthDefinition
     public required string UserQuery { get; set; }
 
     /// <summary>
+    /// Gets or sets the validation status of the ground truth definition as a string.
+    /// </summary>
+    public string ValidationStatus { get; set; } = GroundTruthValidationStatus.New.ToDisplayString();
+
+    /// <summary>
     /// Gets or sets the validation status of the ground truth definition.
     /// </summary>
-    public ValidationStatus ValidationStatus { get; set; } = ValidationStatus.New;
+    [NotMapped]
+    public GroundTruthValidationStatus ValidationStatusEnum => GroundTruthValidationStatusExtensions.FromDisplayString(ValidationStatus);
 
     /// <summary>
     /// Gets or sets the username of the user who created this ground truth definition.
