@@ -1,40 +1,82 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
-	"name": "C# (.NET)",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0",
-	"features": {
-		"ghcr.io/devcontainers/features/node:1": {
-			"nodeGypDependencies": true,
-			"installYarnUsingApt": true,
-			"version": "lts",
-			"pnpmVersion": "latest",
-			"nvmVersion": "latest"
-		},
-		"ghcr.io/devcontainers/features/python:1": {
-			"installTools": true,
-			"version": "os-provided"
-		}
-	}
+  "name": "Ground Truth Curation App (.NET + React Router)",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "installYarnUsingApt": true,
+      "version": "20",
+      "pnpmVersion": "latest",
+      "nvmVersion": "latest"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "installTools": true,
+      "version": "os-provided"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [3000, 5105],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend (React Router v7)",
+      "onAutoForward": "notify"
+    },
+    "5105": {
+      "label": "Backend API (.NET 8)",
+      "onAutoForward": "notify"
+    }
+  },
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [5000, 5001],
-	// "portsAttributes": {
-	//		"5001": {
-	//			"protocol": "https"
-	//		}
-	// }
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "postCreateCommand": ".devcontainer/setup.sh",
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "dotnet restore",
+  // Additional lifecycle scripts
+  "onCreateCommand": "echo 'Setting up Ground Truth Curation App...'",
+  "updateContentCommand": ".devcontainer/setup.sh",
 
-	// Configure tool-specific properties.
-	// "customizations": {},
+  // Configure tool-specific properties.
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-json",
+        "humao.rest-client",
+        "ms-python.python",
+        "ms-python.flake8",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "backend/GroundTruthCuration.sln",
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": "explicit"
+        },
+        "tailwindCSS.includeLanguages": {
+          "typescript": "javascript",
+          "typescriptreact": "javascript"
+        }
+      }
+    }
+  },
 
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root",
+
+  // Environment variables
+  "remoteEnv": {
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "VITE_API_BASE_URL": "http://localhost:5105"
+  }
 }

@@ -5,11 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B6073415-D697-4CCC-8AAA-AE8418997A4F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundTruthCuration.Api", "src\GroundTruthCuration.Api\GroundTruthCuration.Api.csproj", "{F27BCB3D-1293-4EED-B7B4-99B4ECE63349}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundTruthCuration.Api", "src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj", "{F27BCB3D-1293-4EED-B7B4-99B4ECE63349}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundTruthCuration.Core", "src\GroundTruthCuration.Core\GroundTruthCuration.Core.csproj", "{D790FE06-2E2A-4B68-9344-B188873A26E0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundTruthCuration.Core", "src/GroundTruthCuration.Core/GroundTruthCuration.Core.csproj", "{D790FE06-2E2A-4B68-9344-B188873A26E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundTruthCuration.Infrastructure", "src\GroundTruthCuration.Infrastructure\GroundTruthCuration.Infrastructure.csproj", "{5623730F-B2FD-4F41-9955-AAED56D7C8B2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundTruthCuration.Infrastructure", "src/GroundTruthCuration.Infrastructure/GroundTruthCuration.Infrastructure.csproj", "{5623730F-B2FD-4F41-9955-AAED56D7C8B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
