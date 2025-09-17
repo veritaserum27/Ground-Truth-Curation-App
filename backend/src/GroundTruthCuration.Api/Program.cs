@@ -13,6 +13,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var AllowSpecificOrigins = "Frontend";
+// CORS configuration (allow configured frontend dev origins)
+builder.Services.AddCors(options =>
+{
+  options.AddPolicy(AllowSpecificOrigins, policy =>
+    policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5105", "https://localhost:7278")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
+
 // Register application services
 builder.Services.AddScoped<IHello, Hello>();
 
@@ -32,17 +43,18 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    app.MapGet("/", () => Results.Redirect("/swagger"));
+  app.UseSwagger();
+  app.UseSwaggerUI();
+  app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
 // HTTPS redirection: enable only if explicitly requested via config (CertificateSettings:GenerateAspNetCertificate=true)
 var enableHttpsRedirection = builder.Configuration.GetValue<bool>("CertificateSettings:GenerateAspNetCertificate");
 if (enableHttpsRedirection)
 {
-    app.UseHttpsRedirection();
+  app.UseHttpsRedirection();
 }
+app.UseCors(AllowSpecificOrigins);
 
 app.MapGet("/healthz", () => Results.Ok("healthy"))
     .WithName("Healthz")
