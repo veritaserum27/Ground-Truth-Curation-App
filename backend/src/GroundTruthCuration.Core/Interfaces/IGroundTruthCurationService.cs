@@ -17,13 +17,13 @@ namespace GroundTruthCuration.Core.Interfaces
         /// </summary>
         /// <param name="id">The unique identifier of the ground truth definition.</param>
         /// <returns>The ground truth definition if found; otherwise, null.</returns>
-        Task<GroundTruthDefinition?> GetGroundTruthDefinitionByIdAsync(Guid id);
+        Task<GroundTruthDefinitionDto?> GetGroundTruthDefinitionByIdAsync(Guid id);
 
         /// <summary>
         /// Retrieves all ground truth definitions from the repository.
         /// </summary>
         /// <returns>A collection of all ground truth definitions.</returns>
-        Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter filter);
+        Task<IEnumerable<GroundTruthDefinitionDto>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter);
 
         /// <summary>
         /// Retrieves all ground truth definitions associated with a specific user.

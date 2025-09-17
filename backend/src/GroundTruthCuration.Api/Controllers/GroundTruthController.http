@@ -1,35 +1,19 @@
-### Create a new Ground Truth Definition
-POST https://localhost:5001/api/groundtruth/definitions
-Content-Type: application/json
+### Get all ground truth definitions (no filter)
+GET http://localhost:5105/api/groundtruth/definitions
+Accept: application/json
 
-{
-  "userQuery": "How to troubleshoot login issues?",
-  "userId": "user123@example.com"
-}
+### Get ground truth definitions with filter: status=Validated
+GET http://localhost:5105/api/groundtruth/definitions?ValidationStatus=Validated
+Accept: application/json
 
-### Add an entry to a ground truth definition (replace {id} with actual ID from create response)
-POST https://localhost:5001/api/groundtruth/definitions/{id}/entries
-Content-Type: application/json
+### Get ground truth definitions with user query filter
+GET http://localhost:5105/api/groundtruth/definitions?UserQuery=product%20defects
+Accept: application/json
 
-{
-  "response": "Check password reset options and verify account status",
-  "requiredValuesJson": "{\"issue_type\": \"login\", \"priority\": \"high\"}",
-  "rawDataJson": "{\"user_id\": \"user123\", \"timestamp\": \"2025-09-13T11:52:00Z\"}"
-}
+### Get ground truth definitions with multiple filters
+GET http://localhost:5105/api/groundtruth/definitions?UserQuery=product%20defects&ValidationStatus=New%2C%20Data%20Curated
+Accept: application/json
 
-### Update validation status (replace {id} with actual ID)
-PUT https://localhost:5001/api/groundtruth/definitions/{id}/validation-status
-Content-Type: application/json
-
-{
-  "validationStatus": "Pending",
-  "userId": "validator456@example.com"
-}
-
-### Get a specific definition (replace {id} with actual ID)
-GET https://localhost:5001/api/groundtruth/definitions/{id}
-
-### Get all ground truth definitions
-GET http://localhost:5105/api/GroundTruth/definitions
-
-## Get all ground truth definitions with filter
+### Get a specific ground truth definition by ID (replace {id} with actual GUID)
+GET http://localhost:5105/api/groundtruth/definitions/{id}
+Accept: application/json

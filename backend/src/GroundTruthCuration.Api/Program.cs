@@ -1,4 +1,6 @@
 using GroundTruthCuration.Core;
+using GroundTruthCuration.Core.DTOs;
+using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
 using GroundTruthCuration.Core.Services;
 using GroundTruthCuration.Infrastructure.Repositories;
@@ -20,6 +22,7 @@ builder.Services.AddSingleton<IGroundTruthRepository, GroundTruthRepository>();
 
 // Core layer (domain services) - depends on abstractions (interfaces)
 builder.Services.AddScoped<IGroundTruthCurationService, GroundTruthCurationService>();
+builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>, GroundTruthDefinitionToDtoMapper>();
 
 var app = builder.Build();
 
@@ -35,7 +38,7 @@ if (app.Environment.IsDevelopment())
 var enableHttpsRedirection = builder.Configuration.GetValue<bool>("CertificateSettings:GenerateAspNetCertificate");
 if (enableHttpsRedirection)
 {
-     app.UseHttpsRedirection();
+    app.UseHttpsRedirection();
 }
 
 app.MapGet("/healthz", () => Results.Ok("healthy"))
@@ -54,7 +57,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
     var port = Environment.GetEnvironmentVariable("PORT") ?? "5105";
-    
+
     // Add a small delay to ensure this appears after built-in messages
     Task.Run(async () =>
     {
