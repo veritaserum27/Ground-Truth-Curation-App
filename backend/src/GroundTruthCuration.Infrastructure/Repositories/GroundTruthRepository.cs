@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System;
 using GroundTruthCuration.Core.DTOs;
 using System.Reflection.Metadata.Ecma335;
+using Microsoft.Extensions.Logging;
 
 namespace GroundTruthCuration.Infrastructure.Repositories;
 
@@ -17,6 +18,7 @@ namespace GroundTruthCuration.Infrastructure.Repositories;
 public class GroundTruthRepository : IGroundTruthRepository
 {
     private readonly string _connectionString;
+    private readonly ILogger<GroundTruthRepository> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundTruthRepository"/> class.
@@ -24,8 +26,9 @@ public class GroundTruthRepository : IGroundTruthRepository
     /// <param name="configuration">The application configuration containing connection strings.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="configuration"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the connection string is missing.</exception>
-    public GroundTruthRepository(IConfiguration configuration)
+    public GroundTruthRepository(ILogger<GroundTruthRepository> logger, IConfiguration configuration)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
         _connectionString = _configuration.GetConnectionString("GroundTruthConnectionString")
@@ -73,6 +76,7 @@ public class GroundTruthRepository : IGroundTruthRepository
     /// <returns>A collection of ground truth definitions.</returns>
     public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter)
     {
+        _logger.LogInformation("Retrieving all ground truth definitions with filter: {@Filter}", filter);
         string baseSql = GetBaseSql();
 
         DynamicParameters parameters = BuildSqlParametersFromFilter(filter);
@@ -116,6 +120,7 @@ public class GroundTruthRepository : IGroundTruthRepository
     /// <returns>The ground truth definition if found; otherwise, null.</returns>
     public async Task<GroundTruthDefinition?> GetGroundTruthDefinitionByIdAsync(Guid id)
     {
+        _logger.LogInformation("Retrieving ground truth definition with ID: {Id}", id);
         if (id == Guid.Empty)
         {
             throw new ArgumentException("The ground truth ID cannot be an empty GUID.", nameof(id));
@@ -123,19 +128,27 @@ public class GroundTruthRepository : IGroundTruthRepository
 
         string sql = GetBaseSql() + " WHERE gtd.groundTruthId = @id;";
 
-        using (var connection = new SqlConnection(_connectionString))
+        try
         {
-            var groundTruthDict = new Dictionary<Guid, GroundTruthDefinition>();
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var groundTruthDict = new Dictionary<Guid, GroundTruthDefinition>();
 
-            // Leverage Dapper's multi-mapping feature to map related entities to build full object graph
-            await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthDefinition>(
-                sql,
-                (gtd, entry, dq, comment, tag) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag),
-                new { id },
-                splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId"
-            );
-            // Should only have one or zero results
-            return groundTruthDict.Values.FirstOrDefault();
+                // Leverage Dapper's multi-mapping feature to map related entities to build full object graph
+                await connection.QueryAsync<GroundTruthDefinition, GroundTruthEntry, DataQueryDefinition, Comment, Tag, GroundTruthDefinition>(
+                    sql,
+                    (gtd, entry, dq, comment, tag) => MapGroundTruthDefinition(groundTruthDict, gtd, entry, dq, comment, tag),
+                    new { id },
+                    splitOn: "GroundTruthEntryId,DataQueryId,CommentId,TagId"
+                );
+                // Should only have one or zero results
+                return groundTruthDict.Values.FirstOrDefault();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving ground truth definition with ID: {Id}", id);
+            throw new InvalidOperationException($"An error occurred while retrieving the ground truth definition with ID {id}.", ex);
         }
     }
 
@@ -227,21 +240,13 @@ public class GroundTruthRepository : IGroundTruthRepository
     private static string BuildWhereClauseFromParameters(DynamicParameters parameters)
     {
         var whereClauses = new List<string>();
-        if (parameters.ParameterNames.Contains("UserId"))
-        {
-            whereClauses.Add("gtd.userCreated = @UserId");
-        }
         if (parameters.ParameterNames.Contains("ValidationStatus"))
         {
             whereClauses.Add("gtd.validationStatus = @ValidationStatus");
         }
-        if (parameters.ParameterNames.Contains("StartDate"))
+        if (parameters.ParameterNames.Contains("UserQuery"))
         {
-            whereClauses.Add("gtd.creationDateTime >= @StartDate");
-        }
-        if (parameters.ParameterNames.Contains("EndDate"))
-        {
-            whereClauses.Add("gtd.creationDateTime <= @EndDate");
+            whereClauses.Add("gtd.userQuery LIKE @UserQuery");
         }
         // Add more mappings as needed for other filters
         return whereClauses.Any() ? string.Join(" AND ", whereClauses) : string.Empty;
@@ -251,28 +256,14 @@ public class GroundTruthRepository : IGroundTruthRepository
     {
         var parameters = new DynamicParameters();
 
-        if (filter?.UserId is not null)
-        {
-            parameters.Add("UserId", filter.UserId);
-        }
+
         if (filter?.ValidationStatus is not null)
         {
             parameters.Add("ValidationStatus", filter.ValidationStatus);
         }
-        if (filter?.CreatedDateRange is not null)
+        if (filter?.UserQuery is not null)
         {
-            if (filter.CreatedDateRange?.Start is not null)
-            {
-                parameters.Add("StartDate", filter.CreatedDateRange?.Start);
-            }
-            if (filter.CreatedDateRange?.End is not null)
-            {
-                parameters.Add("EndDate", filter.CreatedDateRange?.End);
-            }
-        }
-        if (filter?.ContextId is not null)
-        {
-            parameters.Add("ContextId", filter.ContextId);
+            parameters.Add("UserQuery", $"%{filter.UserQuery}%");
         }
 
         return parameters;
