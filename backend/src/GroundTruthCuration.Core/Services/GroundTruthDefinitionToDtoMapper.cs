@@ -1,6 +1,7 @@
 using System.Text.Json;
 using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace GroundTruthCuration.Core.DTOs;
 
@@ -27,98 +28,135 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
             {
                 GroundTruthEntryId = entry.GroundTruthEntryId,
                 GroundTruthId = entry.GroundTruthId,
-                Context = entry.Context,
+                GroundTruthContext = Map(entry.GroundTruthContext),
                 Response = entry.Response,
                 RequiredValues = string.IsNullOrWhiteSpace(entry.RequiredValuesJson) ? new List<string>()
                     : JsonSerializer.Deserialize<List<string>>(entry.RequiredValuesJson) ?? new List<string>(),
-                RawData = ConvertToRawDataDto(entry.RawDataJson),
+                RawData = Map(entry.RawDataJson),
                 CreationDateTime = entry.CreationDateTime,
-                StartDateTime = entry.StartDateTime,
-                EndDateTime = entry.EndDateTime
             }).ToList() ?? new List<GroundTruthEntryDto>(),
-            DataQueryDefinitions = source.DataQueryDefinitions?.Select(query => new DataQueryDefinitionDto
-            {
-                DataQueryId = query.DataQueryId,
-                QueryName = query.QueryName,
-                QueryString = query.QueryString,
-                UserCreated = query.UserCreated,
-                CreationDateTime = query.CreationDateTime
-            }).ToList() ?? new List<DataQueryDefinitionDto>(),
+            DataQueryDefinitions = source.DataQueryDefinitions?.Select(query => Map(query)).ToList() ?? new List<DataQueryDefinitionDto>(),
             Comments = source.Comments?.Select(comment => new CommentDto
             {
                 CommentId = comment.CommentId,
-                GroundTruthId = comment.GroundTruthId,
-                UserComment = comment.UserComment,
-                UserCreated = comment.UserCreated,
-                CreationDateTime = comment.CreationDateTime
+                CommentText = comment.CommentText,
+                CommentType = comment.CommentType,
+                UserCreated = comment.UserId,
+                CreationDateTime = comment.CommentDateTime
             }).ToList() ?? new List<CommentDto>(),
             Tags = source.Tags?.Select(tag => new TagDto
             {
                 TagId = tag.TagId,
-                GroundTruthId = tag.GroundTruthId,
-                TagName = tag.TagName
+                Name = tag.Name,
+                Description = tag.Description
             }).ToList() ?? new List<TagDto>()
         };
 
         return dto;
     }
 
-    private RawDataDto ConvertToRawDataDto(Dictionary<string, object> rawData)
+    public ContextParameterDto? Map(ContextParameter? parameter)
     {
-        return new RawDataDto
+        if (parameter == null) return null;
+
+        return new ContextParameterDto
         {
-            DataQueryId = rawData.ContainsKey("DataQueryId") && rawData["DataQueryId"] is Guid id ? id : Guid.Empty,
-            RawData = rawData.ContainsKey("RawData") && rawData["RawData"] is List<Dictionary<string, object>> data ? data : new List<Dictionary<string, object>>()
+            ParameterId = parameter.ParameterId,
+            ParameterName = parameter.ParameterName,
+            ParameterValue = parameter.ParameterValue,
+            DataType = parameter.DataType
         };
     }
 
-    private RawDataDto Map(string rawDataJson)
+    public GroundTruthContextDto? Map(GroundTruthContext? context)
     {
+        if (context == null) return null;
+
+        return new GroundTruthContextDto
+        {
+            ContextId = context.ContextId,
+            Name = context.Name,
+            Description = context.Description,
+            ContextParameters = context.ContextParameters?
+                .Select(param => Map(param))
+                .Where(mappedParam => mappedParam != null)
+                .Cast<ContextParameterDto>()
+                .ToList() ?? new List<ContextParameterDto>()
+        };
+    }
+
+    public DataQueryDefinitionDto Map(DataQueryDefinition source)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        return new DataQueryDefinitionDto
+        {
+            DataQueryId = source.DataQueryId,
+            QueryDefinition = source.QueryDefinition,
+            QueryTarget = source.QueryTarget,
+            IsFullQuery = source.IsFullQuery,
+            DatastoreName = source.DatastoreName,
+            DatastoreType = source.DatastoreType,
+            RequiredProperties = string.IsNullOrWhiteSpace(source.RequiredPropertiesJson) ? new List<string>()
+                : JsonSerializer.Deserialize<List<string>>(source.RequiredPropertiesJson) ?? new List<string>(),
+            GroundTruthId = source.GroundTruthId,
+            UserCreated = source.UserCreated,
+            CreationDateTime = source.CreationDateTime
+        };
+    }
+
+    public List<RawDataDto> Map(string rawDataJson)
+    {
+        var rawDataDtos = new List<RawDataDto>();
+
         if (string.IsNullOrWhiteSpace(rawDataJson))
         {
-            return new RawDataDto
-            {
-                DataQueryId = Guid.Empty,
-                RawData = new List<Dictionary<string, object>>()
-            };
+            return rawDataDtos;
         }
 
         try
         {
-            var rawDataDict = JsonSerializer.Deserialize<Dictionary<string, object>>(rawDataJson);
-            if (rawDataDict == null)
+            var rawDataDictionaries = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(rawDataJson);
+            if (rawDataDictionaries == null)
             {
-                return new RawDataDto
-                {
-                    DataQueryId = Guid.Empty,
-                    RawData = new List<Dictionary<string, object>>()
-                };
+                return rawDataDtos;
             }
 
-            var dataQueryId = rawDataDict.ContainsKey("DataQueryId") && rawDataDict["DataQueryId"] is JsonElement idElement && idElement.ValueKind == JsonValueKind.String
-                ? Guid.Parse(idElement.GetString() ?? string.Empty)
-                : Guid.Empty;
-
-            var rawDataList = rawDataDict.ContainsKey("RawData") && rawDataDict["RawData"] is JsonElement dataElement && dataElement.ValueKind == JsonValueKind.Array
-                ? JsonSerializer.Deserialize<List<Dictionary<string, object>>>(dataElement.GetRawText()) ?? new List<Dictionary<string, object>>()
-                : new List<Dictionary<string, object>>();
-
-            return new RawDataDto
+            // the raw string should now be a list of dictionaries with DataQueryId and RawData keys
+            foreach (var rawDataDict in rawDataDictionaries)
             {
-                DataQueryId = dataQueryId,
-                RawData = rawDataList
-            };
+                _logger.LogInformation("Deserialized RawData entry: {Dict}", rawDataDict);
+
+
+                var dataQueryId = rawDataDict.ContainsKey("dataQueryId") && rawDataDict["dataQueryId"] is JsonElement idElement && idElement.ValueKind == JsonValueKind.String
+                    ? Guid.Parse(idElement.GetString() ?? string.Empty)
+                    : Guid.Empty;
+
+                var rawDataList = rawDataDict.ContainsKey("rawData") && rawDataDict["rawData"] is JsonElement dataElement && dataElement.ValueKind == JsonValueKind.Array
+                    ? JsonSerializer.Deserialize<List<Dictionary<string, object>>>(dataElement.GetRawText()) ?? new List<Dictionary<string, object>>()
+                    : new List<Dictionary<string, object>>();
+
+                rawDataDtos.Add(new RawDataDto
+                {
+                    DataQueryId = dataQueryId,
+                    RawData = rawDataList
+                });
+            }
         }
         catch (JsonException)
         {
             _logger.LogError("Failed to deserialize RawDataJson: {RawDataJson}", rawDataJson);
             // Handle JSON deserialization errors if necessary
-            return new RawDataDto
+            return new List<RawDataDto>
             {
-                DataQueryId = Guid.Empty,
-                RawData = new List<Dictionary<string, object>>()
+                new RawDataDto
+                {
+                    DataQueryId = Guid.Empty,
+                    RawData = new List<Dictionary<string, object>>()
+                }
             };
         }
+        return rawDataDtos;
     }
 }
 
