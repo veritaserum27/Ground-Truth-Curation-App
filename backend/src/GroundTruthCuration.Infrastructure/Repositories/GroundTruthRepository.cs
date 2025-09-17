@@ -312,6 +312,7 @@ public class GroundTruthRepository : IGroundTruthRepository
         gtd.groundTruthId AS GroundTruthId,
         gtd.userQuery AS UserQuery,
         gtd.validationStatus AS ValidationStatus,
+        gtd.category AS Category,
         gtd.userCreated AS UserCreated,
         gtd.userUpdated AS UserUpdated,
         gtd.creationDateTime AS CreationDateTime,

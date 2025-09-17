@@ -31,6 +31,11 @@ public class GroundTruthDefinition
     public GroundTruthValidationStatus ValidationStatusEnum => GroundTruthValidationStatusExtensions.FromDisplayString(ValidationStatus);
 
     /// <summary>
+    /// Gets or sets the category of the ground truth definition.
+    /// </summary>
+    public string Category { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the username of the user who created this ground truth definition.
     /// </summary>
     public string UserCreated { get; set; } = string.Empty;

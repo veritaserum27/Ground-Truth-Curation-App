@@ -26,11 +26,11 @@ DECLARE @commentId2 UNIQUEIDENTIFIER = NEWID();
 
 -- Sample Ground Truth Definitions
 INSERT INTO GROUND_TRUTH_DEFINITION
-    (groundTruthId, userQuery, validationStatus, userCreated, userUpdated)
+    (groundTruthId, userQuery, validationStatus, category, userCreated, userUpdated)
 VALUES
-    (@groundTruthId1, 'What are the top 5 most common product defects in manufacturing?', 'New, Data Curated', 'user1@company.com', 'user1@company.com'),
-    (@groundTruthId2, 'How many support tickets were created last month by priority level?', 'Validated', 'user2@company.com', 'user2@company.com'),
-    (@groundTruthId3, 'What is the average resolution time for high-priority customer issues?', 'Pending', 'user1@company.com', 'user3@company.com');
+    (@groundTruthId1, 'What are the top 5 most common product defects in manufacturing?', 'New, Data Curated', 'Manufacturing', 'user1@company.com', 'user1@company.com'),
+    (@groundTruthId2, 'How many support tickets were created last month by priority level?', 'Validated', 'Support', 'user2@company.com', 'user2@company.com'),
+    (@groundTruthId3, 'What is the average resolution time for high-priority customer issues?', 'Pending', 'Support', 'user1@company.com', 'user3@company.com');
 
 -- Sample Data Query Definitions
 INSERT INTO DATA_QUERY_DEFINITION
