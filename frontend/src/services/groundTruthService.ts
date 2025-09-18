@@ -3,12 +3,16 @@
  * Goal: Keep it dead simple & explicit. No generic wrappers unless truly reusable.
  */
 
-import type { DataStoreType, GroundTruth, GroundTruthStatus } from '../types';
-import { GroundTruthDefinitionArraySchema, GroundTruthDefinitionSchema, type BackendDataQueryDefinition, type BackendGroundTruthDefinition, type BackendTag } from './schemas';
+import {
+  type GroundTruthDefinition,
+  GroundTruthDefinitionDtoArraySchema,
+  GroundTruthDefinitionDtoSchema
+} from './schemas';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5105';
 
 // ---- Config ----
-const rawBase = (import.meta as unknown as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL;
-const API_BASE = (rawBase ? rawBase.replace(/\/$/, '') : 'http://localhost:5000');
+// Resolve API base URL from (in order): import.meta.env (Vite), process.env, fallback default.
 
 // ---- Lightweight error helper ----
 export interface ApiError extends Error { status: number; details?: unknown }
@@ -33,52 +37,45 @@ async function fetchJson(url: string, signal?: AbortSignal) {
   return data;
 }
 
-// ---- Mapping ----
-const STATUS_VALUES: GroundTruthStatus[] = ['new', 'revisions_requested', 'validated', 'out-of-scope'];
-const STATUS_SET = new Set<string>(STATUS_VALUES);
+// ---- Casing Normalization ----
+// Some environments/serializers return camelCase even though backend DTOs are PascalCase.
+// We normalize only the top-level and nested object keys that start with lowercase -> uppercase first letter.
+function normalizePascalCase<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(v => normalizePascalCase(v)) as unknown as T;
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {}; // avoid mutating original
+    for (const [k, v] of Object.entries(obj)) {
+      const first = k.charAt(0);
+      const needs = first >= 'a' && first <= 'z';
+      const newKey = needs ? first.toUpperCase() + k.slice(1) : k;
+      // Only assign if target key not already present (prefer existing PascalCase)
+      if (!(newKey in out)) {
+        out[newKey] = normalizePascalCase(v);
+      }
+    }
+    return out as unknown as T;
+  }
+  return value;
+}
 
-const mapStatus = (s: string): GroundTruthStatus => (STATUS_SET.has(s.toLowerCase()) ? s.toLowerCase() : 'new') as GroundTruthStatus;
-const mapDataStoreType = (v: string): DataStoreType => v.toLowerCase().includes('graph') ? 'GraphQL' : v.toLowerCase().includes('cosmos') ? 'CosmosDB' : 'SQL';
-function mapDataQueryDefinition(d: BackendDataQueryDefinition) {
-  return {
-    id: d.dataQueryId,
-    dataStoreType: mapDataStoreType(d.datastoreType),
-    query: d.queryDefinition,
-    name: d.queryTarget || d.datastoreName || 'Query',
-    contextId: 'default'
-  };
-}
-function mapDefinition(dto: BackendGroundTruthDefinition): GroundTruth {
-  return {
-    id: dto.groundTruthId,
-    prompt: dto.userQuery,
-    status: mapStatus(dto.validationStatus),
-    category: 'asset_knowledge',
-    createdAt: new Date(dto.creationDateTime),
-    updatedAt: new Date(dto.startDateTime || dto.creationDateTime),
-    createdBy: dto.userCreated || 'unknown',
-    dataCuratorNotes: '',
-    contexts: [],
-    dataQueryDefinitions: dto.dataQueryDefinitions.map(mapDataQueryDefinition),
-    tags: dto.tags.map((t: BackendTag) => t.tagId),
-    generatedResponses: [],
-    reviews: []
-  };
-}
+
 
 // ---- Public functions (explicit, minimal) ----
-export async function listGroundTruthDefinitions(filter?: { userId?: string; validationStatus?: string }, signal?: AbortSignal): Promise<GroundTruth[]> {
+export async function listGroundTruthDefinitions(filter?: { userId?: string; validationStatus?: string }, signal?: AbortSignal): Promise<GroundTruthDefinition[]> {
   const url = buildUrl('/api/GroundTruth/definitions', filter);
   const raw = await fetchJson(url, signal);
-  const parsed = GroundTruthDefinitionArraySchema.parse(raw);
-  return parsed.map(mapDefinition);
+  const normalized = normalizePascalCase(raw);
+  const parsed = GroundTruthDefinitionDtoArraySchema.parse(normalized);
+  return parsed;
 }
 
-export async function getGroundTruthDefinition(id: string, signal?: AbortSignal): Promise<GroundTruth> {
+export async function getGroundTruthDefinition(id: string, signal?: AbortSignal): Promise<GroundTruthDefinition> {
   const url = buildUrl(`/api/GroundTruth/definitions/${id}`);
   const raw = await fetchJson(url, signal);
-  const parsed = GroundTruthDefinitionSchema.parse(raw);
-  return mapDefinition(parsed);
+  const normalized = normalizePascalCase(raw);
+  const groundTruthDefinition = GroundTruthDefinitionDtoSchema.parse(normalized);
+  return groundTruthDefinition
 }
 
 // Placeholders until backend endpoints exist
@@ -92,7 +89,9 @@ export const groundTruthService = {
   getGroundTruthDefinition,
   createGroundTruthDefinition,
   addGroundTruthEntry,
-  updateValidationStatus
+  updateValidationStatus,
+  // Expose for tests/dev tools
+  _internal: { normalizePascalCase }
 };
 
 // Usage example (pseudo):

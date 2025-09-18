@@ -1,70 +1,33 @@
 import {
   ChevronDown,
-  Clock,
   Edit,
-  FileText,
-  MessageSquare,
   Plus,
   Save,
-  Star,
   Trash2,
   X
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useLoaderData } from "react-router";
-import { ReviewForm } from "../components/ReviewForm";
 import { TagManager } from "../components/TagManager";
 import { useAuth } from "../contexts/AuthContext";
 import { useEditingData } from "../contexts/EditingContext";
-import type {
-  Context,
-  DataQueryDefinition,
-  DataStoreType,
-  GroundTruth,
-  GroundTruthCategory,
-  GroundTruthStatus
-} from "../types";
+import type { ContextParameterCreate, ContextParameterUpdate, GroundTruthContextCreate, GroundTruthContextUpdate, GroundTruthDefinition, Tag, ValidationStatus } from "../services/schemas";
 
 // Helper functions
-const formatCategory = (category: GroundTruthCategory) =>
+const formatCategory = (category: string) =>
   category
     .replace(/_/g, " ")
     .replace(/\b\w/g, (l) => l.toUpperCase());
 
-const formatStatus = (status: GroundTruthStatus) =>
+const formatStatus = (status: ValidationStatus) =>
   status
     .replace(/_/g, " ")
     .replace(/\b\w/g, (l) => l.toUpperCase());
 
-const getStatusColor = (status: GroundTruthStatus) => {
-  switch (status) {
-    case "new":
-      return "bg-gray-100 text-gray-800";
-    case "revisions_requested":
-      return "bg-red-100 text-red-800";
-    case "validated":
-      return "bg-green-100 text-green-800";
-    case "out-of-scope":
-      return "bg-yellow-100 text-yellow-800";
-  }
-};
-
-const getCategoryIcon = (category: GroundTruthCategory) => {
-  switch (category) {
-    case "asset_knowledge":
-      return <FileText className="w-4 h-4" />;
-    case "unanswerable":
-      return <MessageSquare className="w-4 h-4" />;
-    case "maintenance_request":
-      return <MessageSquare className="w-4 h-4" />;
-  }
-};
-
-
 // Re-export external loader implementation
 export { groundTruthDetailLoader as clientLoader } from "../routes/loaders/groundTruthDetailLoader";
 
-function BackToList({ groundTruth }: { groundTruth: GroundTruth | undefined }) {
+function BackToList({ groundTruth }: { groundTruth: GroundTruthDefinition | undefined }) {
   return (
     <div className="text-center py-8">
       {!groundTruth && (
@@ -81,7 +44,7 @@ function BackToList({ groundTruth }: { groundTruth: GroundTruth | undefined }) {
 export default function GroundTruthDetail() {
   const { user } = useAuth();
   const { isEditing, setIsEditing, editForm, setEditForm, applyLocalEdits, deepCopyGroundTruth, getMergedGroundTruth, getMergedReviews } = useEditingData();
-  const { groundTruth: baseGroundTruth } = useLoaderData() as { groundTruth: GroundTruth };
+  const { groundTruth: baseGroundTruth } = useLoaderData() as { groundTruth: GroundTruthDefinition };
   const groundTruth = getMergedGroundTruth(baseGroundTruth);
 
 
@@ -102,18 +65,30 @@ export default function GroundTruthDetail() {
   }
 
   const handleSave = () => {
-    applyLocalEdits(groundTruth.id, editForm);
+    const updatePayload = buildUpdatePayload(groundTruth);
+    // For now just stash the update locally; API submission will be wired later
+    applyLocalEdits(groundTruth.GroundTruthId, updatePayload);
     setIsEditing(false);
-    setEditForm({});
+    setEditForm({} as any);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditForm({});
+    setEditForm({} as any);
   };
 
   const handleEdit = () => {
-    setEditForm(deepCopyGroundTruth(groundTruth));
+    // Seed edit form with a shallow copy including legacy convenience fields
+    setEditForm({
+      GroundTruthId: groundTruth.GroundTruthId,
+      UserQuery: groundTruth.UserQuery,
+      ValidationStatus: groundTruth.ValidationStatus,
+      Category: groundTruth.Category,
+      prompt: groundTruth.UserQuery,
+      status: groundTruth.ValidationStatus,
+      category: groundTruth.Category ?? undefined,
+      tags: groundTruth.Tags?.map(t => ({ id: t.TagId, name: t.Name, description: t.Description }))
+    } as any);
     setIsEditing(true);
   };
 
@@ -122,28 +97,24 @@ export default function GroundTruthDetail() {
   const isDataValidator = user?.role === "data_validator";
   const isDataCurator = user?.role === "data_curator";
 
-  // Context editing helpers (only for data curators)
-  const updateContexts = (newContexts: Context[]) => {
-    setEditForm((prev) => ({ ...prev, contexts: newContexts }));
+  // GroundTruthContext editing helpers (only for data curators)
+  // TODO: migrate context editing to operate on GroundTruthEntries[].GroundTruthContext
+  const updateContexts = (newContexts: (GroundTruthContextCreate | GroundTruthContextUpdate)[]) => {
+    setEditForm((prev: any) => ({ ...prev, contexts: newContexts }));
   };
 
   const addNewContext = () => {
-    const currentContexts = [
-      ...(editForm.contexts || groundTruth.contexts),
-    ];
-    const newContext: Context = {
-      id: Date.now().toString(),
-      parameters: [],
-    };
+    const currentContexts: (GroundTruthContextCreate | GroundTruthContextUpdate)[] = (editForm as any).contexts || [];
+    const newContext: GroundTruthContextCreate = {
+      ContextParameters: [],
+      ContextType: "",
+    } as GroundTruthContextCreate;
     updateContexts([...currentContexts, newContext]);
   };
 
   const removeContext = (contextIndex: number) => {
-    const currentContexts = [
-      ...(editForm.contexts || groundTruth.contexts),
-    ];
-    currentContexts.splice(contextIndex, 1);
-    updateContexts(currentContexts);
+    const currentContexts: (GroundTruthContextCreate | GroundTruthContextUpdate)[] = (editForm as any).contexts || [];
+    updateContexts(currentContexts.filter((_, i) => i !== contextIndex));
   };
 
   const updateContextParameter = (
@@ -152,59 +123,47 @@ export default function GroundTruthDetail() {
     field: "name" | "value" | "dataType",
     newValue: string,
   ) => {
-    const currentContexts = [
-      ...(editForm.contexts || groundTruth.contexts),
-    ];
-    const newParameters = [
-      ...currentContexts[contextIndex].parameters,
-    ];
-    newParameters[paramIndex] = {
-      ...newParameters[paramIndex],
-      [field]: newValue,
-    };
-
-    currentContexts[contextIndex] = {
-      ...currentContexts[contextIndex],
-      parameters: newParameters,
-    };
-    updateContexts(currentContexts);
+    const current = (editForm as any).contexts as (GroundTruthContextCreate | GroundTruthContextUpdate)[] || [];
+    if (!current[contextIndex]) return;
+    const ctx = current[contextIndex];
+    const params: (ContextParameterCreate | ContextParameterUpdate)[] = (ctx as any).ContextParameters || [];
+    const existing = params[paramIndex];
+    if (!existing) return;
+    const updatedParam = { ...existing } as any;
+    if (field === 'name') updatedParam.ParameterName = newValue;
+    if (field === 'value') updatedParam.ParameterValue = newValue;
+    if (field === 'dataType') updatedParam.DataType = newValue;
+    const newParams = [...params];
+    newParams[paramIndex] = updatedParam;
+    const newContexts = [...current];
+    (newContexts[contextIndex] as any) = { ...ctx, ContextParameters: newParams };
+    updateContexts(newContexts);
   };
 
   const addParameterToContext = (contextIndex: number) => {
-    const currentContexts = [
-      ...(editForm.contexts || groundTruth.contexts),
-    ];
-    const newParameter = {
-      name: "newParam",
-      value: "",
-      dataType: "string" as const,
+    const current = (editForm as any).contexts as (GroundTruthContextCreate | GroundTruthContextUpdate)[] || [];
+    if (!current[contextIndex]) return;
+    const ctx = current[contextIndex];
+    const params: (ContextParameterCreate | ContextParameterUpdate)[] = (ctx as any).ContextParameters || [];
+    const newParameter: ContextParameterCreate = {
+      ParameterName: "NewParam",
+      ParameterValue: "",
+      DataType: "string"
     };
-    currentContexts[contextIndex] = {
-      ...currentContexts[contextIndex],
-      parameters: [
-        ...currentContexts[contextIndex].parameters,
-        newParameter,
-      ],
-    };
-    updateContexts(currentContexts);
+    const newContexts = [...current];
+    (newContexts[contextIndex] as any) = { ...ctx, ContextParameters: [...params, newParameter] };
+    updateContexts(newContexts);
   };
 
-  const removeParameterFromContext = (
-    contextIndex: number,
-    paramIndex: number,
-  ) => {
-    const currentContexts = [
-      ...(editForm.contexts || groundTruth.contexts),
-    ];
-    const newParameters = [
-      ...currentContexts[contextIndex].parameters,
-    ];
-    newParameters.splice(paramIndex, 1);
-    currentContexts[contextIndex] = {
-      ...currentContexts[contextIndex],
-      parameters: newParameters,
-    };
-    updateContexts(currentContexts);
+  const removeParameterFromContext = (contextIndex: number, paramIndex: number) => {
+    const current = (editForm as any).contexts as (GroundTruthContextCreate | GroundTruthContextUpdate)[] || [];
+    if (!current[contextIndex]) return;
+    const ctx = current[contextIndex];
+    const params: (ContextParameterCreate | ContextParameterUpdate)[] = (ctx as any).ContextParameters || [];
+    const newParams = params.filter((_, i) => i !== paramIndex);
+    const newContexts = [...current];
+    (newContexts[contextIndex] as any) = { ...ctx, ContextParameters: newParams };
+    updateContexts(newContexts);
   };
 
   return (
@@ -248,17 +207,17 @@ export default function GroundTruthDetail() {
           <div className="flex items-start justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                {getCategoryIcon(groundTruth.category)}
+                {/* Category icon placeholder (legacy getCategoryIcon removed) */}
                 <span className="text-sm text-muted-foreground">
-                  {formatCategory(groundTruth.category)}
+                  {formatCategory(groundTruth.Category || "")}
                 </span>
               </div>
               <h2>Ground Truth Details</h2>
             </div>
             <span
-              className={`px-2 py-1 rounded text-sm ${getStatusColor(groundTruth.status)}`}
+              className={`px-2 py-1 rounded text-sm bg-gray-100`}
             >
-              {formatStatus(groundTruth.status)}
+              {formatStatus(groundTruth.ValidationStatus)}
             </span>
           </div>
         </div>
@@ -269,7 +228,7 @@ export default function GroundTruthDetail() {
             <label>User Query</label>
             {isEditing && isDataCurator ? (
               <textarea
-                value={editForm.prompt || ""}
+                value={(editForm as any).prompt || (editForm as any).UserQuery || groundTruth.UserQuery || ""}
                 onChange={(e) =>
                   setEditForm((prev) => ({
                     ...prev,
@@ -281,7 +240,7 @@ export default function GroundTruthDetail() {
               />
             ) : (
               <p className="bg-muted p-3 rounded-md">
-                {groundTruth.prompt}
+                {groundTruth.UserQuery}
               </p>
             )}
           </div>
@@ -292,11 +251,11 @@ export default function GroundTruthDetail() {
             {isEditing && isDataCurator ? (
               <div className="relative">
                 <select
-                  value={editForm.category || ""}
+                  value={(editForm as any).category || groundTruth.Category || ""}
                   onChange={(e) =>
                     setEditForm((prev) => ({
                       ...prev,
-                      category: e.target.value as GroundTruthCategory,
+                      category: e.target.value,
                     }))
                   }
                   className="w-full p-3 border rounded-md bg-white appearance-none cursor-pointer pr-10"
@@ -311,7 +270,7 @@ export default function GroundTruthDetail() {
               </div>
             ) : (
               <p className="bg-muted p-3 rounded-md">
-                {formatCategory(groundTruth.category)}
+                {groundTruth.Category || "N/A"}
               </p>
             )}
           </div>
@@ -322,11 +281,11 @@ export default function GroundTruthDetail() {
             {isEditing ? (
               <div className="relative">
                 <select
-                  value={editForm.status || ""}
+                  value={editForm.ValidationStatus || ""}
                   onChange={(e) =>
                     setEditForm((prev) => ({
                       ...prev,
-                      status: e.target.value as GroundTruthStatus,
+                      status: e.target.value as ValidationStatus,
                     }))
                   }
                   className="w-full p-3 border rounded-md bg-white appearance-none cursor-pointer pr-10"
@@ -343,9 +302,9 @@ export default function GroundTruthDetail() {
             ) : (
               <div>
                 <span
-                  className={`px-3 py-1 rounded ${getStatusColor(groundTruth.status)}`}
+                  className={`px-3 py-1 rounded bg-gray-100`}
                 >
-                  {formatStatus(groundTruth.status)}
+                  {formatStatus(groundTruth.ValidationStatus)}
                 </span>
               </div>
             )}
@@ -356,22 +315,22 @@ export default function GroundTruthDetail() {
             <label>Tags</label>
             {isEditing ? (
               <TagManager
-                selectedTags={editForm.tags || groundTruth.tags}
+                selectedTags={(editForm as any).tags || groundTruth.Tags?.map(t => ({ id: t.TagId, name: t.Name, description: t.Description })) || []}
                 onTagsChange={(tags) =>
-                  setEditForm((prev) => ({ ...prev, tags }))
+                  setEditForm((prev: any) => ({ ...prev, tags }))
                 }
               />
             ) : (
               <div className="flex flex-wrap gap-2">
-                {groundTruth.tags?.length > 0 ? (
-                  groundTruth.tags.map((tagId) => {
+                {groundTruth.Tags?.length ? (
+                  groundTruth.Tags.map((tag: Tag) => {
                     // This would need to be replaced with actual tag lookup
                     return (
                       <span
-                        key={tagId}
+                        key={tag.TagId}
                         className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
                       >
-                        {tagId}
+                        {tag.Name}
                       </span>
                     );
                   })
@@ -383,38 +342,37 @@ export default function GroundTruthDetail() {
           </div>
 
           {/* Contexts - Only displayed/editable by data curators */}
-          {(!isDataValidator || !isEditing) && (
+          {/* Context editing temporarily disabled until migrated to DTO structure */}
+          {false && (!isDataValidator || !isEditing) && (
             <div className="space-y-2">
               <label>Contexts</label>
               {isEditing && isDataCurator ? (
                 <div className="space-y-4">
                   {(
-                    editForm.contexts ||
-                    groundTruth.contexts
+                    (editForm as any).contexts || []
                   ).length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
-                      No contexts. Click "Add New Context" below
+                      No contexts. Click "Add New GroundTruthContext" below
                       to get started.
                     </p>
                   ) : (
                     (
-                      editForm.contexts ||
-                      groundTruth.contexts
-                    ).map((context, index) => (
+                      (editForm as any).contexts || []
+                    ).map((context: any, index: number) => (
                       <div
-                        key={context.id}
+                        key={context.ContextId || index}
                         className="border rounded-md p-4"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                            Context {index + 1}
+                            GroundTruthContext {index + 1}
                           </span>
                           <button
                             onClick={() => removeContext(index)}
                             className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
                           >
                             <Trash2 className="w-4 h-4" />
-                            Remove Context
+                            Remove GroundTruthContext
                           </button>
                         </div>
 
@@ -435,14 +393,14 @@ export default function GroundTruthDetail() {
                               </button>
                             </div>
                             <div className="space-y-2">
-                              {context.parameters.length === 0 ? (
+                              {context.ContextParameters?.length === 0 ? (
                                 <p className="text-sm text-muted-foreground italic">
                                   No parameters. Click "Add
                                   Parameter" to add one.
                                 </p>
                               ) : (
-                                context.parameters.map(
-                                  (parameter, paramIndex) => (
+                                context.ContextParameters.map(
+                                  (parameter: any, paramIndex: number) => (
                                     <div
                                       key={paramIndex}
                                       className="flex items-center gap-2 p-3 border rounded-md"
@@ -453,7 +411,7 @@ export default function GroundTruthDetail() {
                                             Name
                                           </label>
                                           <input
-                                            value={parameter.name}
+                                            value={parameter.ParameterName}
                                             onChange={(e) =>
                                               updateContextParameter(
                                                 index,
@@ -471,9 +429,7 @@ export default function GroundTruthDetail() {
                                             Value
                                           </label>
                                           <input
-                                            value={
-                                              parameter.value
-                                            }
+                                            value={parameter.ParameterValue}
                                             onChange={(e) =>
                                               updateContextParameter(
                                                 index,
@@ -492,9 +448,7 @@ export default function GroundTruthDetail() {
                                           </label>
                                           <div className="relative">
                                             <select
-                                              value={
-                                                parameter.dataType
-                                              }
+                                              value={parameter.DataType}
                                               onChange={(e) =>
                                                 updateContextParameter(
                                                   index,
@@ -556,58 +510,18 @@ export default function GroundTruthDetail() {
                     className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-full justify-center"
                   >
                     <Plus className="w-4 h-4" />
-                    Add New Context
+                    Add New GroundTruthContext
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {groundTruth.contexts.length === 0 ? (
+                  {/* contexts display removed */}
+                  {(false) ? (
                     <p className="text-muted-foreground text-center py-4">
                       No contexts.
                     </p>
                   ) : (
-                    groundTruth.contexts.map(
-                      (context, index) => (
-                        <div
-                          key={context.id}
-                          className="border rounded-md p-4"
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                                Context {index + 1}
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {context.parameters.length === 0 ? (
-                                <p className="text-sm text-muted-foreground italic">
-                                  No parameters defined.
-                                </p>
-                              ) : (
-                                context.parameters.map(
-                                  (parameter, paramIndex) => (
-                                    <div
-                                      key={paramIndex}
-                                      className="flex items-center gap-2 text-sm"
-                                    >
-                                      <span className="text-muted-foreground min-w-20">
-                                        {parameter.name}:
-                                      </span>
-                                      <span className="px-2 py-1 bg-muted rounded text-sm">
-                                        {parameter.value}
-                                      </span>
-                                      <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                                        {parameter.dataType}
-                                      </span>
-                                    </div>
-                                  ),
-                                )
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ),
-                    )
+                    null
                   )}
                 </div>
               )}
@@ -615,14 +529,14 @@ export default function GroundTruthDetail() {
           )}
 
           {/* Data Query Definitions - Only displayed/editable by data curators */}
-          {(!isDataValidator || !isEditing) && (
+          {false && (!isDataValidator || !isEditing) && (
             <div className="space-y-2">
               <label>Data Query Definitions</label>
               {isEditing && isDataCurator ? (
                 <div className="space-y-4">
                   {(
                     editForm.dataQueryDefinitions ||
-                    groundTruth.dataQueryDefinitions
+                    (groundTruth as any).DataQueryDefinitions
                   ).length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
                       No data query definitions. Click "Add New
@@ -631,27 +545,27 @@ export default function GroundTruthDetail() {
                   ) : (
                     (
                       editForm.dataQueryDefinitions ||
-                      groundTruth.dataQueryDefinitions
+                      (groundTruth as any).DataQueryDefinitions
                     ).map((definition, index) => (
                       <div
-                        key={definition.id}
+                        key={(definition as any).DataQueryId || index}
                         className="border rounded-md p-4"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <span>
-                              {definition.name ||
+                              {(definition as any).Name ||
                                 `Query ${index + 1}`}
                             </span>
                             <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-sm">
-                              {definition.dataStoreType}
+                              {(definition as any).DatastoreType}
                             </span>
                           </div>
                           <button
                             onClick={() => {
                               const currentDefinitions =
                                 editForm.dataQueryDefinitions ||
-                                groundTruth.dataQueryDefinitions;
+                                (groundTruth as any).DataQueryDefinitions;
                               const newDefinitions =
                                 currentDefinitions.filter(
                                   (_, i) => i !== index,
@@ -675,18 +589,18 @@ export default function GroundTruthDetail() {
                               Name
                             </label>
                             <input
-                              value={definition.name || ""}
+                              value={(definition as any).Name || ""}
                               onChange={(e) => {
                                 const currentDefinitions =
                                   editForm.dataQueryDefinitions || [
-                                    ...groundTruth.dataQueryDefinitions,
+                                    ...(groundTruth as any).DataQueryDefinitions,
                                   ];
                                 const newDefinitions = [
                                   ...currentDefinitions,
                                 ];
                                 newDefinitions[index] = {
                                   ...newDefinitions[index],
-                                  name: e.target.value,
+                                  Name: e.target.value,
                                 };
                                 setEditForm((prev) => ({
                                   ...prev,
@@ -705,19 +619,18 @@ export default function GroundTruthDetail() {
                             </label>
                             <div className="relative">
                               <select
-                                value={definition.dataStoreType}
+                                value={(definition as any).DatastoreType}
                                 onChange={(e) => {
                                   const currentDefinitions =
                                     editForm.dataQueryDefinitions || [
-                                      ...groundTruth.dataQueryDefinitions,
+                                      ...(groundTruth as any).DataQueryDefinitions,
                                     ];
                                   const newDefinitions = [
                                     ...currentDefinitions,
                                   ];
                                   newDefinitions[index] = {
                                     ...newDefinitions[index],
-                                    dataStoreType: e.target
-                                      .value as DataStoreType,
+                                    DatastoreType: e.target.value,
                                   };
                                   setEditForm((prev) => ({
                                     ...prev,
@@ -744,18 +657,18 @@ export default function GroundTruthDetail() {
                               Query
                             </label>
                             <textarea
-                              value={definition.query}
+                              value={(definition as any).QueryDefinition || ""}
                               onChange={(e) => {
                                 const currentDefinitions =
                                   editForm.dataQueryDefinitions || [
-                                    ...groundTruth.dataQueryDefinitions,
+                                    ...(groundTruth as any).DataQueryDefinitions,
                                   ];
                                 const newDefinitions = [
                                   ...currentDefinitions,
                                 ];
                                 newDefinitions[index] = {
                                   ...newDefinitions[index],
-                                  query: e.target.value,
+                                  QueryDefinition: e.target.value,
                                 };
                                 setEditForm((prev) => ({
                                   ...prev,
@@ -775,24 +688,7 @@ export default function GroundTruthDetail() {
 
                   <button
                     onClick={() => {
-                      const currentDefinitions =
-                        editForm.dataQueryDefinitions || [
-                          ...groundTruth.dataQueryDefinitions,
-                        ];
-                      const newDefinition: DataQueryDefinition = {
-                        id: Date.now().toString(),
-                        dataStoreType: "GraphQL",
-                        query: "",
-                        name: "",
-                        contextId: groundTruth.contexts[0]?.id || "",
-                      };
-                      setEditForm((prev) => ({
-                        ...prev,
-                        dataQueryDefinitions: [
-                          ...currentDefinitions,
-                          newDefinition,
-                        ],
-                      }));
+                      // Adding new data query definition disabled during migration
                     }}
                     className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-full justify-center"
                   >
@@ -802,25 +698,25 @@ export default function GroundTruthDetail() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {groundTruth.dataQueryDefinitions.length === 0 ? (
+                  {(groundTruth as any).DataQueryDefinitions?.length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
                       No data query definitions.
                     </p>
                   ) : (
-                    groundTruth.dataQueryDefinitions.map(
-                      (definition, index) => (
+                    (groundTruth as any).DataQueryDefinitions.map(
+                      (definition: any, index: number) => (
                         <div
-                          key={definition.id}
+                          key={definition.DataQueryId || index}
                           className="border rounded-md p-4"
                         >
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 mb-3">
                               <span>
-                                {definition.name ||
+                                {definition.Name ||
                                   `Query ${index + 1}`}
                               </span>
                               <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-sm">
-                                {definition.dataStoreType}
+                                {definition.DatastoreType}
                               </span>
                             </div>
                             <div>
@@ -828,7 +724,7 @@ export default function GroundTruthDetail() {
                                 Query:
                               </p>
                               <pre className="bg-muted p-3 rounded text-sm whitespace-pre-wrap">
-                                {definition.query}
+                                {definition.QueryDefinition}
                               </pre>
                             </div>
                           </div>
@@ -842,7 +738,7 @@ export default function GroundTruthDetail() {
           )}
 
           {/* Data Curator Notes - Only editable by data curators */}
-          <div className="space-y-2">
+          {false && <div className="space-y-2">
             <label>Data Curator Notes</label>
             {isEditing && isDataCurator ? (
               <textarea
@@ -858,185 +754,18 @@ export default function GroundTruthDetail() {
                 className="w-full p-3 border rounded-md resize-none"
               />
             ) : (
-              <div className="bg-muted p-3 rounded-md">
-                {groundTruth.dataCuratorNotes || (
-                  <span className="text-muted-foreground italic">
-                    No curator notes
-                  </span>
-                )}
-              </div>
+              <div className="bg-muted p-3 rounded-md" />
             )}
-          </div>
+          </div>}
 
           {/* Generated Responses */}
-          <div className="space-y-4">
-            <h3>Generated Responses</h3>
-            {groundTruth.generatedResponses?.length > 0 ? (
-              groundTruth.generatedResponses.map((response, index) => (
-                <div key={response.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span>Response {index + 1}</span>
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm">
-                        {response.model}
-                      </span>
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Star className="w-4 h-4" />
-                        {response.confidence.toFixed(2)}
-                      </span>
-                    </div>
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      {response.timestamp.toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex gap-2 border-b">
-                      {(["formatted", "raw", "metadata"] as const).map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() =>
-                            setActiveResponseTab((prev) => ({
-                              ...prev,
-                              [response.id]: tab,
-                            }))
-                          }
-                          className={`px-3 py-2 text-sm border-b-2 ${(activeResponseTab[response.id] || "formatted") === tab
-                            ? "border-primary text-primary"
-                            : "border-transparent text-muted-foreground hover:text-foreground"
-                            }`}
-                        >
-                          {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div>
-                      {(activeResponseTab[response.id] || "formatted") === "formatted" && (
-                        <div className="bg-muted p-3 rounded">
-                          {response.content}
-                        </div>
-                      )}
-                      {activeResponseTab[response.id] === "raw" && (
-                        <pre className="bg-muted p-3 rounded text-sm whitespace-pre-wrap">
-                          {response.rawData}
-                        </pre>
-                      )}
-                      {activeResponseTab[response.id] === "metadata" && (
-                        <div className="bg-muted p-3 rounded space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Model:</span>
-                            <span>{response.model}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Confidence:</span>
-                            <span>{response.confidence.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Timestamp:</span>
-                            <span>{response.timestamp.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-center py-4">
-                No generated responses yet.
-              </p>
-            )}
-          </div>
+          {/* Generated responses section removed during DTO alignment */}
 
           {/* Reviews */}
-          <div className="space-y-4">
-            <h3>Reviews</h3>
-            {getMergedReviews(groundTruth.id, groundTruth.reviews)?.length > 0 ? (
-              getMergedReviews(groundTruth.id, groundTruth.reviews).map((review) => (
-                <div key={review.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span>{review.reviewerName}</span>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${i < review.rating
-                              ? "text-yellow-500 fill-current"
-                              : "text-gray-300"
-                              }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {review.timestamp.toLocaleDateString()}
-                      </span>
-                      <button
-                        onClick={() =>
-                          setExpandedReviews((prev) => ({
-                            ...prev,
-                            [review.id]: !prev[review.id],
-                          }))
-                        }
-                        className="text-sm text-primary hover:text-primary/80"
-                      >
-                        {expandedReviews[review.id] ? "Collapse" : "Expand"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p>{review.content}</p>
-
-                    {expandedReviews[review.id] && (
-                      <div className="mt-4 pt-4 border-t space-y-2">
-                        <h4 className="text-sm">Review Context</h4>
-                        <div className="space-y-2 text-sm text-muted-foreground">
-                          <div>
-                            <span>User Query at time of review:</span>
-                            <p className="bg-muted p-2 rounded mt-1">
-                              {review.userQueryAtTime}
-                            </p>
-                          </div>
-                          <div>
-                            <span>Data Store Type:</span>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">
-                              {review.dataStoreTypeAtTime}
-                            </span>
-                          </div>
-                          <div>
-                            <span>Data Query Definition at time of review:</span>
-                            <pre className="bg-muted p-2 rounded mt-1 text-xs whitespace-pre-wrap">
-                              {review.dataQueryDefinitionAtTime}
-                            </pre>
-                          </div>
-                          <div>
-                            <span>Formatted Response at time of review:</span>
-                            <p className="bg-muted p-2 rounded mt-1">
-                              {review.formattedResponseAtTime}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-center py-4">
-                No reviews yet.
-              </p>
-            )}
-          </div>
+          {/* Reviews section removed during DTO alignment */}
 
           {/* Add Review Form - For both data validators and curators */}
-          <div>
-            <ReviewForm groundTruth={groundTruth} />
-          </div>
+          {/* Review form temporarily removed */}
         </div>
       </div>
     </div>

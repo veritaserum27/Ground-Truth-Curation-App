@@ -1,14 +1,14 @@
 import { Download, FileText, Filter, X } from 'lucide-react';
 import { useState } from 'react';
-import type { GroundTruth, GroundTruthStatus, Tag } from '../types';
+import type { GroundTruthDefinition, Tag, ValidationStatus } from '../services/schemas';
 import { formatStatus } from '../utils/groundTruthFormatting';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  groundTruths: GroundTruth[];
+  groundTruths: GroundTruthDefinition[];
   tags: Tag[];
-  getTagsForGroundTruth: (gt: GroundTruth) => Tag[];
+  getTagsForGroundTruth: (gt: GroundTruthDefinition) => Tag[];
 }
 
 type ExportFormat = 'jsonl' | 'csv';
@@ -18,14 +18,14 @@ export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGro
   const [isExporting, setIsExporting] = useState(false);
 
   // Export filtering state
-  const [statusFilters, setStatusFilters] = useState<GroundTruthStatus[]>([]);
+  const [statusFilters, setStatusFilters] = useState<ValidationStatus[]>([]);
   const [tagFilters, setTagFilters] = useState<string[]>([]);
 
   // Get filtered ground truths based on export filters
   const getExportFilteredGroundTruths = () => {
     return groundTruths.filter(gt => {
-      const statusMatch = statusFilters.length === 0 || statusFilters.includes(gt.status);
-      const tagMatch = tagFilters.length === 0 || tagFilters.some(tagId => gt.tags.includes(tagId));
+      const statusMatch = statusFilters.length === 0 || statusFilters.includes(gt.ValidationStatus);
+      const tagMatch = tagFilters.length === 0 || tagFilters.some(tagId => gt.Tags.some(t => t.TagId === tagId));
       return statusMatch && tagMatch;
     });
   };
@@ -33,21 +33,13 @@ export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGro
   const filteredGroundTruths = getExportFilteredGroundTruths();
 
   // Handle status filter toggle
-  const toggleStatusFilter = (status: GroundTruthStatus) => {
-    setStatusFilters(prev =>
-      prev.includes(status)
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
-    );
+  const toggleStatusFilter = (status: ValidationStatus) => {
+    setStatusFilters(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
   };
 
   // Handle tag filter toggle
   const toggleTagFilter = (tagId: string) => {
-    setTagFilters(prev =>
-      prev.includes(tagId)
-        ? prev.filter(t => t !== tagId)
-        : [...prev, tagId]
-    );
+    setTagFilters(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]);
   };
 
   // Clear all filters
@@ -58,57 +50,62 @@ export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGro
 
   // Status formatting delegated to shared util
 
-  const formatExportData = (groundTruth: GroundTruth) => {
-    const tags = getTagsForGroundTruth(groundTruth);
-
-    // Get primary context and data query (first one if multiple exist)
-    const primaryContext = groundTruth.contexts[0];
-    const primaryDataQuery = groundTruth.dataQueryDefinitions[0];
-    const primaryResponse = groundTruth.generatedResponses[0];
-
-    return {
-      id: groundTruth.id,
-      userQuery: groundTruth.prompt,
-      context: primaryContext ? {
-        id: primaryContext.id,
-        parameters: primaryContext.parameters
-      } : null,
-      rawData: primaryResponse?.rawData || '',
-      response: primaryResponse?.content || '',
-      dataQuery: primaryDataQuery ? {
-        id: primaryDataQuery.id,
-        name: primaryDataQuery.name || '',
-        dataStoreType: primaryDataQuery.dataStoreType,
-        query: primaryDataQuery.query
-      } : null,
-      allDataQueries: groundTruth.dataQueryDefinitions.map(dqd => ({
-        id: dqd.id,
-        name: dqd.name || '',
-        dataStoreType: dqd.dataStoreType,
-        query: dqd.query,
-        contextId: dqd.contextId
-      })),
-      metadata: {
-        category: groundTruth.category,
-        status: groundTruth.status,
-        tags: tags.map(tag => ({
-          name: tag.name,
-          isPredefined: tag.isPredefined
+  // Build entry-level export objects (one JSONL line per GroundTruthEntry)
+  const buildEntryExportObjects = (groundTruth: GroundTruthDefinition) => {
+    const tagsForGt = getTagsForGroundTruth(groundTruth);
+    return groundTruth.GroundTruthEntries.map(entry => {
+      const ctx = entry.GroundTruthContext;
+      const primaryDataQuery = groundTruth.DataQueryDefinitions[0];
+      return {
+        id: entry.GroundTruthEntryId, // entry-specific id
+        groundTruthId: groundTruth.GroundTruthId,
+        userQuery: groundTruth.UserQuery,
+        response: entry.Response,
+        requiredValues: entry.RequiredValues,
+        context: ctx ? {
+          id: ctx.ContextId,
+          type: ctx.ContextType,
+          parameters: ctx.ContextParameters.reduce((acc, param) => {
+            acc[param.ParameterName] = param.ParameterValue;
+            return acc;
+          }, {} as Record<string, string>)
+        } : null,
+        rawData: entry.RawData.map(r => ({ dataQueryId: r.DataQueryId, rows: r.RawData })),
+        // Include a snapshot of ALL data queries (definition-level) for reproducibility
+        dataQueries: groundTruth.DataQueryDefinitions.map(dqd => ({
+          id: dqd.DataQueryId || '',
+          datastoreType: dqd.DatastoreType,
+          datastoreName: dqd.DatastoreName,
+          queryTarget: dqd.QueryTarget,
+          queryDefinition: dqd.QueryDefinition,
+          isFullQuery: dqd.IsFullQuery
         })),
-        createdAt: groundTruth.createdAt.toISOString(),
-        updatedAt: groundTruth.updatedAt.toISOString(),
-        createdBy: groundTruth.createdBy,
-        dataCuratorNotes: groundTruth.dataCuratorNotes,
-        reviewCount: groundTruth.reviews.length,
-        responseCount: groundTruth.generatedResponses.length,
-        confidence: primaryResponse?.confidence || 0,
-        model: primaryResponse?.model || ''
-      }
-    };
+        primaryDataQuery: primaryDataQuery ? {
+          id: primaryDataQuery.DataQueryId || '',
+          datastoreType: primaryDataQuery.DatastoreType,
+          datastoreName: primaryDataQuery.DatastoreName,
+          queryTarget: primaryDataQuery.QueryTarget,
+          queryDefinition: primaryDataQuery.QueryDefinition,
+          isFullQuery: primaryDataQuery.IsFullQuery
+        } : null,
+        metadata: {
+          category: groundTruth.Category,
+          validationStatus: groundTruth.ValidationStatus,
+          tags: tagsForGt.map(t => ({ id: t.TagId, name: t.Name, description: t.Description })),
+          createdAt: groundTruth.CreationDateTime,
+          updatedAt: groundTruth.UserUpdated ?? groundTruth.CreationDateTime,
+          entryCreatedAt: entry.CreationDateTime,
+          createdBy: groundTruth.UserCreated,
+          commentCount: groundTruth.Comments.length,
+          totalEntriesForDefinition: groundTruth.GroundTruthEntries.length
+        }
+      };
+    });
   };
 
   const exportAsJSONL = () => {
-    const exportData = filteredGroundTruths.map(gt => formatExportData(gt));
+    // Flatten all entries across filtered definitions
+    const exportData = filteredGroundTruths.flatMap(gt => buildEntryExportObjects(gt));
     const jsonlContent = exportData.map(item => JSON.stringify(item)).join('\n');
 
     const blob = new Blob([jsonlContent], { type: 'application/json' });
@@ -130,32 +127,78 @@ export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGro
   };
 
   const exportAsCSV = () => {
-    const exportData = filteredGroundTruths.map(gt => formatExportData(gt));
+    // For CSV we currently retain one row per definition (could be extended per entry if needed)
+    const exportData = filteredGroundTruths.map(gt => {
+      // Reuse the first entry to approximate prior behavior
+      const firstEntry = gt.GroundTruthEntries[0];
+      const ctx = firstEntry?.GroundTruthContext || null;
+      const primaryDataQuery = gt.DataQueryDefinitions[0];
+      return {
+        id: gt.GroundTruthId,
+        userQuery: gt.UserQuery,
+        context: ctx ? {
+          id: ctx.ContextId,
+          type: ctx.ContextType,
+          parameters: ctx.ContextParameters.reduce((acc, param) => {
+            acc[param.ParameterName] = param.ParameterValue;
+            return acc;
+          }, {} as Record<string, string>)
+        } : null,
+        rawData: JSON.stringify(firstEntry?.RawData.map(r => ({ dataQueryId: r.DataQueryId, rows: r.RawData })) || []),
+        response: firstEntry?.Response || '',
+        dataQuery: primaryDataQuery ? {
+          id: primaryDataQuery.DataQueryId || '',
+          datastoreType: primaryDataQuery.DatastoreType,
+          datastoreName: primaryDataQuery.DatastoreName,
+          queryTarget: primaryDataQuery.QueryTarget,
+          queryDefinition: primaryDataQuery.QueryDefinition,
+          isFullQuery: primaryDataQuery.IsFullQuery
+        } : null,
+        allDataQueries: gt.DataQueryDefinitions.map(dqd => ({
+          id: dqd.DataQueryId || '',
+          datastoreType: dqd.DatastoreType,
+          datastoreName: dqd.DatastoreName,
+          queryTarget: dqd.QueryTarget,
+          queryDefinition: dqd.QueryDefinition,
+          isFullQuery: dqd.IsFullQuery
+        })),
+        metadata: {
+          category: gt.Category,
+          validationStatus: gt.ValidationStatus,
+          tags: gt.Tags.map(t => ({ id: t.TagId, name: t.Name, description: t.Description })),
+          createdAt: gt.CreationDateTime,
+          updatedAt: gt.UserUpdated ?? gt.CreationDateTime,
+          createdBy: gt.UserCreated,
+          commentCount: gt.Comments.length,
+          entryCount: gt.GroundTruthEntries.length
+        }
+      };
+    });
 
     // CSV Headers
     const headers = [
       'ID',
       'User Query',
       'Context ID',
+      'Context Type',
       'Context Parameters',
       'Raw Data',
       'Response',
       'Primary Data Query ID',
-      'Primary Data Query Name',
-      'Primary Data Store Type',
-      'Primary Data Query',
+      'Primary Datastore Type',
+      'Primary Datastore Name',
+      'Primary Query Target',
+      'Primary Query Definition',
+      'Primary Is Full Query',
       'All Data Queries',
       'Category',
-      'Status',
+      'Validation Status',
       'Tags',
       'Created At',
       'Updated At',
       'Created By',
-      'Data Curator Notes',
-      'Review Count',
-      'Response Count',
-      'Confidence',
-      'Model'
+      'Comment Count',
+      'Entry Count'
     ];
 
     const csvRows = [
@@ -164,25 +207,25 @@ export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGro
         escapeCSV(item.id),
         escapeCSV(item.userQuery),
         escapeCSV(item.context?.id || ''),
+        escapeCSV(item.context?.type || ''),
         escapeCSV(JSON.stringify(item.context?.parameters || {})),
         escapeCSV(item.rawData),
         escapeCSV(item.response),
         escapeCSV(item.dataQuery?.id || ''),
-        escapeCSV(item.dataQuery?.name || ''),
-        escapeCSV(item.dataQuery?.dataStoreType || ''),
-        escapeCSV(item.dataQuery?.query || ''),
+        escapeCSV(item.dataQuery?.datastoreType || ''),
+        escapeCSV(item.dataQuery?.datastoreName || ''),
+        escapeCSV(item.dataQuery?.queryTarget || ''),
+        escapeCSV(item.dataQuery?.queryDefinition || ''),
+        escapeCSV(item.dataQuery?.isFullQuery?.toString() || ''),
         escapeCSV(JSON.stringify(item.allDataQueries)),
-        escapeCSV(item.metadata.category),
-        escapeCSV(item.metadata.status),
+        escapeCSV(item.metadata.category || ''),
+        escapeCSV(item.metadata.validationStatus),
         escapeCSV(JSON.stringify(item.metadata.tags)),
         escapeCSV(item.metadata.createdAt),
         escapeCSV(item.metadata.updatedAt),
         escapeCSV(item.metadata.createdBy),
-        escapeCSV(item.metadata.dataCuratorNotes),
-        escapeCSV(item.metadata.reviewCount.toString()),
-        escapeCSV(item.metadata.responseCount.toString()),
-        escapeCSV(item.metadata.confidence.toString()),
-        escapeCSV(item.metadata.model)
+        escapeCSV(item.metadata.commentCount.toString()),
+        escapeCSV(item.metadata.entryCount.toString())
       ].join(','))
     ];
 
@@ -310,16 +353,16 @@ export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGro
                 <span>Status Filters</span>
               </label>
               <div className="flex flex-wrap gap-1">
-                {['new', 'revisions_requested', 'validated', 'out-of-scope'].map(status => (
+                {(['New, Data Curated', 'Request Revisions', 'Validated', 'Pending'] as ValidationStatus[]).map(status => (
                   <button
                     key={status}
-                    onClick={() => toggleStatusFilter(status as GroundTruthStatus)}
-                    className={`px-2 py-1 rounded text-xs ${statusFilters.includes(status as GroundTruthStatus)
+                    onClick={() => toggleStatusFilter(status)}
+                    className={`px-2 py-1 rounded text-xs ${statusFilters.includes(status)
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted hover:bg-muted/50'
                       }`}
                   >
-                    {formatStatus(status as GroundTruthStatus)}
+                    {formatStatus(status as any)}
                   </button>
                 ))}
               </div>
@@ -333,14 +376,14 @@ export const ExportModal = ({ isOpen, onClose, groundTruths, tags, getTagsForGro
               <div className="flex flex-wrap gap-1">
                 {tags.map(tag => (
                   <button
-                    key={tag.id}
-                    onClick={() => toggleTagFilter(tag.id)}
-                    className={`px-2 py-1 rounded text-xs ${tagFilters.includes(tag.id)
+                    key={tag.TagId}
+                    onClick={() => toggleTagFilter(tag.TagId)}
+                    className={`px-2 py-1 rounded text-xs ${tagFilters.includes(tag.TagId)
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted hover:bg-muted/50'
                       }`}
                   >
-                    {tag.name}
+                    {tag.Name}
                   </button>
                 ))}
               </div>
