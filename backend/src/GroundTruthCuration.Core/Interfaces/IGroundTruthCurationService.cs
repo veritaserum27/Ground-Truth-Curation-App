@@ -26,32 +26,28 @@ namespace GroundTruthCuration.Core.Interfaces
         Task<IEnumerable<GroundTruthDefinitionDto>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter);
 
         /// <summary>
-        /// Retrieves all ground truth definitions associated with a specific user.
-        /// </summary>
-        /// <param name="userId">The unique identifier of the user.</param>
-        /// <returns>A collection of ground truth definitions associated with the user.</returns>
-        Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByUserAsync(string userId);
-
-        /// <summary>
-        /// Retrieves all ground truth definitions with a specific validation status.
-        /// </summary>
-        /// <param name="validationStatus">The validation status to filter by.</param>
-        /// <returns>A collection of ground truth definitions with the specified validation status.</returns>
-        Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByValidationStatusAsync(string validationStatus);
-
-        /// <summary>
         /// Adds a new ground truth definition to the repository.
         /// </summary>
         /// <param name="groundTruthDefinition">The ground truth definition to add.</param>
         /// <returns>The added ground truth definition.</returns>
-        Task<GroundTruthDefinition> AddGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition);
+        Task<GroundTruthDefinitionDto> AddGroundTruthDefinitionAsync(GroundTruthDefinitionDto groundTruthDefinition);
 
         /// <summary>
         /// Updates an existing ground truth definition in the repository.
         /// </summary>
-        /// <param name="groundTruthDefinition">The ground truth definition to update.</param>
+        /// <param name="groundTruthId">The unique identifier of the ground truth definition to update.</param>
+        /// <param name="dataQueryDefinitions">The updated list of data query definitions.</param>
         /// <returns>The updated ground truth definition.</returns>
-        Task<GroundTruthDefinition> UpdateGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition);
+        Task<GroundTruthDefinitionDto> UpdateGroundTruthDataQueryDefinitionsAsync(Guid groundTruthId, List<DataQueryDefinitionDto> dataQueryDefinitions);
+
+        /// <summary>
+        /// Adds a new ground truth context to an existing ground truth definition.
+        /// </summary>
+        /// <param name="groundTruthId">The unique identifier of the ground truth definition to which the context will be added.</param>
+        /// <param name="groundTruthContext">The ground truth context to add.</param>
+        /// <returns>The updated ground truth definition with the new context.</returns>
+        Task<GroundTruthDefinitionDto> AddGroundTruthContextAsync(string groundTruthId, GroundTruthContextDto groundTruthContext);
+
         /// <summary>
         /// Deletes a ground truth definition from the repository by its unique identifier.
         /// </summary>

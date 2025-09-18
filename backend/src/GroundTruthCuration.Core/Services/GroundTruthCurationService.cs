@@ -28,7 +28,13 @@ namespace GroundTruthCuration.Core.Services
         }
 
         /// <inheritdoc/>
-        public Task<GroundTruthDefinition> AddGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition)
+        public Task<GroundTruthDefinitionDto> AddGroundTruthContextAsync(string groundTruthId, GroundTruthContextDto groundTruthContext)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public Task<GroundTruthDefinitionDto> AddGroundTruthDefinitionAsync(GroundTruthDefinitionDto groundTruthDefinition)
         {
             throw new NotImplementedException();
         }
@@ -68,19 +74,7 @@ namespace GroundTruthCuration.Core.Services
         }
 
         /// <inheritdoc/>
-        public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByUserAsync(string userId)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByValidationStatusAsync(string validationStatus)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public Task<GroundTruthDefinition> UpdateGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition)
+        public Task<GroundTruthDefinitionDto> UpdateGroundTruthDataQueryDefinitionsAsync(Guid groundTruthId, List<DataQueryDefinitionDto> dataQueryDefinitions)
         {
             throw new NotImplementedException();
         }
