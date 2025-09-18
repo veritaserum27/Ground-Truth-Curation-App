@@ -1,4 +1,5 @@
 using GroundTruthCuration.Core.DTOs;
+using System.Collections.Generic;
 
 namespace GroundTruthCuration.Core.Interfaces;
 
@@ -14,13 +15,13 @@ public interface IDatastoreRepository
     /// <param name="parameters">The parameters to include in the query</param>
     /// <param name="query">The query to execute</param>
     /// <returns></returns>
-    Task<string> ExecuteQueryAsync<T>(T parameters, string query);
+    Task<ICollection<T>> ExecuteQueryAsync<T>(ICollection<T> parameters, string query);
 
     /// <summary>
     /// Gets the connectivity status of the datastore
     /// </summary>
     /// <returns></returns>
-    Task<string> GetStatusAsync();
+    Task<DatabaseStatusDto> GetStatusAsync();
 
     /// <summary>
     /// Gets datastore type, name, and list of query targets from the datastore (e.g. tables, collections, etc.)

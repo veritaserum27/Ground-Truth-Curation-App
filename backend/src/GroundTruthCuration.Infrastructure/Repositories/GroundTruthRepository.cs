@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
 using GroundTruthCuration.Core.DTOs;
-using System.Reflection.Metadata.Ecma335;
+using GroundTruthCuration.Core.Constants;
 using Microsoft.Extensions.Logging;
 
 namespace GroundTruthCuration.Infrastructure.Repositories;
@@ -32,29 +32,50 @@ public class GroundTruthRepository : IGroundTruthRepository
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
-        _connectionString = _configuration.GetConnectionString("GroundTruthConnectionString")
-                            ?? throw new InvalidOperationException("The connection string 'GroundTruthConnectionString' is null or missing.");
-
-        if (string.IsNullOrWhiteSpace(_connectionString))
-        {
-            throw new InvalidOperationException("The connection string 'GroundTruthConnectionString' was not found in the configuration.");
-        }
+        _connectionString = _configuration.GetValue<string>("Datastores:GroundTruthCuration:ConnectionString")
+                            ?? throw new InvalidOperationException("The connection string 'Datastores:GroundTruthCuration:ConnectionString' is null or missing.");
     }
 
-    /// <summary>
-    /// Adds a new ground truth definition to the database.
-    /// </summary>
-    /// <param name="groundTruthDefinition">The ground truth definition to add.</param>
-    /// <returns>The added ground truth definition.</returns>
+    /// <inheritdoc/>
+    public async Task<DatabaseStatusDto> GetStatusAsync()
+    {
+        var builder = new SqlConnectionStringBuilder(_connectionString);
+        string server = builder.DataSource;
+        string database = builder.InitialCatalog;
+
+        // check connectivity to the database
+        var status = new DatabaseStatusDto
+        {
+            ResourceName = server,
+            DatabaseName = database,
+            DatabaseType = DatastoreType.Sql.ToString(),
+            IsConnected = false,
+            LastChecked = DateTime.UtcNow
+        };
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            try
+            {
+                await connection.OpenAsync();
+                status.IsConnected = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error connecting to the database");
+            }
+        }
+
+        return status;
+    }
+
+    /// <inheritdoc/>
     public Task<GroundTruthDefinition> AddGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Deletes a ground truth definition by its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the ground truth definition.</param>
+    /// <inheritdoc/>
     public Task DeleteGroundTruthDefinitionAsync(Guid id)
     {
         throw new NotImplementedException();
@@ -70,11 +91,7 @@ public class GroundTruthRepository : IGroundTruthRepository
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Retrieves all ground truth definitions, optionally filtered by the provided filter.
-    /// </summary>
-    /// <param name="filter">Optional filter for querying ground truth definitions.</param>
-    /// <returns>A collection of ground truth definitions.</returns>
+    /// <inheritdoc/>
     public async Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter)
     {
         _logger.LogInformation("Retrieving all ground truth definitions with filter: {@Filter}", filter);
@@ -114,11 +131,7 @@ public class GroundTruthRepository : IGroundTruthRepository
         }
     }
 
-    /// <summary>
-    /// Retrieves a ground truth definition by its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the ground truth definition.</param>
-    /// <returns>The ground truth definition if found; otherwise, null.</returns>
+    /// <inheritdoc/>
     public async Task<GroundTruthDefinition?> GetGroundTruthDefinitionByIdAsync(Guid id)
     {
         _logger.LogInformation("Retrieving ground truth definition with ID: {Id}", id);
@@ -153,31 +166,19 @@ public class GroundTruthRepository : IGroundTruthRepository
         }
     }
 
-    /// <summary>
-    /// Retrieves ground truth definitions created by a specific user.
-    /// </summary>
-    /// <param name="userId">The user identifier.</param>
-    /// <returns>A collection of ground truth definitions created by the user.</returns>
+    /// <inheritdoc/>
     public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByUserAsync(string userId)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Retrieves ground truth definitions by their validation status.
-    /// </summary>
-    /// <param name="validationStatus">The validation status to filter by.</param>
-    /// <returns>A collection of ground truth definitions with the specified validation status.</returns>
+    /// <inheritdoc/>
     public Task<IEnumerable<GroundTruthDefinition>> GetGroundTruthDefinitionsByValidationStatusAsync(string validationStatus)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Updates an existing ground truth definition in the database.
-    /// </summary>
-    /// <param name="groundTruthDefinition">The ground truth definition to update.</param>
-    /// <returns>The updated ground truth definition.</returns>
+    /// <inheritdoc/>
     public Task<GroundTruthDefinition> UpdateGroundTruthDefinitionAsync(GroundTruthDefinition groundTruthDefinition)
     {
         throw new NotImplementedException();

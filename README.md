@@ -93,7 +93,9 @@ cd Ground-Truth-Curation-App
 #### App Settings
 
 1. Copy [./backend/src/GroundTruthCuration.API/appsettings.json](./backend/src/GroundTruthCuration.API/appsettings.json) as `appsettings.Development.json`.
-1. Replace `server_name` with the acutal SQL Server name and `your_username@your_domain.com` with your Entra ID email associated with the Azure resource group.
+1. For each connection string, replace each `server_name` or `account_name` placeholder with the actual names of your resources.
+   For the CosmosDB connection, retrieve a valid account key and replace it the placeholder `account_key`. Replace `database_name` with your database name.
+   Replace `your_username@your_domain.com` with your Entra ID email associated with the Azure resource group.
 1. Save.
 
 #### Running Locally
@@ -140,8 +142,8 @@ cp frontend/.env.example frontend/.env
 
 Common (planned) variables:
 
-- `VITE_API_BASE_URL`  Base URL for the backend API (e.g. http://localhost:5000 or https://localhost:5001).
-- `VITE_LOG_LEVEL`     Optional log verbosity (e.g. debug|info|warn|error).
+- `VITE_API_BASE_URL` Base URL for the backend API (e.g. <http://localhost:5000> or <https://localhost:5001>).
+- `VITE_LOG_LEVEL` Optional log verbosity (e.g. debug|info|warn|error).
 
 If you have not started the backend yet, follow the backend steps first so the API is reachable.
 
@@ -155,7 +157,7 @@ pnpm dev
 
 This launches the React Router dev server (default port `3000`, auto-opens browser). Adjust the port in `vite.config.ts` if needed.
 
-Access: http://localhost:3000
+Access: <http://localhost:3000>
 
 #### 5. Building for Production
 
@@ -168,13 +170,17 @@ The optimized bundle is emitted to `frontend/build/` (configured via `build.outD
 #### 6. Typical Full Stack Workflow
 
 1. Terminal A: run backend API:
-	```sh
-	dotnet run --project backend/src/GroundTruthCuration.Api
-	```
+
+```sh
+dotnet run --project backend/src/GroundTruthCuration.Api
+```
+
 2. Terminal B: run frontend dev server:
-	```sh
-	cd frontend && pnpm dev
-	```
+
+```sh
+cd frontend && pnpm dev
+```
+
 3. (Optional) Update `VITE_API_BASE_URL` in `frontend/.env` if the backend runs on a non-default port.
 
 #### 7. Project Structure Highlights
