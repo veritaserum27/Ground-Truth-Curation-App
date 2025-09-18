@@ -27,7 +27,8 @@ public class InMemoryBackgroundJobRepository : IBackgroundJobRepository
     /// <inheritdoc />
     public Task<IReadOnlyList<BackgroundJob>> ListAsync(IEnumerable<BackgroundJobStatus>? statuses = null, CancellationToken cancellationToken = default)
     {
-        if (statuses == null)
+        // If no statuses provided OR an empty enumerable -> return all jobs
+        if (statuses == null || !statuses.Any())
         {
             return Task.FromResult((IReadOnlyList<BackgroundJob>)_jobs.Values.OrderBy(j => j.CreatedAt).ToList());
         }

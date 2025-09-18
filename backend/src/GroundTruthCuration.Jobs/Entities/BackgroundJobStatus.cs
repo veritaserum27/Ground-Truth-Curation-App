@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace GroundTruthCuration.Jobs.Entities;
 
 /// <summary>
 /// Represents the lifecycle status of a background job.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BackgroundJobStatus
 {
     /// <summary>

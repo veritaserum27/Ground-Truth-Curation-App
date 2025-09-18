@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
 namespace GroundTruthCuration.Jobs.Entities;
 
 /// <summary>
 /// Enumerates the supported types of background jobs.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BackgroundJobType
 {
     /// <summary>

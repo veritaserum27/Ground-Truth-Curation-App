@@ -12,11 +12,11 @@ public class BackgroundJobExecutor : IBackgroundJobExecutor
     public async Task<string?> ExecuteAsync(BackgroundJob job, Action<int, string?>? progressCallback, CancellationToken cancellationToken)
     {
         // Simulate variable work; in real implementation delegate to appropriate domain service.
-        var totalSteps = 5;
+        var totalSteps = 20;
         for (int i = 1; i <= totalSteps; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await Task.Delay(300, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(1_000, cancellationToken).ConfigureAwait(false);
             var pct = (int)Math.Round(i * 100.0 / totalSteps);
             progressCallback?.Invoke(pct, $"Step {i} of {totalSteps}...");
         }
