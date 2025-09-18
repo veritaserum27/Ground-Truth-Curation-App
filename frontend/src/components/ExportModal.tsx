@@ -1,6 +1,6 @@
 import { Download, FileText, Filter, X } from 'lucide-react';
 import { useState } from 'react';
-import type { GroundTruthDefinition, Tag, ValidationStatus } from '../services/schemas';
+import type { GroundTruthDefinition, Tag, ValidationStatus } from '../types/schemas';
 import { formatStatus } from '../utils/groundTruthFormatting';
 
 interface ExportModalProps {

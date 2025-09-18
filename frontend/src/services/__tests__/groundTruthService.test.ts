@@ -1,6 +1,6 @@
 /// <reference types="jest" />
+import { GroundTruthDefinitionDtoSchema } from '../../types/schemas';
 import { groundTruthService } from '../groundTruthService';
-import { GroundTruthDefinitionDtoSchema } from '../schemas';
 // Fallback declarations if Jest globals not picked up by TS (prevents build break in editor tooling)
 // They are no-ops at runtime because real Jest provides them.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

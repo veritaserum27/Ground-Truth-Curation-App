@@ -2,10 +2,9 @@
  * groundTruthFormatting.tsx
  * Centralized formatting & display helpers for ground truth entities.
  */
-import type { ValidationStatus } from '../services/schemas';
-import type { GroundTruthCategory } from '../types';
+import type { ValidationStatus } from '../types/schemas';
 
-export function formatCategory(category: GroundTruthCategory): string {
+export function formatCategory(category: string): string {
   return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 

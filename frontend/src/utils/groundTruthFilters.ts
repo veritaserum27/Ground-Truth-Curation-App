@@ -1,4 +1,4 @@
-import type { GroundTruthDefinition } from "../services/schemas";
+import type { GroundTruthDefinition } from "../types/schemas";
 
 export interface GroundTruthFilterOptions {
   status?: string;

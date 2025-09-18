@@ -2,7 +2,7 @@ import CommentsComponent from '@/components/groundTruthDetails/Comments';
 import DataQueryDefinitions from '@/components/groundTruthDetails/DataQueryDefinitions';
 import GeneratedResponse from '@/components/groundTruthDetails/GeneratedResponse';
 import { useOutletContext } from 'react-router';
-import type { GroundTruthDefinition, Tag } from '../services/schemas';
+import type { GroundTruthDefinition, Tag } from '../types/schemas';
 
 // Read-only detail view (child index route)
 export default function GroundTruthDetailView() {

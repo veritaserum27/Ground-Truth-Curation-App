@@ -5,7 +5,7 @@ import { useNavigate, useOutletContext } from 'react-router';
 import { TagManager } from '../components/TagManager';
 import { useEditingData } from '../contexts/EditingContext';
 
-import type { Comment, DataQueryDefinition, GroundTruthDefinition } from '../services/schemas';
+import type { Comment, DataQueryDefinition, GroundTruthDefinition } from '../types/schemas';
 
 export default function GroundTruthEditForm() {
   const { groundTruth } = useOutletContext<{ groundTruth: GroundTruthDefinition }>();

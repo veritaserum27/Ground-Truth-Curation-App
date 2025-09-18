@@ -7,7 +7,7 @@ import {
   type GroundTruthDefinition,
   GroundTruthDefinitionDtoArraySchema,
   GroundTruthDefinitionDtoSchema
-} from './schemas';
+} from '../types/schemas';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5105';
 
