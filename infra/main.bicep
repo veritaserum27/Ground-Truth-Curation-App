@@ -32,10 +32,6 @@ param sqlDatabaseSku object = {
 @description('The name of the Azure Cosmos DB account')
 param cosmosDbAccountName string = 'gt-system-data-cosmos'
 
-@description('The name of the Azure Cosmos DB database')
-param cosmosDbDatabaseName string = 'ManufacturingDataDocDB'
-
-// System SQL Server
 resource systemSqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
   name: systemSqlServerName
   location: location
@@ -131,40 +127,45 @@ resource groundTruthFirewallRuleHackathon 'Microsoft.Sql/servers/firewallRules@2
   }
 }
 
-// Azure Cosmos DB Account (Serverless)
-module cosmosDbAccount 'br/public:avm/res/document-db/database-account:0.11.0' = {
-  name: 'cosmosDbDeployment'
-  params: {
-    name: cosmosDbAccountName
-    location: location
-    // Enable key-based authentication (disable local auth = false)
-    disableLocalAuth: false
-    // Allow key-based metadata write access
+// Azure Cosmos DB Account (Serverless, account only)
+resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
+  name: cosmosDbAccountName
+  location: location
+  kind: 'GlobalDocumentDB'
+  tags: {
+    'azd-env-name': uniqueString(resourceGroup().id)
+    purpose: 'hackathon'
+    project: 'ground-truth-curation'
+    defaultExperience: 'Core (SQL)'
+    'hidden-workload-type': 'Development/Testing'
+  }
+  properties: {
+    databaseAccountOfferType: 'Standard'
+    publicNetworkAccess: 'Enabled'
+    enableAutomaticFailover: true
+    enableMultipleWriteLocations: false
+    isVirtualNetworkFilterEnabled: false
+    // No virtual network or IP rules
+    networkAclBypass: 'None'
+    // No network ACL bypass resource IDs
     disableKeyBasedMetadataWriteAccess: false
-    capabilitiesToAdd: [
-      'EnableServerless'
-    ]
-    sqlDatabases: [
+    disableLocalAuth: false
+    enableFreeTier: false
+    enableAnalyticalStorage: false
+    analyticalStorageConfiguration: {
+      schemaType: 'WellDefined'
+    }
+    minimalTlsVersion: 'Tls12'
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
+      maxIntervalInSeconds: 5
+      maxStalenessPrefix: 100
+    }
+    capabilities: [
       {
-        name: cosmosDbDatabaseName
-        containers: [
-          {
-            name: 'repairs'
-            paths: [
-              '/partitionKey'
-            ]
-            indexingPolicy: {
-              automatic: true
-            }
-          }
-        ]
+        name: 'EnableServerless'
       }
     ]
-    networkRestrictions: {
-      publicNetworkAccess: 'Enabled'
-      ipRules: []
-      virtualNetworkRules: []
-    }
     locations: [
       {
         locationName: location
@@ -172,10 +173,18 @@ module cosmosDbAccount 'br/public:avm/res/document-db/database-account:0.11.0' =
         isZoneRedundant: false
       }
     ]
-    tags: {
-      'azd-env-name': uniqueString(resourceGroup().id)
-      purpose: 'hackathon'
-      project: 'ground-truth-curation'
+    // failoverPolicies is read-only and not settable
+    backupPolicy: {
+      type: 'Periodic'
+      periodicModeProperties: {
+        backupIntervalInMinutes: 240
+        backupRetentionIntervalInHours: 8
+        backupStorageRedundancy: 'Geo'
+      }
+    }
+    // No CORS rules
+    capacity: {
+      totalThroughputLimit: 4000
     }
   }
 }
@@ -190,7 +199,6 @@ output connectionStringTemplateSystem string = 'Server=tcp:${systemSqlServer.pro
 output connectionStringTemplateGroundTruth string = 'Server=tcp:${groundTruthSqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${groundTruthDatabaseName};Persist Security Info=False;User ID=${sqlAdministratorLogin};Password=<your-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
 
 // Cosmos DB outputs
-output cosmosDbAccountName string = cosmosDbAccount.outputs.name
-output cosmosDbAccountEndpoint string = cosmosDbAccount.outputs.endpoint
-output cosmosDbDatabaseName string = cosmosDbDatabaseName
-output cosmosDbResourceId string = cosmosDbAccount.outputs.resourceId
+output cosmosDbAccountName string = cosmosDbAccount.name
+output cosmosDbAccountEndpoint string = cosmosDbAccount.properties.documentEndpoint
+output cosmosDbResourceId string = cosmosDbAccount.id
