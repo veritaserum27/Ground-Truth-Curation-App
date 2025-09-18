@@ -19,8 +19,11 @@ builder.Services.AddScoped<IHello, Hello>();
 // Register Clean Architecture dependencies
 // Infrastructure layer (repositories) - implements interfaces from Core
 builder.Services.AddSingleton<IGroundTruthRepository, GroundTruthRepository>();
+builder.Services.AddSingleton<IManufacturingDataDocDbRepository, ManufacturingDataDocDbRepository>();
+builder.Services.AddSingleton<IManufacturingDataRelDbRepository, ManufacturingDataRelDbRepository>();
 
 // Core layer (domain services) - depends on abstractions (interfaces)
+builder.Services.AddScoped<IStatusService, StatusService>();
 builder.Services.AddScoped<IGroundTruthCurationService, GroundTruthCurationService>();
 builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>, GroundTruthDefinitionToDtoMapper>();
 

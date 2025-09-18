@@ -50,18 +50,6 @@ public class DataQueryDefinition
     public string RequiredPropertiesJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the required properties as a list of strings (not mapped to the database).
-    /// </summary>
-    // [NotMapped]
-    // public List<string> RequiredProperties
-    // {
-    //     get => string.IsNullOrWhiteSpace(RequiredPropertiesJson)
-    //         ? new List<string>()
-    //         : JsonSerializer.Deserialize<List<string>>(RequiredPropertiesJson) ?? new List<string>();
-    //     set => RequiredPropertiesJson = JsonSerializer.Serialize(value ?? new List<string>());
-    // }
-
-    /// <summary>
     /// Gets or sets the username of the user who created this query definition.
     /// </summary>
     public string UserCreated { get; set; } = string.Empty;
