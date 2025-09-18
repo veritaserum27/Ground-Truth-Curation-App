@@ -9,6 +9,12 @@ namespace GroundTruthCuration.Core.Interfaces;
 public interface IGroundTruthRepository
 {
     /// <summary>
+    /// Gets the status of the ground truth repository.
+    /// </summary>
+    /// <returns></returns>
+    Task<DatabaseStatusDto> GetStatusAsync();
+
+    /// <summary>
     /// Retrieves a ground truth definition by its unique identifier.
     /// </summary>
     /// <param name="id">The unique identifier of the ground truth definition.</param>
@@ -19,7 +25,7 @@ public interface IGroundTruthRepository
     /// Retrieves all ground truth definitions from the repository.
     /// </summary>
     /// <returns>A collection of all ground truth definitions.</returns>
-    Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter filter);
+    Task<IEnumerable<GroundTruthDefinition>> GetAllGroundTruthDefinitionsAsync(GroundTruthDefinitionFilter? filter);
 
     /// <summary>
     /// Retrieves all ground truth definitions associated with a specific user.
