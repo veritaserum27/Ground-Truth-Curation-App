@@ -2,9 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 import type { GroundTruth, Review, Tag } from '../types';
 
 interface EditingContextType {
-  isEditing: boolean;
   editForm: Partial<GroundTruth>;
-  setIsEditing: (v: boolean) => void;
   setEditForm: React.Dispatch<React.SetStateAction<Partial<GroundTruth>>>;
   applyLocalEdits: (groundTruthId: string, updated: Partial<GroundTruth>) => void;
   getMergedGroundTruth: (original: GroundTruth) => GroundTruth;
@@ -37,7 +35,7 @@ type LocalReviewsMap = Record<string, Review[]>;
 interface EditingProviderProps { children: ReactNode }
 
 export const EditingProvider = ({ children }: EditingProviderProps) => {
-  const [isEditing, setIsEditing] = useState(false);
+  // Deprecated state (to be removed after consumers migrate to route-based editing)
   const [editForm, setEditForm] = useState<Partial<GroundTruth>>({});
   const [tags, setTags] = useState<Tag[]>(predefinedTags);
   const [localEdits, setLocalEdits] = useState<LocalEditsMap>({});
@@ -73,9 +71,7 @@ export const EditingProvider = ({ children }: EditingProviderProps) => {
 
   return (
     <EditingContext.Provider value={{
-      isEditing,
       editForm,
-      setIsEditing,
       setEditForm,
       applyLocalEdits,
       getMergedGroundTruth,
