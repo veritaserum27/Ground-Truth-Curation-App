@@ -17,6 +17,7 @@ COPY GroundTruthCuration.sln ./
 COPY src/GroundTruthCuration.Core/GroundTruthCuration.Core.csproj src/GroundTruthCuration.Core/
 COPY src/GroundTruthCuration.Infrastructure/GroundTruthCuration.Infrastructure.csproj src/GroundTruthCuration.Infrastructure/
 COPY src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj src/GroundTruthCuration.Api/
+COPY src/GroundTruthCuration.Jobs/GroundTruthCuration.Jobs.csproj src/GroundTruthCuration.Jobs/
 
 # Restore dependencies
 RUN dotnet restore GroundTruthCuration.sln
