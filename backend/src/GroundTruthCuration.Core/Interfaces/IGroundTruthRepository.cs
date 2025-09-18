@@ -66,4 +66,22 @@ public interface IGroundTruthRepository
     /// <param name="id">The unique identifier of the ground truth definition.</param>
     /// <returns>True if the ground truth definition exists; otherwise, false.</returns>
     Task<bool> ExistsGroundTruthDefinitionAsync(Guid id);
+
+    /// <summary>
+    /// Removes ground truth entries associated with specific context IDs for a given ground truth definition. 
+    /// Also removes associated contexts and context parameters.
+    /// </summary>
+    /// <param name="groundTruthId"></param>
+    /// <param name="contextIds"></param>
+    /// <returns></returns>
+    Task DeleteGroundTruthContextsAndRelatedEntitiesAsync(Guid groundTruthId, IEnumerable<Guid> contextIds);
+
+    /// <summary>
+    /// Adds a new ground truth context along with its associated context parameters and a new ground truth entry. 
+    /// This method ensures that all related data is inserted in a single transaction to maintain data integrity
+    /// </summary>
+    /// <param name="groundTruthId"></param>
+    /// <param name="newContext"></param>
+    /// <returns></returns>
+    Task AddGroundTruthContextAndRelatedEntitiesAsync(Guid groundTruthId, GroundTruthContext newContext);
 }
