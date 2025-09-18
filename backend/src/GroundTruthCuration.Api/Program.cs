@@ -3,8 +3,6 @@ using GroundTruthCuration.Core.DTOs;
 using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
 using GroundTruthCuration.Core.Services;
-using GroundTruthCuration.Infrastructure.Processing;
-using GroundTruthCuration.Infrastructure.Queues;
 using GroundTruthCuration.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,12 +27,12 @@ builder.Services.AddScoped<IStatusService, StatusService>();
 builder.Services.AddScoped<IGroundTruthCurationService, GroundTruthCurationService>();
 builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>, GroundTruthDefinitionToDtoMapper>();
 
-// Background job processing registrations
-builder.Services.AddSingleton<IBackgroundJobRepository, InMemoryBackgroundJobRepository>();
-builder.Services.AddSingleton<IBackgroundJobQueue, ChannelBackgroundJobQueue>();
-builder.Services.AddSingleton<IBackgroundJobExecutor, BackgroundJobExecutor>();
-builder.Services.AddScoped<IBackgroundJobService, BackgroundJobService>();
-builder.Services.AddHostedService<BackgroundJobProcessor>();
+// // Background job processing registrations
+// builder.Services.AddSingleton<IBackgroundJobRepository, InMemoryBackgroundJobRepository>();
+// builder.Services.AddSingleton<IBackgroundJobQueue, ChannelBackgroundJobQueue>();
+// builder.Services.AddSingleton<IBackgroundJobExecutor, BackgroundJobExecutor>();
+// builder.Services.AddScoped<IBackgroundJobService, BackgroundJobService>();
+// builder.Services.AddHostedService<BackgroundJobProcessor>();
 
 var app = builder.Build();
 

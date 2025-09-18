@@ -1,7 +1,8 @@
-using GroundTruthCuration.Core.Entities;
-using GroundTruthCuration.Core.Interfaces;
+using GroundTruthCuration.Jobs.Entities;
+using GroundTruthCuration.Jobs.Queues;
+using GroundTruthCuration.Jobs.Repositories;
 
-namespace GroundTruthCuration.Core.Services;
+namespace GroundTruthCuration.Jobs.Services;
 
 /// <summary>
 /// Default implementation of <see cref="IBackgroundJobService"/> coordinating repository and queue.

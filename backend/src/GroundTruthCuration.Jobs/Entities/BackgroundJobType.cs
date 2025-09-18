@@ -1,4 +1,4 @@
-namespace GroundTruthCuration.Core.Entities;
+namespace GroundTruthCuration.Jobs.Entities;
 
 /// <summary>
 /// Enumerates the supported types of background jobs.

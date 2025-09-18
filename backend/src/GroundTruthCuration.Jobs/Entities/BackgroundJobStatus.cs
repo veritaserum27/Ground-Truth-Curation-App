@@ -1,4 +1,4 @@
-namespace GroundTruthCuration.Core.Entities;
+namespace GroundTruthCuration.Jobs.Entities;
 
 /// <summary>
 /// Represents the lifecycle status of a background job.

@@ -1,6 +1,6 @@
-using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Core.Services;
+namespace GroundTruthCuration.Jobs.Services;
 
 /// <summary>
 /// Executes a background job and returns its result payload (JSON string) if successful.

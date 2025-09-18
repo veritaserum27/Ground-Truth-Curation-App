@@ -1,6 +1,6 @@
-using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Core.Interfaces;
+namespace GroundTruthCuration.Jobs.Repositories;
 
 /// <summary>
 /// Repository abstraction for persisting and querying background jobs.

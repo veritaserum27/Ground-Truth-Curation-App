@@ -1,6 +1,6 @@
-using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Core.Interfaces;
+namespace GroundTruthCuration.Jobs.Queues;
 
 /// <summary>
 /// Abstraction for enqueueing and dequeueing background jobs for processing.

@@ -1,6 +1,6 @@
-using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Api.Models.Jobs;
+namespace GroundTruthCuration.Jobs.Models;
 
 /// <summary>
 /// Standard response shape for background job metadata.

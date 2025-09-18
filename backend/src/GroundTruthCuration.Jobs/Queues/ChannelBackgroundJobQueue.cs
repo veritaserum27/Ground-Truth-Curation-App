@@ -1,8 +1,7 @@
 using System.Threading.Channels;
-using GroundTruthCuration.Core.Entities;
-using GroundTruthCuration.Core.Interfaces;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Infrastructure.Queues;
+namespace GroundTruthCuration.Jobs.Queues;
 
 /// <summary>
 /// Channel-based implementation of <see cref="IBackgroundJobQueue"/> using an unbounded channel.

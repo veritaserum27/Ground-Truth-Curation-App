@@ -1,4 +1,4 @@
-namespace GroundTruthCuration.Core.Entities;
+namespace GroundTruthCuration.Jobs.Entities;
 
 /// <summary>
 /// Represents a unit of asynchronous background work tracked by the system.

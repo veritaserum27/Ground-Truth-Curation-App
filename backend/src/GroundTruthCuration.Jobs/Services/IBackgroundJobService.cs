@@ -1,6 +1,6 @@
-using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Core.Services;
+namespace GroundTruthCuration.Jobs.Services;
 
 /// <summary>
 /// High-level service for submitting and managing background jobs.

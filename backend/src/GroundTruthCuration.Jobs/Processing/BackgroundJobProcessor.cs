@@ -1,10 +1,11 @@
-using GroundTruthCuration.Core.Entities;
-using GroundTruthCuration.Core.Interfaces;
-using GroundTruthCuration.Core.Services;
+using GroundTruthCuration.Jobs.Entities;
+using GroundTruthCuration.Jobs.Queues;
+using GroundTruthCuration.Jobs.Repositories;
+using GroundTruthCuration.Jobs.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace GroundTruthCuration.Infrastructure.Processing;
+namespace GroundTruthCuration.Jobs.Processing;
 
 /// <summary>
 /// Hosted background service that dequeues and executes jobs.

@@ -1,9 +1,10 @@
-using GroundTruthCuration.Api.Models.Jobs;
-using GroundTruthCuration.Core.Entities;
-using GroundTruthCuration.Core.Services;
+using GroundTruthCuration.Jobs.Entities;
+using GroundTruthCuration.Jobs.Models;
+using GroundTruthCuration.Jobs.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GroundTruthCuration.Api.Controllers;
+namespace GroundTruthCuration.Jobs.Controllers;
 
 /// <summary>Provides endpoints for submitting and managing background jobs.</summary>
 [ApiController]

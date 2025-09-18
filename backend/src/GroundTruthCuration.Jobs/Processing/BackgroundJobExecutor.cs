@@ -1,7 +1,7 @@
-using GroundTruthCuration.Core.Entities;
-using GroundTruthCuration.Core.Services;
+using GroundTruthCuration.Jobs.Entities;
+using GroundTruthCuration.Jobs.Services;
 
-namespace GroundTruthCuration.Infrastructure.Processing;
+namespace GroundTruthCuration.Jobs.Processing;
 
 /// <summary>
 /// Simple executor that simulates work for each job type.

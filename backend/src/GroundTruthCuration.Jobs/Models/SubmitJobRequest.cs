@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using GroundTruthCuration.Core.Entities;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Api.Models.Jobs;
+namespace GroundTruthCuration.Jobs.Models;
 
 /// <summary>
 /// Request payload for submitting a new background job.

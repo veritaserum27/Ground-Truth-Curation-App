@@ -1,8 +1,7 @@
 using System.Collections.Concurrent;
-using GroundTruthCuration.Core.Entities;
-using GroundTruthCuration.Core.Interfaces;
+using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Infrastructure.Repositories;
+namespace GroundTruthCuration.Jobs.Repositories;
 
 /// <summary>
 /// Thread-safe in-memory storage of background jobs. Intended for initial development and testing only.
