@@ -54,4 +54,53 @@ public class TagService : ITagService
             Description = created.Description
         };
     }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<TagDto>> GetAllTagsAsync()
+    {
+        var tags = await _tagRepository.GetAllTagsAsync();
+        return tags.Select(t => new TagDto { TagId = t.TagId, Name = t.Name, Description = t.Description });
+    }
+
+    /// <inheritdoc />
+    public async Task<TagDto?> GetTagByIdAsync(Guid id)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("Id cannot be empty", nameof(id));
+        var tag = await _tagRepository.GetTagByIdAsync(id);
+        return tag == null ? null : new TagDto { TagId = tag.TagId, Name = tag.Name, Description = tag.Description };
+    }
+
+    /// <inheritdoc />
+    public async Task<TagDto> UpdateTagAsync(Guid id, TagDto tagDto)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("Tag Id cannot be empty", nameof(id));
+        if (tagDto is null) throw new ArgumentNullException(nameof(tagDto));
+
+        var existing = await _tagRepository.GetTagByIdAsync(id) ?? throw new KeyNotFoundException($"Tag {id} not found");
+
+        var newName = tagDto.Name?.Trim();
+        if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentException("Tag name is required", nameof(tagDto.Name));
+        if (newName!.Length > 100) throw new ArgumentException("Tag name must be 100 characters or fewer", nameof(tagDto.Name));
+
+        // uniqueness check by name (exclude self)
+        var dup = await _tagRepository.GetTagByNameAsync(newName);
+        if (dup != null && dup.TagId != id)
+            throw new InvalidOperationException($"A tag with name '{newName}' already exists.");
+
+        existing.Name = newName;
+        existing.Description = tagDto.Description?.Trim() ?? string.Empty;
+
+        var updated = await _tagRepository.UpdateTagAsync(existing);
+        if (!updated)
+            throw new InvalidOperationException("Update failed (no rows affected)");
+
+        return new TagDto { TagId = existing.TagId, Name = existing.Name, Description = existing.Description };
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteTagAsync(Guid id)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("Id cannot be empty", nameof(id));
+        return await _tagRepository.DeleteTagAsync(id);
+    }
 }

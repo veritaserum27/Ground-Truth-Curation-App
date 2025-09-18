@@ -20,4 +20,27 @@ public interface ITagRepository
     /// <param name="name">Name of the tag.</param>
     /// <returns>The tag if found; otherwise null.</returns>
     Task<Tag?> GetTagByNameAsync(string name);
+
+    /// <summary>
+    /// Retrieves all tags.
+    /// </summary>
+    Task<IEnumerable<Tag>> GetAllTagsAsync();
+
+    /// <summary>
+    /// Retrieves a tag by its identifier.
+    /// </summary>
+    Task<Tag?> GetTagByIdAsync(Guid id);
+
+    /// <summary>
+    /// Updates an existing tag.
+    /// </summary>
+    /// <param name="tag">Tag with updated fields.</param>
+    /// <returns>True if an update occurred; otherwise false.</returns>
+    Task<bool> UpdateTagAsync(Tag tag);
+
+    /// <summary>
+    /// Deletes a tag by id.
+    /// </summary>
+    /// <returns>True if a row was deleted.</returns>
+    Task<bool> DeleteTagAsync(Guid id);
 }
