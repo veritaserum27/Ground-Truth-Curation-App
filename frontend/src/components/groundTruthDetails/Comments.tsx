@@ -1,5 +1,5 @@
 
-import type { Comment } from "@/services/schemas"
+import type { Comment } from "@/types/schemas"
 export default function CommentsComponent({ comments = [] }: { comments: Comment[] }) {
   return (
     <>

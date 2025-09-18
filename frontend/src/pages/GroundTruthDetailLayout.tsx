@@ -3,7 +3,7 @@ import { getStatusColorClass } from '@/utils/groundTruthFormatting';
 import { NavLink, Outlet, useLoaderData, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { groundTruthDetailLoader as clientLoader } from '../routes/loaders/groundTruthDetailLoader';
-import type { GroundTruthDefinition } from '../services/schemas';
+import type { GroundTruthDefinition } from '../types/schemas';
 
 export { clientLoader };
 

@@ -1,6 +1,6 @@
+import type { GroundTruthDefinition, GroundTruthEntry } from "@/types/schemas";
 import { Clock, Star } from "lucide-react";
 import { useState } from "react";
-import type { GroundTruthDefinition, GroundTruthEntry } from "~/services/schemas";
 
 export default function GeneratedResponse({ groundTruth }: { groundTruth: GroundTruthDefinition }) {
   const [activeResponseTab, setActiveResponseTab] = useState<Record<string, 'formatted' | 'raw' | 'metadata'>>({});
