@@ -223,7 +223,6 @@ public class GroundTruthRepository : IGroundTruthRepository
                         INSERT INTO [dbo].[GROUND_TRUTH_CONTEXT] (contextId, groundTruthId, groundTruthEntryId, contextType)
                         VALUES (@ContextId, @GroundTruthId, @GroundTruthEntryId, @ContextType);";
 
-                    newContext.ContextId = Guid.NewGuid(); // Ensure a new GUID is assigned
                     await connection.ExecuteAsync(insertContextSql, new
                     {
                         newContext.ContextId,
@@ -241,7 +240,6 @@ public class GroundTruthRepository : IGroundTruthRepository
 
                         foreach (var param in newContext.ContextParameters)
                         {
-                            param.ParameterId = Guid.NewGuid(); // Ensure a new GUID is assigned
                             await connection.ExecuteAsync(insertParamSql, new
                             {
                                 param.ParameterId,
@@ -311,6 +309,111 @@ public class GroundTruthRepository : IGroundTruthRepository
                     _logger.LogError(ex, "Error removing ground truth entries by context IDs for GroundTruthId: {GroundTruthId}", groundTruthId);
                     await transaction.RollbackAsync();
                     throw new InvalidOperationException($"Failed to remove ground truth entries for GroundTruthId: {groundTruthId}. See inner exception for details.", ex);
+                }
+                finally
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateGroundTruthContextAndRelatedEntitiesAsync(Guid groundTruthId, GroundTruthContext updatedContext)
+    {
+        if (groundTruthId == Guid.Empty)
+        {
+            throw new ArgumentException("The ground truth ID cannot be an empty GUID.", nameof(groundTruthId));
+        }
+        if (updatedContext == null)
+        {
+            throw new ArgumentNullException(nameof(updatedContext), "The updated context cannot be null.");
+        }
+        if (updatedContext.ContextId == Guid.Empty)
+        {
+            throw new InvalidOperationException("The context ID cannot be an empty GUID.");
+        }
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+            using (var transaction = await connection.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Update GroundTruthContext
+                    string updateContextSql = @"
+                        UPDATE [dbo].[GROUND_TRUTH_CONTEXT]
+                        SET contextType = @ContextType
+                        WHERE contextId = @ContextId AND groundTruthId = @GroundTruthId;";
+
+                    await connection.ExecuteAsync(updateContextSql, new
+                    {
+                        updatedContext.ContextType,
+                        updatedContext.ContextId,
+                        GroundTruthId = groundTruthId
+                    }, transaction);
+
+                    // Delete removed parameters
+                    // Get the list of parameter IDs to keep
+                    var parameterIdsToKeep = updatedContext.ContextParameters.Select(p => p.ParameterId).ToList();
+
+                    if (parameterIdsToKeep.Any())
+                    {
+                        // Delete parameters not in the updated list
+                        await connection.ExecuteAsync(
+                            @"DELETE FROM [dbo].[CONTEXT_PARAMETER]
+                        WHERE contextId = @ContextId
+                        AND parameterId NOT IN @ParameterIdsToKeep;",
+                            new { ContextId = updatedContext.ContextId, ParameterIdsToKeep = parameterIdsToKeep }, transaction);
+                    }
+                    else
+                    {
+                        // If no parameters to keep, delete all parameters for the context
+                        await connection.ExecuteAsync(
+                            @"DELETE FROM [dbo].[CONTEXT_PARAMETER]
+                        WHERE contextId = @ContextId;",
+                            new { ContextId = updatedContext.ContextId }, transaction);
+                    }
+
+                    // Upsert ContextParameters
+                    if (updatedContext.ContextParameters != null && updatedContext.ContextParameters.Any())
+                    {
+                        // update existing or insert new parameters
+                        string upsertParamSql = @"
+                            MERGE [dbo].[CONTEXT_PARAMETER] AS target
+                            USING (SELECT @ParameterId AS parameterId, @ContextId AS contextId) AS source
+                            ON target.parameterId = source.parameterId AND target.contextId = source.contextId
+                            WHEN MATCHED THEN 
+                                UPDATE SET parameterName = @ParameterName, parameterValue = @ParameterValue, dataType = @DataType
+                            WHEN NOT MATCHED THEN
+                                INSERT (parameterId, contextId, parameterName, parameterValue, dataType)
+                                VALUES (@ParameterId, @ContextId, @ParameterName, @ParameterValue, @DataType);";
+
+                        foreach (var param in updatedContext.ContextParameters)
+                        {
+                            if (param.ParameterId == Guid.Empty)
+                            {
+                                param.ParameterId = Guid.NewGuid(); // Assign new GUID if not set
+                            }
+                            await connection.ExecuteAsync(upsertParamSql, new
+                            {
+                                param.ParameterId,
+                                updatedContext.ContextId,
+                                param.ParameterName,
+                                param.ParameterValue,
+                                param.DataType
+                            }, transaction);
+                        }
+                    }
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating ground truth context for GroundTruthId: {GroundTruthId}, ContextId: {ContextId}", groundTruthId, updatedContext.ContextId);
+                    await transaction.RollbackAsync();
+                    throw new InvalidOperationException($"Failed to update ground truth context for GroundTruthId: {groundTruthId}, ContextId: {updatedContext.ContextId}. See inner exception for details.", ex);
                 }
                 finally
                 {
@@ -392,6 +495,11 @@ public class GroundTruthRepository : IGroundTruthRepository
                     entryRef.GroundTruthContext = context;
                 }
                 contextRef = entryRef.GroundTruthContext;
+            }
+            else
+            {
+                // Context exists but does not match the current entry, ignore it
+                contextRef = null;
             }
         }
 

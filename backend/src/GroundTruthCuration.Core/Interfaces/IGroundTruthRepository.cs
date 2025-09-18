@@ -84,4 +84,13 @@ public interface IGroundTruthRepository
     /// <param name="newContext"></param>
     /// <returns></returns>
     Task AddGroundTruthContextAndRelatedEntitiesAsync(Guid groundTruthId, GroundTruthContext newContext);
+
+    /// <summary>
+    /// Updates an existing ground truth context along with its associated context parameters. 
+    /// This method ensures that all related data is updated in a single transaction to maintain data integrity.
+    /// </summary>
+    /// <param name="groundTruthId"></param>
+    /// <param name="updatedContext"></param>
+    /// <returns></returns>
+    Task UpdateGroundTruthContextAndRelatedEntitiesAsync(Guid groundTruthId, GroundTruthContext updatedContext);
 }

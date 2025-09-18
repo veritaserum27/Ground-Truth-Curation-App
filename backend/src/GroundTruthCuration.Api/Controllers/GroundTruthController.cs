@@ -99,15 +99,16 @@ public class GroundTruthController : ControllerBase
         {
             var result = await _groundTruthCurationService.AddGroundTruthContextsAndRelatedEntitiesAsync(id, contexts);
 
+            if (result == null)
+            {
+                return NotFound($"Ground truth definition with ID {id} not found.");
+            }
+
             return Ok(result);
         }
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
         }
         catch (Exception ex)
         {
