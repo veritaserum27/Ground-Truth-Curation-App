@@ -75,7 +75,8 @@ public class GroundTruthEntry
     public DateTime? EndDateTime { get; set; } = null;
 
     /// <summary>
-    /// Gets or sets the context information for this ground truth entry.
+    /// Gets or sets the context information for this ground truth entry. Nullable for "Unanswerable" 
+    /// questions or questions that don't need a context
     /// </summary>
     public GroundTruthContext? GroundTruthContext { get; set; } = null;
 

@@ -40,6 +40,12 @@ public class GroundTruthController : ControllerBase
         try
         {
             var definitions = await _groundTruthCurationService.GetAllGroundTruthDefinitionsAsync(filter);
+
+            if (definitions == null || !definitions.Any())
+            {
+                return NotFound("No ground truth definitions found matching the criteria.");
+            }
+
             return Ok(definitions);
         }
         catch (ArgumentException ex)
@@ -86,10 +92,28 @@ public class GroundTruthController : ControllerBase
         }
     }
 
-    [HttpPost("definitions/{id}/entries")]
-    public async Task<ActionResult<GroundTruthEntry>> AddEntry(Guid id, [FromBody] CreateEntryRequest request)
+    [HttpPut("definitions/{id}/contexts")]
+    public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateContexts(Guid id, [FromBody] List<GroundTruthContextDto> contexts)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var result = await _groundTruthCurationService.AddGroundTruthContextsAndRelatedEntitiesAsync(id, contexts);
+
+            if (result == null)
+            {
+                return NotFound($"Ground truth definition with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpPut("definitions/{id}/validation-status")]

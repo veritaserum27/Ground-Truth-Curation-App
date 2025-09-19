@@ -5,7 +5,7 @@ public class ContextParameterDto
     /// <summary>
     /// Gets or sets the unique identifier for the parameter.
     /// </summary>
-    public required Guid ParameterId { get; set; }
+    public Guid ParameterId { get; set; } = Guid.Empty;
 
     /// <summary>
     /// Gets or sets the name of the parameter.
