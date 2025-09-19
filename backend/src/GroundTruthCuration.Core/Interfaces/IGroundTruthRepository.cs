@@ -73,8 +73,9 @@ public interface IGroundTruthRepository
     /// </summary>
     /// <param name="groundTruthId"></param>
     /// <param name="contextIds"></param>
+    /// <param name="groundTruthEntryIds">The unique identifiers of the ground truth entries to delete.</param>
     /// <returns></returns>
-    Task DeleteGroundTruthContextsAndRelatedEntitiesAsync(Guid groundTruthId, IEnumerable<Guid> contextIds);
+    Task DeleteGroundTruthContextsAndRelatedEntitiesAsync(Guid groundTruthId, IEnumerable<Guid> contextIds, IEnumerable<Guid> groundTruthEntryIds);
 
     /// <summary>
     /// Adds a new ground truth context along with its associated context parameters and a new ground truth entry. 

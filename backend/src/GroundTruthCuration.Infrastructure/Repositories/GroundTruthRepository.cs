@@ -266,7 +266,7 @@ public class GroundTruthRepository : IGroundTruthRepository
         }
     }
 
-    public async Task DeleteGroundTruthContextsAndRelatedEntitiesAsync(Guid groundTruthId, IEnumerable<Guid> contextIds)
+    public async Task DeleteGroundTruthContextsAndRelatedEntitiesAsync(Guid groundTruthId, IEnumerable<Guid> contextIds, IEnumerable<Guid> groundTruthEntryIds)
     {
         if (groundTruthId == Guid.Empty)
         {
@@ -275,6 +275,10 @@ public class GroundTruthRepository : IGroundTruthRepository
         if (contextIds == null || !contextIds.Any())
         {
             throw new ArgumentException("The context IDs collection cannot be null or empty.", nameof(contextIds));
+        }
+        if (groundTruthEntryIds == null || !groundTruthEntryIds.Any())
+        {
+            throw new ArgumentException("The ground truth entry IDs collection cannot be null or empty.", nameof(groundTruthEntryIds));
         }
 
         using (var connection = new SqlConnection(_connectionString))
@@ -298,9 +302,8 @@ public class GroundTruthRepository : IGroundTruthRepository
                     await connection.ExecuteAsync(
                         @"DELETE gte
                     FROM [dbo].[GROUND_TRUTH_ENTRY] gte
-                    INNER JOIN [dbo].[GROUND_TRUTH_CONTEXT] gtc ON gte.groundTruthEntryId = gtc.groundTruthEntryId
-                    WHERE gte.groundTruthId = @groundTruthId AND gtc.contextId IN @contextIds;",
-                        new { groundTruthId, contextIds }, transaction);
+                    WHERE gte.groundTruthId = @groundTruthId AND gte.groundTruthEntryId IN @groundTruthEntryIds;",
+                        new { groundTruthId, groundTruthEntryIds }, transaction);
 
                     await transaction.CommitAsync();
                 }

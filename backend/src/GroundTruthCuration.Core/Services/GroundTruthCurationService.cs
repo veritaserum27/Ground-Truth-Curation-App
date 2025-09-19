@@ -65,11 +65,15 @@ namespace GroundTruthCuration.Core.Services
                 .ToHashSet();
 
             var toRemove = existingContextIds.Where(id => id != null).Select(id => id!.Value).Except(incomingContextIds).ToList();
+            var groundTruthEntryIdsToRemove = groundTruthDefinition.GroundTruthEntries
+                .Where(e => e?.GroundTruthContext != null && toRemove.Contains(e.GroundTruthContext.ContextId))
+                .Select(e => e.GroundTruthEntryId)
+                .ToList();
 
             if (toRemove.Any())
             {
                 // Remove entries with contexts that are not in the incoming list
-                await _groundTruthRepository.DeleteGroundTruthContextsAndRelatedEntitiesAsync(groundTruthId, toRemove);
+                await _groundTruthRepository.DeleteGroundTruthContextsAndRelatedEntitiesAsync(groundTruthId, toRemove, groundTruthEntryIdsToRemove);
             }
 
             // check if context already exists
