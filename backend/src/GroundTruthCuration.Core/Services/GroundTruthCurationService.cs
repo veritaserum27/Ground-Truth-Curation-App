@@ -130,6 +130,12 @@ namespace GroundTruthCuration.Core.Services
 
             var updatedGroundTruthDefinition = await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(groundTruthId);
 
+            if (updatedGroundTruthDefinition == null)
+            {
+                _logger.LogError("Ground truth definition with ID {GroundTruthId} not found after update.", groundTruthId);
+                return null;
+            }
+
             return _groundTruthDefinitionToDtoMapper.Map(updatedGroundTruthDefinition);
         }
 
