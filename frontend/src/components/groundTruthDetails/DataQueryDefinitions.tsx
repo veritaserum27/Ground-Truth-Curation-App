@@ -1,4 +1,4 @@
-import type { DataQueryDefinition } from "~/services/schemas";
+import type { DataQueryDefinition } from "@/types/schemas";
 
 export default function DataQueryDefinitions({ dataQueries = [] }: { dataQueries: DataQueryDefinition[] }) {
   return (
