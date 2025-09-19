@@ -5,6 +5,7 @@ using GroundTruthCuration.Core.Constants;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using GroundTruthCuration.Core.DTOs;
 
 namespace GroundTruthCuration.Core.Services;
 
@@ -14,9 +15,11 @@ public class DataQueryExecutionService : IDataQueryExecutionService
     private readonly IDatastoreRepository _manufacturingDataDocDbRepository;
     private readonly IDatastoreRepository _manufacturingDataRelDbRepository;
     private readonly IGroundTruthRepository _groundTruthRepository;
+    private readonly IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> _dataQueryMapper;
 
     public DataQueryExecutionService(ILogger<DataQueryExecutionService> logger,
-        DatastoreRepositoryResolver datastoreRepositoryResolver, IGroundTruthRepository groundTruthRepository)
+        DatastoreRepositoryResolver datastoreRepositoryResolver, IGroundTruthRepository groundTruthRepository,
+        IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> dataQueryMapper)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         if (datastoreRepositoryResolver == null)
@@ -26,6 +29,7 @@ public class DataQueryExecutionService : IDataQueryExecutionService
         _manufacturingDataDocDbRepository = datastoreRepositoryResolver("ManufacturingDataDocDb");
         _manufacturingDataRelDbRepository = datastoreRepositoryResolver("ManufacturingDataRelDb");
         _groundTruthRepository = groundTruthRepository ?? throw new ArgumentNullException(nameof(groundTruthRepository));
+        _dataQueryMapper = dataQueryMapper ?? throw new ArgumentNullException(nameof(dataQueryMapper));
     }
     public async Task ExecuteDataQueriesAsync(GroundTruthDefinition groundTruthDefinition,
         List<DataQueryDefinition> dataQueryDefinitionsToExecute, List<GroundTruthContext> contextsToExecute)
@@ -151,6 +155,77 @@ public class DataQueryExecutionService : IDataQueryExecutionService
 
             // Placeholder for executing data queries against their respective datastores
             // This would involve connecting to the datastore, running the query, and processing results
+        }
+    }
+
+    public async Task ExecuteDataQueriesByGroundTruthIdAsync(Guid groundTruthDefinitionId)
+    {
+        var groundTruthDefinition = await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(groundTruthDefinitionId);
+        if (groundTruthDefinition == null)
+        {
+            throw new ArgumentException($"Ground truth definition with ID {groundTruthDefinitionId} not found.");
+        }
+
+        var contexts = groundTruthDefinition.GroundTruthEntries
+            .Where(e => e.GroundTruthContext != null)
+            .Select(e => e.GroundTruthContext!)
+            .ToList();
+
+        foreach (var context in contexts)
+        {
+            await processDataQueriesForContext(groundTruthDefinition.DataQueryDefinitions.ToList(), context,
+                groundTruthDefinition.GroundTruthEntries
+                .First(e => e.GroundTruthContext?.ContextId == context.ContextId));
+        }
+    }
+
+    private async Task processDataQueriesForContext(List<DataQueryDefinition> dataQueryDefinitions,
+        GroundTruthContext context, GroundTruthEntry groundTruthEntry)
+    {
+        foreach (var dataQueryDefinition in dataQueryDefinitions)
+        {
+            // Build query parameters based on context parameters
+            if (dataQueryDefinition.DatastoreType == DatastoreType.Sql)
+            {
+                // Build SQL query parameters
+                var sqlParameters = new DynamicParameters();
+                foreach (var param in context.ContextParameters)
+                {
+                    sqlParameters.Add(param.ParameterName, param.ParameterValue);
+                }
+
+                // Execute query against relational DB
+                if (dataQueryDefinition.DatastoreName != "ManufacturingDataRelDb")
+                {
+                    throw new NotSupportedException($"Datastore '{dataQueryDefinition.DatastoreName}' is not supported for SQL queries.");
+                }
+
+                var results = await _manufacturingDataRelDbRepository.ExecuteQueryAsync(sqlParameters, dataQueryDefinition);
+
+                // Extract response required values
+                var responseRequiredValues = new List<string>();
+
+                // Extract required values from results
+                foreach (var result in results)
+                {
+                    var dict = result as IDictionary<string, object>;
+
+                    if (dict != null)
+                    {
+                        var filteredKeys = dict.Keys
+                            .Where(key => dataQueryDefinition.RequiredPropertiesJson.Contains(key));
+
+                        foreach (var key in filteredKeys)
+                        {
+                            responseRequiredValues.Add($"{key}: {dict[key]}");
+                        }
+                    }
+                }
+
+                // save to ground truth entry
+                //groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues);
+                //groundTruthEntry.RawDataJson = JsonSerializer.Serialize(results);
+            }
         }
     }
 }
