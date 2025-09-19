@@ -92,8 +92,8 @@ public class GroundTruthController : ControllerBase
         }
     }
 
-    [HttpPost("definitions/{id}/contexts")]
-    public async Task<ActionResult<GroundTruthDefinitionDto>> AddContexts(Guid id, [FromBody] List<GroundTruthContextDto> contexts)
+    [HttpPut("definitions/{id}/contexts")]
+    public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateContexts(Guid id, [FromBody] List<GroundTruthContextDto> contexts)
     {
         try
         {

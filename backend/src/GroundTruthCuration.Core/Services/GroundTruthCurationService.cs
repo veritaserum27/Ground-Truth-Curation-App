@@ -93,7 +93,7 @@ namespace GroundTruthCuration.Core.Services
                         ContextType = contextDto.ContextType,
                         ContextParameters = contextDto.ContextParameters.Select(p => new ContextParameter
                         {
-                            ParameterId = p.ParameterId,
+                            ParameterId = p.ParameterId != Guid.Empty ? p.ParameterId : Guid.NewGuid(),
                             ContextId = contextDto.ContextId,
                             ParameterName = p.ParameterName,
                             ParameterValue = p.ParameterValue,
@@ -115,7 +115,7 @@ namespace GroundTruthCuration.Core.Services
                         ContextType = contextDto.ContextType,
                         ContextParameters = contextDto.ContextParameters.Select(p => new ContextParameter
                         {
-                            ParameterId = p.ParameterId,
+                            ParameterId = p.ParameterId != Guid.Empty ? p.ParameterId : Guid.NewGuid(),
                             ContextId = contextDto.ContextId,
                             ParameterName = p.ParameterName,
                             ParameterValue = p.ParameterValue,
