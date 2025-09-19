@@ -21,6 +21,20 @@ public class JobsController : ControllerBase
         _jobService = jobService;
     }
 
+    /// <summary>Lists all supported background job types.</summary>
+    [HttpGet("types")]
+    [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+    public IActionResult GetSupportedTypes()
+    {
+        var catalog = HttpContext.RequestServices.GetService(typeof(IBackgroundJobTypeCatalog)) as IBackgroundJobTypeCatalog;
+        if (catalog == null)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Background job type catalog is not configured." });
+        }
+        return Ok(catalog.SupportedTypes);
+    }
+
     /// <summary>Submits a new background job of the specified type.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(BackgroundJobResponse), StatusCodes.Status202Accepted)]

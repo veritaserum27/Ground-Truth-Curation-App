@@ -1,3 +1,6 @@
+### List supported job types
+GET http://localhost:5105/api/jobs/types
+
 ### Submit a data query execution job
 # @name submitJob
 POST http://localhost:5105/api/jobs
