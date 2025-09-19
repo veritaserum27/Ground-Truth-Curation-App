@@ -1,7 +1,8 @@
-import GeneratedResponse from '@/components/groundTruthDetails/GeneratedResponse';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router';
+import { ContextsForm } from '../components/groundTruthDetails/Context/ContextsForm';
+import GeneratedResponse from '../components/groundTruthDetails/GeneratedResponse';
 import { TagManager } from '../components/TagManager';
 import { useEditingData } from '../contexts/EditingContext';
 
@@ -84,92 +85,6 @@ export default function GroundTruthEditForm() {
     }));
   };
 
-  // ---------- Contexts (per Entry) ----------
-  const addContextToEntry = (entryId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => (
-        e.GroundTruthEntryId === entryId
-          ? {
-            ...e,
-            GroundTruthContext: e.GroundTruthContext || {
-              ContextId: crypto.randomUUID(),
-              GroundTruthId: groundTruth.GroundTruthId,
-              GroundTruthEntryId: entryId,
-              ContextType: 'Default',
-              ContextParameters: []
-            }
-          }
-          : e
-      ))
-    }));
-  };
-
-  const updateContextType = (entryId: string, value: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => e.GroundTruthEntryId === entryId && e.GroundTruthContext ? { ...e, GroundTruthContext: { ...e.GroundTruthContext, ContextType: value } } : e)
-    }));
-  };
-
-  const addContextParameter = (entryId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => {
-        if (e.GroundTruthEntryId !== entryId || !e.GroundTruthContext) return e;
-        return {
-          ...e,
-          GroundTruthContext: {
-            ...e.GroundTruthContext,
-            ContextParameters: [
-              ...e.GroundTruthContext.ContextParameters,
-              { ParameterId: crypto.randomUUID(), ParameterName: '', ParameterValue: '', DataType: 'string' }
-            ]
-          }
-        };
-      })
-    }));
-  };
-
-  const updateContextParameter = (entryId: string, paramId: string, field: 'ParameterName' | 'ParameterValue' | 'DataType', value: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => {
-        if (e.GroundTruthEntryId !== entryId || !e.GroundTruthContext) return e;
-        return {
-          ...e,
-          GroundTruthContext: {
-            ...e.GroundTruthContext,
-            ContextParameters: e.GroundTruthContext.ContextParameters.map(p => p.ParameterId === paramId ? { ...p, [field]: value } : p)
-          }
-        };
-      })
-    }));
-  };
-
-  const removeContextParameter = (entryId: string, paramId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => {
-        if (e.GroundTruthEntryId !== entryId || !e.GroundTruthContext) return e;
-        return {
-          ...e,
-          GroundTruthContext: {
-            ...e.GroundTruthContext,
-            ContextParameters: e.GroundTruthContext.ContextParameters.filter(p => p.ParameterId !== paramId)
-          }
-        };
-      })
-    }));
-  };
-
-  const removeContextFromEntry = (entryId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => e.GroundTruthEntryId === entryId ? { ...e, GroundTruthContext: null } : e)
-    }));
-  };
-
   // ---------- Comments (Curator Notes & Reviews) ----------
   const addComment = (type: string, text: string) => {
     if (!text.trim()) return;
@@ -193,25 +108,7 @@ export default function GroundTruthEditForm() {
   const [newCommentText, setNewCommentText] = useState('');
   const [newCommentType, setNewCommentType] = useState('DataCuratorNote');
 
-  // Add brand new context by creating a new entry stub (since contexts belong to entries)
-  const addNewContext = () => {
-    const newEntryId = crypto.randomUUID();
-    const newEntry = {
-      GroundTruthEntryId: newEntryId,
-      GroundTruthContext: {
-        ContextId: crypto.randomUUID(),
-        GroundTruthId: groundTruth.GroundTruthId,
-        GroundTruthEntryId: newEntryId,
-        ContextType: 'Default',
-        ContextParameters: [] as { ParameterId: string; ParameterName: string; ParameterValue: string; DataType: string }[]
-      },
-      Response: '',
-      RequiredValues: [] as string[],
-      RawData: [] as any[],
-      CreationDateTime: new Date().toISOString()
-    };
-    setForm(f => ({ ...f, GroundTruthEntries: [...f.GroundTruthEntries, newEntry] }));
-  };
+  // Context editing moved to dedicated ContextsForm (independent save via fetcher + action route)
 
   return (
     <div className="bg-white rounded-lg border shadow p-6 space-y-8">
@@ -265,59 +162,14 @@ export default function GroundTruthEditForm() {
         />
       </section>
 
-      {/* Contexts (moved up) */}
+      {/* Contexts editing extracted to dedicated ContextsForm with independent save */}
       <section className="space-y-4 mt-4">
-        <h3 className="text-lg font-semibold">Contexts</h3>
-        {form.GroundTruthEntries.filter(e => e.GroundTruthContext).length === 0 && (
-          <p className="text-sm text-muted-foreground italic">No contexts defined yet. Add one below.</p>
-        )}
-        <div className="space-y-4 border rounded-md p-4">
-          {form.GroundTruthEntries.filter(e => e.GroundTruthContext).map((entry, idx) => (
-            <div key={entry.GroundTruthEntryId} className="border rounded-md p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">Context {idx + 1}</span>
-                <button onClick={() => removeContextFromEntry(entry.GroundTruthEntryId)} className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4" />Remove Context</button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Context Type</label>
-                  <input value={entry.GroundTruthContext!.ContextType} onChange={e => updateContextType(entry.GroundTruthEntryId, e.target.value)} className="w-full p-2 border rounded-md text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Parameters</label>
-                    <button onClick={() => addContextParameter(entry.GroundTruthEntryId)} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="w-3 h-3" /> Add Parameter</button>
-                  </div>
-                  {entry.GroundTruthContext!.ContextParameters.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">No parameters yet.</p>
-                  )}
-                  <div className="space-y-2">
-                    {entry.GroundTruthContext!.ContextParameters.map(p => (
-                      <div key={p.ParameterId} className="flex items-start gap-2 p-2 border rounded-md">
-                        <div className="grid grid-cols-3 gap-2 flex-1">
-                          <input value={p.ParameterName} onChange={e => updateContextParameter(entry.GroundTruthEntryId, p.ParameterId, 'ParameterName', e.target.value)} placeholder="Name" className="p-2 border rounded-md text-xs" />
-                          <input value={p.ParameterValue} onChange={e => updateContextParameter(entry.GroundTruthEntryId, p.ParameterId, 'ParameterValue', e.target.value)} placeholder="Value" className="p-2 border rounded-md text-xs" />
-                          <div className="relative">
-                            <select value={p.DataType || 'string'} onChange={e => updateContextParameter(entry.GroundTruthEntryId, p.ParameterId, 'DataType', e.target.value)} className="w-full p-2 border rounded-md text-xs pr-8 bg-white">
-                              <option value="string">String</option>
-                              <option value="integer">Integer</option>
-                              <option value="float">Float</option>
-                              <option value="decimal">Decimal</option>
-                              <option value="boolean">Boolean</option>
-                              <option value="datetime">Datetime</option>
-                            </select>
-                          </div>
-                        </div>
-                        <button onClick={() => removeContextParameter(entry.GroundTruthEntryId, p.ParameterId)} className="text-red-600 hover:text-red-800 w-8 h-8 flex items-center justify-center" title="Remove parameter"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={addNewContext} className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-full justify-center"><Plus className="w-4 h-4" /> Add New Context</button>
+        <ContextsForm
+          groundTruthId={groundTruth.GroundTruthId}
+          contexts={(groundTruth.GroundTruthEntries || [])
+            .map(e => e.GroundTruthContext)
+            .filter((c): c is NonNullable<typeof c> => Boolean(c))}
+        />
       </section>
 
       {/* Data Query Definitions (moved below contexts) */}
