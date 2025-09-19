@@ -4,6 +4,7 @@
  */
 
 import {
+  type DataQueryDefinition,
   type GroundTruthContext,
   type GroundTruthDefinition,
   GroundTruthDefinitionDtoArraySchema,
@@ -46,6 +47,35 @@ export async function updateGroundTruthContext(groundTruthId: string, contexts: 
     if (!data) {
       throw apiError(res.status, `HTTP ${res.status}: ${res.statusText} - Issue with updating contexts: ${data}`);
     }
+    const normalized = normalizePascalCase(data);
+
+    const groundTruth = GroundTruthDefinitionDtoSchema.parse(normalized);
+    return groundTruth;
+
+  } catch (err) {
+    // make sure to throw apiError incase it pops up.
+    throw err;
+  }
+}
+export async function updateDataQueries(groundTruthId: string, queries: DataQueryDefinition[]): Promise<GroundTruthDefinition> {
+
+  const url = buildUrl(`/api/groundtruth/definitions/${groundTruthId}/data-queries`);
+
+  try {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(queries)
+    })
+    if (!res.ok) {
+      throw apiError(res.status, `HTTP ${res.status}: ${res.statusText} - Issue updating Queries`);
+    }
+
+    let data: GroundTruthDefinition | null = null;
+    try { data = await res.json(); } catch { /* ignore parse error */ }
+    if (!data) {
+      throw apiError(res.status, `HTTP ${res.status}: ${res.statusText} - Issue with updating Queries: ${data}`);
+    }
     console.log({ data })
     const normalized = normalizePascalCase(data);
 
@@ -61,18 +91,3 @@ export async function updateGroundTruthContext(groundTruthId: string, contexts: 
 export async function createGroundTruthDefinition(): Promise<never> { throw apiError(501, 'Not implemented'); }
 export async function addGroundTruthEntry(): Promise<never> { throw apiError(501, 'Not implemented'); }
 export async function updateValidationStatus(): Promise<never> { throw apiError(501, 'Not implemented'); }
-
-// Optional grouped export
-export const groundTruthService = {
-  listGroundTruthDefinitions,
-  getGroundTruthDefinition,
-  createGroundTruthDefinition,
-  addGroundTruthEntry,
-  updateValidationStatus,
-  // Expose for tests/dev tools
-  _internal: { normalizePascalCase }
-};
-
-// Usage example (pseudo):
-// const defs = await listGroundTruthDefinitions();
-// console.log(defs);

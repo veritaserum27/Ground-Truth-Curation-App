@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router';
 import { ContextsForm } from '../components/groundTruthDetails/Context/ContextsForm';
@@ -6,7 +6,8 @@ import GeneratedResponse from '../components/groundTruthDetails/GeneratedRespons
 import { TagManager } from '../components/TagManager';
 import { useEditingData } from '../contexts/EditingContext';
 
-import type { Comment, DataQueryDefinition, GroundTruthDefinition } from '../types/schemas';
+import { DataQueryDefinitionsForm } from '@/components/groundTruthDetails/DataQueryDefinitions/DataQueryDefinitionsForm';
+import type { Comment, GroundTruthDefinition } from '../types/schemas';
 
 export default function GroundTruthEditForm() {
   const { groundTruth } = useOutletContext<{ groundTruth: GroundTruthDefinition }>();
@@ -36,54 +37,6 @@ export default function GroundTruthEditForm() {
     navigate(`/ground-truths/${groundTruth.GroundTruthId}`);
   };
   const handleCancel = () => navigate(`/ground-truths/${groundTruth.GroundTruthId}`);
-
-  // ---------- Data Query Definitions CRUD ----------
-  const addDataQueryDefinition = () => {
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: [
-        ...f.DataQueryDefinitions,
-        {
-          DataQueryId: crypto.randomUUID(),
-          GroundTruthId: groundTruth.GroundTruthId,
-          DatastoreType: 'Sql',
-          DatastoreName: '',
-          QueryTarget: '',
-          QueryDefinition: '',
-          IsFullQuery: true,
-          RequiredProperties: [],
-          UserCreated: groundTruth.UserCreated,
-          UserUpdated: groundTruth.UserUpdated || groundTruth.UserCreated,
-          CreationDateTime: new Date().toISOString()
-        } as DataQueryDefinition
-      ]
-    }));
-  };
-
-  const updateDataQuery = (id: string | undefined | null, key: keyof DataQueryDefinition, value: any) => {
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: f.DataQueryDefinitions.map(d => (d.DataQueryId === id ? { ...d, [key]: value } : d))
-    }));
-  };
-
-  const removeDataQuery = (id: string | undefined | null) => {
-    setForm(f => ({ ...f, DataQueryDefinitions: f.DataQueryDefinitions.filter(d => d.DataQueryId !== id) }));
-  };
-
-  const addRequiredProperty = (id: string | undefined | null, prop: string) => {
-    if (!prop.trim()) return;
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: f.DataQueryDefinitions.map(d => d.DataQueryId === id ? { ...d, RequiredProperties: [...d.RequiredProperties, prop.trim()] } : d)
-    }));
-  };
-  const removeRequiredProperty = (id: string | undefined | null, prop: string) => {
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: f.DataQueryDefinitions.map(d => d.DataQueryId === id ? { ...d, RequiredProperties: d.RequiredProperties.filter(p => p !== prop) } : d)
-    }));
-  };
 
   // ---------- Comments (Curator Notes & Reviews) ----------
   const addComment = (type: string, text: string) => {
@@ -174,61 +127,8 @@ export default function GroundTruthEditForm() {
 
       {/* Data Query Definitions (moved below contexts) */}
       <section className="space-y-4 mt-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Data Query Definitions</h3>
-        </div>
-        {form.DataQueryDefinitions.length === 0 && (
-          <p className="text-sm text-muted-foreground italic">No data query definitions. Add one.</p>
-        )}
-        <div className="space-y-6 border rounded-md p-4">
-          {form.DataQueryDefinitions.map(d => (
-            <div key={d.DataQueryId} className="border rounded-md p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">{d.DatastoreType} Query</span>
-                <button onClick={() => removeDataQuery(d.DataQueryId)} className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1"><Trash2 className="w-4 h-4" />Remove</button>
-              </div>
-              <div className="grid md:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Datastore Type</label>
-                  <select value={d.DatastoreType} onChange={e => updateDataQuery(d.DataQueryId, 'DatastoreType', e.target.value)} className="w-full p-2 border rounded-md text-sm bg-white">
-                    <option value="Sql">Sql</option>
-                    <option value="CosmosDb">CosmosDb</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Datastore Name</label>
-                  <input value={d.DatastoreName} onChange={e => updateDataQuery(d.DataQueryId, 'DatastoreName', e.target.value)} className="w-full p-2 border rounded-md text-sm" placeholder="db name" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Target</label>
-                  <input value={d.QueryTarget} onChange={e => updateDataQuery(d.DataQueryId, 'QueryTarget', e.target.value)} className="w-full p-2 border rounded-md text-sm" placeholder="schema.table" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Query Definition</label>
-                <textarea value={d.QueryDefinition} onChange={e => updateDataQuery(d.DataQueryId, 'QueryDefinition', e.target.value)} rows={5} className="w-full p-2 border rounded-md font-mono text-xs" placeholder="SELECT * FROM ..." />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">Is Full Query?</label>
-                <input type="checkbox" checked={d.IsFullQuery} onChange={e => updateDataQuery(d.DataQueryId, 'IsFullQuery', e.target.checked)} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">Required Properties</label>
-                <div className="flex flex-wrap gap-2">
-                  {d.RequiredProperties.map(rp => (
-                    <span key={rp} className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs">
-                      {rp}
-                      <button onClick={() => removeRequiredProperty(d.DataQueryId, rp)} className="text-red-600 hover:text-red-800" title="Remove">×</button>
-                    </span>
-                  ))}
-                </div>
-                <AddRequiredProperty onAdd={(v) => addRequiredProperty(d.DataQueryId, v)} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={addDataQueryDefinition} className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-full justify-center"><Plus className="w-4 h-4" /> Add New Query</button>
-
+        <h3 className="text-lg font-semibold">Data Query Definitions</h3>
+        <DataQueryDefinitionsForm dataQueries={groundTruth.DataQueryDefinitions} />
       </section>
 
 
