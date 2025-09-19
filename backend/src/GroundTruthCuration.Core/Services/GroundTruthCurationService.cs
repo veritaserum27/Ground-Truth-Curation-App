@@ -153,6 +153,12 @@ namespace GroundTruthCuration.Core.Services
         /// <inheritdoc/>
         public async Task<GroundTruthDefinitionDto?> UpdateGroundTruthDataQueryDefinitionsAsync(Guid groundTruthId, List<DataQueryDefinitionDto> dataQueryDefinitions)
         {
+            if (dataQueryDefinitions == null || !dataQueryDefinitions.Any())
+            {
+                _logger.LogWarning("No data query definitions provided for update. Aborting operation.");
+                return null;
+            }
+
             // get existing ground truth definition
             var groundTruthDefinition = await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(groundTruthId);
             if (groundTruthDefinition == null)
@@ -168,7 +174,6 @@ namespace GroundTruthCuration.Core.Services
 
             var incomingDataQueryIds = dataQueryDefinitions
                 .Select(dq => dq.DataQueryId ?? Guid.Empty) // Treat null as empty
-                .Where(id => id != Guid.Empty) // Exclude empty GUIDs
                 .ToHashSet();
 
             await deleteObsoleteDataQueriesAsync(existingDataQueryIds, incomingDataQueryIds);
@@ -176,6 +181,11 @@ namespace GroundTruthCuration.Core.Services
             // check for changes in existing definitions
             foreach (var dataQueryDefinition in dataQueryDefinitions)
             {
+                if (dataQueryDefinition.GroundTruthId == null || dataQueryDefinition.GroundTruthId == Guid.Empty)
+                {
+                    dataQueryDefinition.GroundTruthId = groundTruthId;
+                }
+
                 if (dataQueryDefinition.DataQueryId != null && existingDataQueryIds.Contains(dataQueryDefinition.DataQueryId.Value))
                 {
                     await processExistingDataQueryAsync(groundTruthDefinition, dataQueryDefinition);

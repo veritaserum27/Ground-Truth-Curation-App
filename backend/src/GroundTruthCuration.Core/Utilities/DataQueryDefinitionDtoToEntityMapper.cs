@@ -25,7 +25,7 @@ public class DataQueryDefinitionDtoToEntityMapper : IGroundTruthMapper<DataQuery
             DataQueryId = dataQueryDto.DataQueryId.HasValue && dataQueryDto.DataQueryId.Value != Guid.Empty
                 ? dataQueryDto.DataQueryId.Value
                 : Guid.NewGuid(),
-            GroundTruthId = dataQueryDto.GroundTruthId,
+            GroundTruthId = dataQueryDto.GroundTruthId ?? Guid.NewGuid(),
             DatastoreType = dataQueryDto.DatastoreType,
             DatastoreName = dataQueryDto.DatastoreName,
             QueryDefinition = dataQueryDto.QueryDefinition,
