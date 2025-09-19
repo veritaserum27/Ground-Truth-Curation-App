@@ -16,7 +16,12 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IBackgroundJobRepository, InMemoryBackgroundJobRepository>();
         services.AddSingleton<IBackgroundJobQueue, ChannelBackgroundJobQueue>();
-        services.AddSingleton<IBackgroundJobExecutor, BackgroundJobExecutor>();
+        // Register per-type executors
+        services.AddSingleton<IBackgroundJobExecutor, GroundTruthCuration.Jobs.Processing.Executors.ExportJobExecutor>();
+        services.AddSingleton<IBackgroundJobExecutor, GroundTruthCuration.Jobs.Processing.Executors.DataQueryExecutionJobExecutor>();
+        services.AddSingleton<IBackgroundJobExecutor, GroundTruthCuration.Jobs.Processing.Executors.ResponseGenerationJobExecutor>();
+        // Validator aggregates registered executors
+        services.AddSingleton<IBackgroundJobTypeValidator, BackgroundJobTypeValidator>();
         services.AddScoped<IBackgroundJobService, BackgroundJobService>();
         services.AddHostedService<BackgroundJobProcessor>();
         return services;

@@ -14,17 +14,17 @@ public class BackgroundJobProcessor : BackgroundService
 {
     private readonly IBackgroundJobQueue _queue;
     private readonly IBackgroundJobRepository _repository;
-    private readonly IBackgroundJobExecutor _executor;
+    private readonly IReadOnlyDictionary<string, IBackgroundJobExecutor> _executors;
     private readonly ILogger<BackgroundJobProcessor> _logger;
 
     /// <summary>
     /// Creates a new <see cref="BackgroundJobProcessor"/>.
     /// </summary>
-    public BackgroundJobProcessor(IBackgroundJobQueue queue, IBackgroundJobRepository repository, IBackgroundJobExecutor executor, ILogger<BackgroundJobProcessor> logger)
+    public BackgroundJobProcessor(IBackgroundJobQueue queue, IBackgroundJobRepository repository, IEnumerable<IBackgroundJobExecutor> executors, ILogger<BackgroundJobProcessor> logger)
     {
         _queue = queue;
         _repository = repository;
-        _executor = executor;
+        _executors = executors.ToDictionary(e => e.SupportedType, StringComparer.Ordinal);
         _logger = logger;
     }
 
@@ -59,10 +59,22 @@ public class BackgroundJobProcessor : BackgroundService
 
                 _logger.LogInformation("Executing job {JobId} of type {Type}", job.Id, job.Type);
 
+                if (!_executors.TryGetValue(job.Type, out var executor))
+                {
+                    _logger.LogWarning("No executor registered for job type {Type}", job.Type);
+                    await _repository.TryUpdateStatusAsync(job.Id, BackgroundJobStatus.Running, BackgroundJobStatus.Failed, j =>
+                    {
+                        j.Error = $"Unsupported job type '{job.Type}'";
+                        j.CompletedAt = DateTime.UtcNow;
+                        j.StatusMessage = "Failed";
+                    }, stoppingToken).ConfigureAwait(false);
+                    continue;
+                }
+
                 string? result = null;
                 try
                 {
-                    result = await _executor.ExecuteAsync(job, (pct, msg) =>
+                    result = await executor.ExecuteAsync(job, (pct, msg) =>
                     {
                         job.Progress = pct;
                         if (!string.IsNullOrWhiteSpace(msg))

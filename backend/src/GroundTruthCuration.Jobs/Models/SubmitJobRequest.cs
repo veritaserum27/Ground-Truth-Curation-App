@@ -9,8 +9,9 @@ namespace GroundTruthCuration.Jobs.Models;
 public class SubmitJobRequest
 {
     /// <summary>
-    /// The job type to execute.
+    /// The job type identifier to execute (case-sensitive string).
     /// </summary>
     [Required]
-    public BackgroundJobType Type { get; set; }
+    [MinLength(1)]
+    public string Type { get; set; } = string.Empty;
 }

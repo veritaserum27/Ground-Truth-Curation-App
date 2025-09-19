@@ -10,9 +10,10 @@ public class BackgroundJob
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
     /// <summary>
-    /// The job's functional type which determines how it is executed.
+    /// The job's functional type identifier which determines how it is executed.
+    /// Stored as a non-empty string.
     /// </summary>
-    public BackgroundJobType Type { get; set; }
+    public string Type { get; set; } = string.Empty;
     /// <summary>
     /// Current lifecycle status of the job.
     /// </summary>

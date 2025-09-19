@@ -9,6 +9,10 @@ namespace GroundTruthCuration.Jobs.Services;
 public interface IBackgroundJobExecutor
 {
     /// <summary>
+    /// The job type identifier this executor supports.
+    /// </summary>
+    string SupportedType { get; }
+    /// <summary>
     /// Executes the supplied job.
     /// </summary>
     /// <param name="job">The job to execute.</param>

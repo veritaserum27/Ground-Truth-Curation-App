@@ -10,7 +10,7 @@ public interface IBackgroundJobService
     /// <summary>
     /// Submits a new background job of the specified type and returns the created job.
     /// </summary>
-    Task<BackgroundJob> SubmitJobAsync(BackgroundJobType type, CancellationToken cancellationToken = default);
+    Task<BackgroundJob> SubmitJobAsync(string type, CancellationToken cancellationToken = default);
     /// <summary>
     /// Retrieves a job by identifier.
     /// </summary>

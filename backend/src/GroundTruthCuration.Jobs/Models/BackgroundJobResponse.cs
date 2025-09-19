@@ -9,8 +9,8 @@ public class BackgroundJobResponse
 {
     /// <summary>Job identifier.</summary>
     public Guid Id { get; set; }
-    /// <summary>Type of work performed.</summary>
-    public BackgroundJobType Type { get; set; }
+    /// <summary>Type of work performed (string identifier).</summary>
+    public string Type { get; set; } = string.Empty;
     /// <summary>Current lifecycle status.</summary>
     public BackgroundJobStatus Status { get; set; }
     /// <summary>Creation timestamp (UTC).</summary>

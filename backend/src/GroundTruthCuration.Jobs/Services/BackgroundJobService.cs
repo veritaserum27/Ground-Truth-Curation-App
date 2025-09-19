@@ -11,19 +11,22 @@ public class BackgroundJobService : IBackgroundJobService
 {
     private readonly IBackgroundJobRepository _repository;
     private readonly IBackgroundJobQueue _queue;
+    private readonly IBackgroundJobTypeValidator _typeValidator;
 
     /// <summary>
     /// Creates a new <see cref="BackgroundJobService"/> instance.
     /// </summary>
-    public BackgroundJobService(IBackgroundJobRepository repository, IBackgroundJobQueue queue)
+    public BackgroundJobService(IBackgroundJobRepository repository, IBackgroundJobQueue queue, IBackgroundJobTypeValidator typeValidator)
     {
         _repository = repository;
         _queue = queue;
+        _typeValidator = typeValidator;
     }
 
     /// <inheritdoc />
-    public async Task<BackgroundJob> SubmitJobAsync(BackgroundJobType type, CancellationToken cancellationToken = default)
+    public async Task<BackgroundJob> SubmitJobAsync(string type, CancellationToken cancellationToken = default)
     {
+        _typeValidator.EnsureSupported(type);
         var job = new BackgroundJob
         {
             Type = type,

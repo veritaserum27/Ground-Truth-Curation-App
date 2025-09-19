@@ -24,7 +24,8 @@ builder.Services.AddDefaultGroundTruthCurationJobsServices();
 This registers:
 - `IBackgroundJobRepository` → `InMemoryBackgroundJobRepository`
 - `IBackgroundJobQueue` → `ChannelBackgroundJobQueue`
-- `IBackgroundJobExecutor` → `BackgroundJobExecutor`
+- Multiple `IBackgroundJobExecutor` implementations (one per job type)
+- `IBackgroundJobTypeValidator` → `BackgroundJobTypeValidator`
 - `IBackgroundJobService` → `BackgroundJobService`
 - `BackgroundJobProcessor` (hosted service)
 
@@ -50,14 +51,17 @@ Running -> (Succeeded | Failed | Succeeded) (cancellation of running jobs not ye
 
 ## Adding a New Job Type
 
-1. Add enum member to `BackgroundJobType` (choose next value, avoid collisions).
-2. Extend `BackgroundJobExecutor.ExecuteAsync` switch (or create a specialized executor strategy and refactor if complexity grows).
-3. (Optional) Add domain services / repository dependencies required for the new job logic.
-4. Register any additional services in DI if needed.
-5. Add API/controller endpoint (in API project) that calls `IBackgroundJobService.SubmitJobAsync(newType)`.
-6. Update documentation / UI to surface the new job type.
+Background job types are now string identifiers (e.g., `"Export"`, `"DataQueryExecution"`, `"ResponseGeneration"`). Each type is handled by its own executor class implementing `IBackgroundJobExecutor` and advertising a `SupportedType` string.
 
-If job execution becomes complex, refactor executor to delegate to per-type handler classes (Strategy pattern) keyed by `BackgroundJobType`.
+1. Choose a unique job type identifier string (PascalCase recommended).
+2. Create a new executor implementing `IBackgroundJobExecutor` with the `SupportedType` property returning that string.
+3. Implement `ExecuteAsync` with progress callbacks as needed.
+4. Register the executor by adding another `AddSingleton<IBackgroundJobExecutor, YourExecutor>()` (or rely on assembly scanning if introduced later).
+5. (Optional) Add supporting services / repositories for domain-specific logic.
+6. Expose an API endpoint that calls `IBackgroundJobService.SubmitJobAsync("YourType")`.
+7. Update UI / docs to surface the new type.
+
+Unsupported types are rejected at submission time by `IBackgroundJobTypeValidator` and also guarded at execution time (defensive check).
 
 ## Sample Usage
 
@@ -67,7 +71,7 @@ Submit a job (e.g., from an API controller):
 [HttpPost("/jobs/export")]
 public async Task<IActionResult> StartExport([FromServices] IBackgroundJobService jobs)
 {
-    var job = await jobs.SubmitJobAsync(BackgroundJobType.Export);
+    var job = await jobs.SubmitJobAsync("Export");
     return Accepted(new { jobId = job.Id, status = job.Status });
 }
 ```
