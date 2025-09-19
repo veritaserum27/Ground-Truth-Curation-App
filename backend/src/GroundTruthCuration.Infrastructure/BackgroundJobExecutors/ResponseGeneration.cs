@@ -3,10 +3,8 @@ using GroundTruthCuration.Jobs.Entities;
 
 namespace GroundTruthCuration.Jobs.Processing.Executors;
 
-public class ResponseGenerationJobExecutor : IBackgroundJobExecutor
+public class ResponseGeneration : IBackgroundJobExecutor
 {
-    public string BackgroundJobType => "ResponseGeneration";
-
     public async Task<string?> ExecuteAsync(BackgroundJob job, Action<int, string?>? progressCallback, CancellationToken cancellationToken)
     {
         var totalSteps = 15;

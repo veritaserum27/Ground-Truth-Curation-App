@@ -13,9 +13,11 @@ using GroundTruthCuration.Jobs.Entities;
 
 namespace YourNamespace;
 
-public class YourJobExecutor : IBackgroundJobExecutor
+public class YourJob : IBackgroundJobExecutor
 {
-    public string BackgroundJobType => "YourJobType";
+    // Optionally override the job type string
+    // by default, the class name will be used (ex: `YourJob`)
+    // public string BackgroundJobType => "YourJobType";
 
     public async Task<string?> ExecuteAsync(BackgroundJob job, Action<int, string?>? progressCallback, CancellationToken cancellationToken)
     {
@@ -44,7 +46,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ... other service registrations
 
 // Add IBackgroundJobExecutor implementations
-builder.Services.AddBackgroundJobExecutor<YourJobExecutor>();
+builder.Services.AddBackgroundJobExecutor<YourJob>();
 
 // Add other background job services
 builder.Services.AddDefaultGroundTruthCurationJobsServices();

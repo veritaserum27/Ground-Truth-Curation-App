@@ -45,8 +45,8 @@ builder.Services.AddScoped<ITagService, TagService>();
 
 // Background job processing registrations,
 // be sure to register IBackgroundJobExecutors before the rest of the job services
-builder.Services.AddBackgroundJobExecutor<DataQueryExecutionJobExecutor>();
-builder.Services.AddBackgroundJobExecutor<ResponseGenerationJobExecutor>();
+builder.Services.AddBackgroundJobExecutor<DataQueryExecution>();
+builder.Services.AddBackgroundJobExecutor<ResponseGeneration>();
 builder.Services.AddDefaultGroundTruthCurationJobsServices();
 
 var app = builder.Build();

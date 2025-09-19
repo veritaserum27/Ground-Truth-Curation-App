@@ -4,10 +4,8 @@ using GroundTruthCuration.Jobs.Processing;
 
 namespace GroundTruthCuration.Infrastructure.BackgroundJobExecutors;
 
-public class DataQueryExecutionJobExecutor : IBackgroundJobExecutor
+public class DataQueryExecution : IBackgroundJobExecutor
 {
-    public string BackgroundJobType => "DataQueryExecution";
-
     public async Task<string?> ExecuteAsync(BackgroundJob job, Action<int, string?>? progressCallback, CancellationToken cancellationToken)
     {
         var totalSteps = 25;

@@ -11,7 +11,7 @@ public interface IBackgroundJobExecutor
     /// <summary>
     /// The job type identifier this executor supports.
     /// </summary>
-    string BackgroundJobType { get; }
+    string BackgroundJobType => GetType().Name;
 
     /// <summary>
     /// Executes the supplied job.
