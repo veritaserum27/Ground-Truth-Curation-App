@@ -5,6 +5,7 @@ using GroundTruthCuration.Core.Interfaces;
 using GroundTruthCuration.Core.Utilities;
 using GroundTruthCuration.Core.Services;
 using GroundTruthCuration.Infrastructure.Repositories;
+using GroundTruthCuration.Core.Delegates;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,11 +30,21 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IHello, Hello>();
 
 // Register Clean Architecture dependencies
+
 // Infrastructure layer (repositories) - implements interfaces from Core
 builder.Services.AddSingleton<IGroundTruthRepository, GroundTruthRepository>();
-builder.Services.AddSingleton<IManufacturingDataDocDbRepository, ManufacturingDataDocDbRepository>();
-builder.Services.AddSingleton<IManufacturingDataRelDbRepository, ManufacturingDataRelDbRepository>();
 builder.Services.AddSingleton<ITagRepository, TagRepository>();
+builder.Services.AddSingleton<ManufacturingDataDocDbRepository>();
+builder.Services.AddSingleton<ManufacturingDataRelDbRepository>();
+builder.Services.AddSingleton<DatastoreRepositoryResolver>(serviceProvider => key =>
+{
+  return key switch
+  {
+    "ManufacturingDataDocDb" => serviceProvider.GetRequiredService<ManufacturingDataDocDbRepository>(),
+    "ManufacturingDataRelDb" => serviceProvider.GetRequiredService<ManufacturingDataRelDbRepository>(),
+    _ => throw new KeyNotFoundException()
+  };
+});
 
 // Core layer (domain services) - depends on abstractions (interfaces)
 builder.Services.AddScoped<IStatusService, StatusService>();

@@ -63,7 +63,7 @@ public class GroundTruthRepository : IGroundTruthRepository
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while executing the SQL query in GetStatusAsync.");
-                throw new InvalidOperationException("An error occurred while opening a SQL connection. See inner exception for details.", ex);
+                status.IsConnected = false;
             }
             finally
             {
