@@ -120,7 +120,7 @@ public class GroundTruthController : ControllerBase
         }
     }
 
-    [HttpPut("definition/{id}/data-queries")]
+    [HttpPut("definitions/{id}/data-queries")]
     public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateDataQueries(Guid id, [FromBody] List<DataQueryDefinitionDto> dataQueries)
     {
         try

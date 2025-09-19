@@ -85,7 +85,7 @@ describe('GroundTruthDefinitionDtoSchema', () => {
     const camel = {
       groundTruthId: sample.GroundTruthId,
       userQuery: sample.UserQuery,
-  validationStatus: sample.ValidationStatus,
+      validationStatus: sample.ValidationStatus,
       userCreated: sample.UserCreated,
       userUpdated: sample.UserUpdated,
       creationDateTime: sample.CreationDateTime,

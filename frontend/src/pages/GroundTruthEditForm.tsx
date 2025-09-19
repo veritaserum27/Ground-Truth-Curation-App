@@ -1,11 +1,13 @@
-import GeneratedResponse from '@/components/groundTruthDetails/GeneratedResponse';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router';
+import { ContextsForm } from '../components/groundTruthDetails/Context/ContextsForm';
+import GeneratedResponse from '../components/groundTruthDetails/GeneratedResponse';
 import { TagManager } from '../components/TagManager';
 import { useEditingData } from '../contexts/EditingContext';
 
-import type { Comment, DataQueryDefinition, GroundTruthDefinition } from '../types/schemas';
+import { DataQueryDefinitionsForm } from '@/components/groundTruthDetails/DataQueryDefinitions/DataQueryDefinitionsForm';
+import type { Comment, GroundTruthDefinition } from '../types/schemas';
 
 export default function GroundTruthEditForm() {
   const { groundTruth } = useOutletContext<{ groundTruth: GroundTruthDefinition }>();
@@ -36,140 +38,6 @@ export default function GroundTruthEditForm() {
   };
   const handleCancel = () => navigate(`/ground-truths/${groundTruth.GroundTruthId}`);
 
-  // ---------- Data Query Definitions CRUD ----------
-  const addDataQueryDefinition = () => {
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: [
-        ...f.DataQueryDefinitions,
-        {
-          DataQueryId: crypto.randomUUID(),
-          GroundTruthId: groundTruth.GroundTruthId,
-          DatastoreType: 'Sql',
-          DatastoreName: '',
-          QueryTarget: '',
-          QueryDefinition: '',
-          IsFullQuery: true,
-          RequiredProperties: [],
-          UserCreated: groundTruth.UserCreated,
-          UserUpdated: groundTruth.UserUpdated || groundTruth.UserCreated,
-          CreationDateTime: new Date().toISOString()
-        } as DataQueryDefinition
-      ]
-    }));
-  };
-
-  const updateDataQuery = (id: string | undefined | null, key: keyof DataQueryDefinition, value: any) => {
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: f.DataQueryDefinitions.map(d => (d.DataQueryId === id ? { ...d, [key]: value } : d))
-    }));
-  };
-
-  const removeDataQuery = (id: string | undefined | null) => {
-    setForm(f => ({ ...f, DataQueryDefinitions: f.DataQueryDefinitions.filter(d => d.DataQueryId !== id) }));
-  };
-
-  const addRequiredProperty = (id: string | undefined | null, prop: string) => {
-    if (!prop.trim()) return;
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: f.DataQueryDefinitions.map(d => d.DataQueryId === id ? { ...d, RequiredProperties: [...d.RequiredProperties, prop.trim()] } : d)
-    }));
-  };
-  const removeRequiredProperty = (id: string | undefined | null, prop: string) => {
-    setForm(f => ({
-      ...f,
-      DataQueryDefinitions: f.DataQueryDefinitions.map(d => d.DataQueryId === id ? { ...d, RequiredProperties: d.RequiredProperties.filter(p => p !== prop) } : d)
-    }));
-  };
-
-  // ---------- Contexts (per Entry) ----------
-  const addContextToEntry = (entryId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => (
-        e.GroundTruthEntryId === entryId
-          ? {
-            ...e,
-            GroundTruthContext: e.GroundTruthContext || {
-              ContextId: crypto.randomUUID(),
-              GroundTruthId: groundTruth.GroundTruthId,
-              GroundTruthEntryId: entryId,
-              ContextType: 'Default',
-              ContextParameters: []
-            }
-          }
-          : e
-      ))
-    }));
-  };
-
-  const updateContextType = (entryId: string, value: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => e.GroundTruthEntryId === entryId && e.GroundTruthContext ? { ...e, GroundTruthContext: { ...e.GroundTruthContext, ContextType: value } } : e)
-    }));
-  };
-
-  const addContextParameter = (entryId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => {
-        if (e.GroundTruthEntryId !== entryId || !e.GroundTruthContext) return e;
-        return {
-          ...e,
-          GroundTruthContext: {
-            ...e.GroundTruthContext,
-            ContextParameters: [
-              ...e.GroundTruthContext.ContextParameters,
-              { ParameterId: crypto.randomUUID(), ParameterName: '', ParameterValue: '', DataType: 'string' }
-            ]
-          }
-        };
-      })
-    }));
-  };
-
-  const updateContextParameter = (entryId: string, paramId: string, field: 'ParameterName' | 'ParameterValue' | 'DataType', value: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => {
-        if (e.GroundTruthEntryId !== entryId || !e.GroundTruthContext) return e;
-        return {
-          ...e,
-          GroundTruthContext: {
-            ...e.GroundTruthContext,
-            ContextParameters: e.GroundTruthContext.ContextParameters.map(p => p.ParameterId === paramId ? { ...p, [field]: value } : p)
-          }
-        };
-      })
-    }));
-  };
-
-  const removeContextParameter = (entryId: string, paramId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => {
-        if (e.GroundTruthEntryId !== entryId || !e.GroundTruthContext) return e;
-        return {
-          ...e,
-          GroundTruthContext: {
-            ...e.GroundTruthContext,
-            ContextParameters: e.GroundTruthContext.ContextParameters.filter(p => p.ParameterId !== paramId)
-          }
-        };
-      })
-    }));
-  };
-
-  const removeContextFromEntry = (entryId: string) => {
-    setForm(f => ({
-      ...f,
-      GroundTruthEntries: f.GroundTruthEntries.map(e => e.GroundTruthEntryId === entryId ? { ...e, GroundTruthContext: null } : e)
-    }));
-  };
-
   // ---------- Comments (Curator Notes & Reviews) ----------
   const addComment = (type: string, text: string) => {
     if (!text.trim()) return;
@@ -193,25 +61,7 @@ export default function GroundTruthEditForm() {
   const [newCommentText, setNewCommentText] = useState('');
   const [newCommentType, setNewCommentType] = useState('DataCuratorNote');
 
-  // Add brand new context by creating a new entry stub (since contexts belong to entries)
-  const addNewContext = () => {
-    const newEntryId = crypto.randomUUID();
-    const newEntry = {
-      GroundTruthEntryId: newEntryId,
-      GroundTruthContext: {
-        ContextId: crypto.randomUUID(),
-        GroundTruthId: groundTruth.GroundTruthId,
-        GroundTruthEntryId: newEntryId,
-        ContextType: 'Default',
-        ContextParameters: [] as { ParameterId: string; ParameterName: string; ParameterValue: string; DataType: string }[]
-      },
-      Response: '',
-      RequiredValues: [] as string[],
-      RawData: [] as any[],
-      CreationDateTime: new Date().toISOString()
-    };
-    setForm(f => ({ ...f, GroundTruthEntries: [...f.GroundTruthEntries, newEntry] }));
-  };
+  // Context editing moved to dedicated ContextsForm (independent save via fetcher + action route)
 
   return (
     <div className="bg-white rounded-lg border shadow p-6 space-y-8">
@@ -265,118 +115,20 @@ export default function GroundTruthEditForm() {
         />
       </section>
 
-      {/* Contexts (moved up) */}
+      {/* Contexts editing extracted to dedicated ContextsForm with independent save */}
       <section className="space-y-4 mt-4">
-        <h3 className="text-lg font-semibold">Contexts</h3>
-        {form.GroundTruthEntries.filter(e => e.GroundTruthContext).length === 0 && (
-          <p className="text-sm text-muted-foreground italic">No contexts defined yet. Add one below.</p>
-        )}
-        <div className="space-y-4 border rounded-md p-4">
-          {form.GroundTruthEntries.filter(e => e.GroundTruthContext).map((entry, idx) => (
-            <div key={entry.GroundTruthEntryId} className="border rounded-md p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">Context {idx + 1}</span>
-                <button onClick={() => removeContextFromEntry(entry.GroundTruthEntryId)} className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4" />Remove Context</button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Context Type</label>
-                  <input value={entry.GroundTruthContext!.ContextType} onChange={e => updateContextType(entry.GroundTruthEntryId, e.target.value)} className="w-full p-2 border rounded-md text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs text-muted-foreground">Parameters</label>
-                    <button onClick={() => addContextParameter(entry.GroundTruthEntryId)} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"><Plus className="w-3 h-3" /> Add Parameter</button>
-                  </div>
-                  {entry.GroundTruthContext!.ContextParameters.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">No parameters yet.</p>
-                  )}
-                  <div className="space-y-2">
-                    {entry.GroundTruthContext!.ContextParameters.map(p => (
-                      <div key={p.ParameterId} className="flex items-start gap-2 p-2 border rounded-md">
-                        <div className="grid grid-cols-3 gap-2 flex-1">
-                          <input value={p.ParameterName} onChange={e => updateContextParameter(entry.GroundTruthEntryId, p.ParameterId, 'ParameterName', e.target.value)} placeholder="Name" className="p-2 border rounded-md text-xs" />
-                          <input value={p.ParameterValue} onChange={e => updateContextParameter(entry.GroundTruthEntryId, p.ParameterId, 'ParameterValue', e.target.value)} placeholder="Value" className="p-2 border rounded-md text-xs" />
-                          <div className="relative">
-                            <select value={p.DataType || 'string'} onChange={e => updateContextParameter(entry.GroundTruthEntryId, p.ParameterId, 'DataType', e.target.value)} className="w-full p-2 border rounded-md text-xs pr-8 bg-white">
-                              <option value="string">String</option>
-                              <option value="integer">Integer</option>
-                              <option value="float">Float</option>
-                              <option value="decimal">Decimal</option>
-                              <option value="boolean">Boolean</option>
-                              <option value="datetime">Datetime</option>
-                            </select>
-                          </div>
-                        </div>
-                        <button onClick={() => removeContextParameter(entry.GroundTruthEntryId, p.ParameterId)} className="text-red-600 hover:text-red-800 w-8 h-8 flex items-center justify-center" title="Remove parameter"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={addNewContext} className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-full justify-center"><Plus className="w-4 h-4" /> Add New Context</button>
+        <ContextsForm
+          groundTruthId={groundTruth.GroundTruthId}
+          contexts={(groundTruth.GroundTruthEntries || [])
+            .map(e => e.GroundTruthContext)
+            .filter((c): c is NonNullable<typeof c> => Boolean(c))}
+        />
       </section>
 
       {/* Data Query Definitions (moved below contexts) */}
       <section className="space-y-4 mt-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Data Query Definitions</h3>
-        </div>
-        {form.DataQueryDefinitions.length === 0 && (
-          <p className="text-sm text-muted-foreground italic">No data query definitions. Add one.</p>
-        )}
-        <div className="space-y-6 border rounded-md p-4">
-          {form.DataQueryDefinitions.map(d => (
-            <div key={d.DataQueryId} className="border rounded-md p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">{d.DatastoreType} Query</span>
-                <button onClick={() => removeDataQuery(d.DataQueryId)} className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1"><Trash2 className="w-4 h-4" />Remove</button>
-              </div>
-              <div className="grid md:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Datastore Type</label>
-                  <select value={d.DatastoreType} onChange={e => updateDataQuery(d.DataQueryId, 'DatastoreType', e.target.value)} className="w-full p-2 border rounded-md text-sm bg-white">
-                    <option value="Sql">Sql</option>
-                    <option value="CosmosDb">CosmosDb</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Datastore Name</label>
-                  <input value={d.DatastoreName} onChange={e => updateDataQuery(d.DataQueryId, 'DatastoreName', e.target.value)} className="w-full p-2 border rounded-md text-sm" placeholder="db name" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Target</label>
-                  <input value={d.QueryTarget} onChange={e => updateDataQuery(d.DataQueryId, 'QueryTarget', e.target.value)} className="w-full p-2 border rounded-md text-sm" placeholder="schema.table" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Query Definition</label>
-                <textarea value={d.QueryDefinition} onChange={e => updateDataQuery(d.DataQueryId, 'QueryDefinition', e.target.value)} rows={5} className="w-full p-2 border rounded-md font-mono text-xs" placeholder="SELECT * FROM ..." />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">Is Full Query?</label>
-                <input type="checkbox" checked={d.IsFullQuery} onChange={e => updateDataQuery(d.DataQueryId, 'IsFullQuery', e.target.checked)} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">Required Properties</label>
-                <div className="flex flex-wrap gap-2">
-                  {d.RequiredProperties.map(rp => (
-                    <span key={rp} className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs">
-                      {rp}
-                      <button onClick={() => removeRequiredProperty(d.DataQueryId, rp)} className="text-red-600 hover:text-red-800" title="Remove">×</button>
-                    </span>
-                  ))}
-                </div>
-                <AddRequiredProperty onAdd={(v) => addRequiredProperty(d.DataQueryId, v)} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={addDataQueryDefinition} className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-full justify-center"><Plus className="w-4 h-4" /> Add New Query</button>
-
+        <h3 className="text-lg font-semibold">Data Query Definitions</h3>
+        <DataQueryDefinitionsForm dataQueries={groundTruth.DataQueryDefinitions} />
       </section>
 
 
