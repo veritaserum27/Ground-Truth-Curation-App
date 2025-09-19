@@ -4,7 +4,9 @@ using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
 using GroundTruthCuration.Core.Services;
 using GroundTruthCuration.Infrastructure.Repositories;
+using GroundTruthCuration.Infrastructure.BackgroundJobs;
 using GroundTruthCuration.Jobs;
+using GroundTruthCuration.Jobs.Processing.Executors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +44,8 @@ builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruth
 builder.Services.AddScoped<ITagService, TagService>();
 
 // Background job processing registrations
+builder.Services.AddBackgroundJobExecutor<DataQueryExecutionJobExecutor>();
+builder.Services.AddBackgroundJobExecutor<ResponseGenerationJobExecutor>();
 builder.Services.AddDefaultGroundTruthCurationJobsServices();
 
 var app = builder.Build();

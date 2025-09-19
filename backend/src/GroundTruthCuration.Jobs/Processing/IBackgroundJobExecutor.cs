@@ -1,6 +1,6 @@
 using GroundTruthCuration.Jobs.Entities;
 
-namespace GroundTruthCuration.Jobs.Services;
+namespace GroundTruthCuration.Jobs.Processing;
 
 /// <summary>
 /// Executes a background job and returns its result payload (JSON string) if successful.
@@ -11,7 +11,8 @@ public interface IBackgroundJobExecutor
     /// <summary>
     /// The job type identifier this executor supports.
     /// </summary>
-    string SupportedType { get; }
+    string BackgroundJobType { get; }
+
     /// <summary>
     /// Executes the supplied job.
     /// </summary>

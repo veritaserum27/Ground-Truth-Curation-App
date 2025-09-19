@@ -1,12 +1,11 @@
 using System.Text.Json;
 using GroundTruthCuration.Jobs.Entities;
-using GroundTruthCuration.Jobs.Services;
 
 namespace GroundTruthCuration.Jobs.Processing.Executors;
 
 public class ResponseGenerationJobExecutor : IBackgroundJobExecutor
 {
-    public string SupportedType => "ResponseGeneration";
+    public string BackgroundJobType => "ResponseGeneration";
 
     public async Task<string?> ExecuteAsync(BackgroundJob job, Action<int, string?>? progressCallback, CancellationToken cancellationToken)
     {

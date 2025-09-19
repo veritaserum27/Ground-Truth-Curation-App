@@ -1,12 +1,12 @@
 using System.Text.Json;
 using GroundTruthCuration.Jobs.Entities;
-using GroundTruthCuration.Jobs.Services;
+using GroundTruthCuration.Jobs.Processing;
 
-namespace GroundTruthCuration.Jobs.Processing.Executors;
+namespace GroundTruthCuration.Infrastructure.BackgroundJobs;
 
 public class DataQueryExecutionJobExecutor : IBackgroundJobExecutor
 {
-    public string SupportedType => "DataQueryExecution";
+    public string BackgroundJobType => "DataQueryExecution";
 
     public async Task<string?> ExecuteAsync(BackgroundJob job, Action<int, string?>? progressCallback, CancellationToken cancellationToken)
     {

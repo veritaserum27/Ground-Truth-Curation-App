@@ -1,7 +1,6 @@
 using GroundTruthCuration.Jobs.Entities;
 using GroundTruthCuration.Jobs.Queues;
 using GroundTruthCuration.Jobs.Repositories;
-using GroundTruthCuration.Jobs.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +23,7 @@ public class BackgroundJobProcessor : BackgroundService
     {
         _queue = queue;
         _repository = repository;
-        _executors = executors.ToDictionary(e => e.SupportedType, StringComparer.Ordinal);
+        _executors = executors.ToDictionary(e => e.BackgroundJobType, StringComparer.Ordinal);
         _logger = logger;
     }
 

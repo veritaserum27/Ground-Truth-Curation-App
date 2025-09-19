@@ -1,12 +1,3 @@
-### Submit a new export job
-# @name submitJob
-POST http://localhost:5105/api/jobs
-Content-Type: application/json
-
-{
-  "type": "Export"
-}
-
 ### Submit a data query execution job
 # @name submitJob
 POST http://localhost:5105/api/jobs
@@ -14,6 +5,15 @@ Content-Type: application/json
 
 {
   "type": "DataQueryExecution"
+}
+
+### Submit a response generation job
+# @name submitJob
+POST http://localhost:5105/api/jobs
+Content-Type: application/json
+
+{
+  "type": "ResponseGeneration"
 }
 
 ###
@@ -27,7 +27,7 @@ GET http://localhost:5105/api/jobs/{{jobId}}
 GET http://localhost:5105/api/jobs
 
 ### List running or queued jobs
-GET http://localhost:5105/api/jobs?status=Queued&status=Succeeded
+GET http://localhost:5105/api/jobs?status=Queued
 
 ### Attempt cancellation
 DELETE http://localhost:5105/api/jobs/{{jobId}}

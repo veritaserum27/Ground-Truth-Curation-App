@@ -1,6 +1,6 @@
 namespace GroundTruthCuration.Jobs.Services;
 
-public interface IBackgroundJobTypeValidator
+public interface IBackgroundJobTypeCatalog
 {
     bool IsSupported(string type);
     IReadOnlyCollection<string> SupportedTypes { get; }

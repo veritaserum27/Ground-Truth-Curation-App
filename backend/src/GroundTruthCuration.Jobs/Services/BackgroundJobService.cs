@@ -11,12 +11,12 @@ public class BackgroundJobService : IBackgroundJobService
 {
     private readonly IBackgroundJobRepository _repository;
     private readonly IBackgroundJobQueue _queue;
-    private readonly IBackgroundJobTypeValidator _typeValidator;
+    private readonly IBackgroundJobTypeCatalog _typeValidator;
 
     /// <summary>
     /// Creates a new <see cref="BackgroundJobService"/> instance.
     /// </summary>
-    public BackgroundJobService(IBackgroundJobRepository repository, IBackgroundJobQueue queue, IBackgroundJobTypeValidator typeValidator)
+    public BackgroundJobService(IBackgroundJobRepository repository, IBackgroundJobQueue queue, IBackgroundJobTypeCatalog typeValidator)
     {
         _repository = repository;
         _queue = queue;
