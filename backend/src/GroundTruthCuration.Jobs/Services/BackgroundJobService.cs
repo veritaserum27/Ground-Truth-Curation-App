@@ -24,11 +24,18 @@ public class BackgroundJobService : IBackgroundJobService
     }
 
     /// <inheritdoc />
-    public async Task<BackgroundJob> SubmitJobAsync(string type, CancellationToken cancellationToken = default)
+    public Task<BackgroundJob> SubmitJobAsync(string type, CancellationToken cancellationToken = default)
+    {
+        return SubmitJobAsync(Guid.NewGuid(), type, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<BackgroundJob> SubmitJobAsync(Guid id, string type, CancellationToken cancellationToken = default)
     {
         _typeValidator.EnsureSupported(type);
         var job = new BackgroundJob
         {
+            Id = id,
             Type = type,
             Status = BackgroundJobStatus.Queued,
             CreatedAt = DateTime.UtcNow
