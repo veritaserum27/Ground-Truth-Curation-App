@@ -44,9 +44,9 @@ namespace GroundTruthCuration.Core.Interfaces
         /// Adds a new ground truth context to an existing ground truth definition.
         /// </summary>
         /// <param name="groundTruthId">The unique identifier of the ground truth definition to which the context will be added.</param>
-        /// <param name="groundTruthContext">The ground truth context to add.</param>
-        /// <returns>The updated ground truth definition with the new context.</returns>
-        Task<GroundTruthDefinitionDto> AddGroundTruthContextAsync(string groundTruthId, GroundTruthContextDto groundTruthContext);
+        /// <param name="groundTruthContexts">The ground truth contexts to add.</param>
+        /// <returns>The updated ground truth definition with the new contexts.</returns>
+        Task<GroundTruthDefinitionDto?> AddGroundTruthContextsAndRelatedEntitiesAsync(Guid groundTruthId, List<GroundTruthContextDto> groundTruthContexts);
 
         /// <summary>
         /// Deletes a ground truth definition from the repository by its unique identifier.
