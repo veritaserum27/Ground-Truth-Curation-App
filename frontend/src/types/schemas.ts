@@ -14,7 +14,7 @@ export const DatastoreTypeSchema = z.union([z.literal(0), z.literal(1), z.enum([
 // Category Enum
 // ValidationStatus Enum
 const validation = ['New, Data Curated', 'Validated', 'Request Revisions', 'Pending'] as const;
-export const ValidationStatusSchema = z.enum(validation).default("New, Data Curated"); // Example categories
+export const ValidationStatusSchema = z.enum(validation).default('New, Data Curated');
 // TagDto
 export const TagDtoSchema = z.object({
   TagId: z.string().uuid(),

@@ -8,8 +8,8 @@ import {
   GroundTruthDefinitionDtoArraySchema,
   GroundTruthDefinitionDtoSchema
 } from '../types/schemas';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5105';
+import { config } from "../utils/config";
+const API_BASE = config.apiUrl || 'http://localhost:5105';
 
 // ---- Config ----
 // Resolve API base URL from (in order): import.meta.env (Vite), process.env, fallback default.

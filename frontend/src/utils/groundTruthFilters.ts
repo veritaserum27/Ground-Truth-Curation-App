@@ -14,7 +14,8 @@ export function filterGroundTruths(items: GroundTruthDefinition[], opts: GroundT
     if (status && gt.ValidationStatus !== status) return false;
     // TODO: if (category && gt.Category !== category) return false;
     if (tagIds && tagIds.length) {
-      const allPresent = tagIds.every(t => gt.Tags?.includes(t));
+      const tagIdSet = new Set(gt.Tags?.map(t => (t as any).TagId) || []);
+      const allPresent = tagIds.every(t => tagIdSet.has(t));
       if (!allPresent) return false;
     }
     if (searchLower) {

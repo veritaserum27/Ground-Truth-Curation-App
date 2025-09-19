@@ -1,21 +1,13 @@
-/// <reference types="jest" />
+import { describe, expect, it } from 'vitest';
 import { GroundTruthDefinitionDtoSchema } from '../../types/schemas';
 import { groundTruthService } from '../groundTruthService';
-// Fallback declarations if Jest globals not picked up by TS (prevents build break in editor tooling)
-// They are no-ops at runtime because real Jest provides them.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const describe: any;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const it: any;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const expect: any;
 
 // We import service lazily to avoid circular issues; mapping function not exported so we validate schema only for now.
 
 const sample = {
   GroundTruthId: '11111111-1111-1111-1111-111111111111',
   UserQuery: 'How many widgets?',
-  ValidationStatus: 'New',
+  ValidationStatus: 'New, Data Curated',
   UserCreated: 'alice',
   UserUpdated: null,
   CreationDateTime: '2025-01-01T12:00:00Z',
@@ -93,7 +85,7 @@ describe('GroundTruthDefinitionDtoSchema', () => {
     const camel = {
       groundTruthId: sample.GroundTruthId,
       userQuery: sample.UserQuery,
-      validationStatus: sample.ValidationStatus,
+  validationStatus: sample.ValidationStatus,
       userCreated: sample.UserCreated,
       userUpdated: sample.UserUpdated,
       creationDateTime: sample.CreationDateTime,

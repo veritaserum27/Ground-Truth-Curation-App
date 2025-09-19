@@ -1,35 +1,36 @@
-import type { GroundTruth } from '../../types';
+import { describe, expect, test } from 'vitest';
+import type { GroundTruthDefinition } from '../../types/schemas';
 import { filterGroundTruths } from '../groundTruthFilters';
 
 describe('filterGroundTruths', () => {
-  const base: GroundTruth = {
-    id: '1',
-    prompt: 'How to replace a filter?',
-    category: 'maintenance_request',
-    status: 'new',
-    tags: ['t1', 't2'],
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-02'),
-    generatedResponses: [],
-    reviews: [],
-    contexts: [],
-    dataQueryDefinitions: []
+  const base: GroundTruthDefinition = {
+    GroundTruthId: '1',
+    UserQuery: 'How to replace a filter?',
+    ValidationStatus: 'New, Data Curated',
+    Category: 'maintenance_request',
+    UserCreated: 'user',
+    UserUpdated: 'user',
+    CreationDateTime: new Date('2024-01-01').toISOString(),
+    GroundTruthEntries: [],
+    DataQueryDefinitions: [],
+    Comments: [],
+    Tags: [{ TagId: 't1', Name: 'T1', Description: '' }, { TagId: 't2', Name: 'T2', Description: '' }]
   } as any;
 
-  const items: GroundTruth[] = [
+  const items: GroundTruthDefinition[] = [
     base,
-    { ...base, id: '2', status: 'validated', category: 'asset_knowledge', tags: ['t2'] },
-    { ...base, id: '3', status: 'revisions_requested', category: 'unanswerable', tags: [] }
+    { ...base, GroundTruthId: '2', ValidationStatus: 'Validated', Category: 'asset_knowledge', Tags: [{ TagId: 't2', Name: 'T2', Description: '' }] },
+    { ...base, GroundTruthId: '3', ValidationStatus: 'Request Revisions', Category: 'unanswerable', Tags: [] }
   ];
 
   test('filters by status', () => {
-    const res = filterGroundTruths(items, { status: 'validated' });
-    expect(res.map(r => r.id)).toEqual(['2']);
+    const res = filterGroundTruths(items, { status: 'Validated' });
+    expect(res.map(r => r.GroundTruthId)).toEqual(['2']);
   });
 
   test('filters by multiple tags (AND)', () => {
     const res = filterGroundTruths(items, { tagIds: ['t1', 't2'] });
-    expect(res.map(r => r.id)).toEqual(['1']);
+    expect(res.map(r => r.GroundTruthId)).toEqual(['1']);
   });
 
   test('search matches id or prompt', () => {
