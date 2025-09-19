@@ -19,6 +19,7 @@ namespace GroundTruthCuration.Core.Services
         private readonly ILogger<GroundTruthCurationService> _logger;
         private readonly IGroundTruthRepository _groundTruthRepository;
         private readonly IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto> _groundTruthDefinitionToDtoMapper;
+        private readonly IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext> _contextComparer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GroundTruthCurationService"/> class.
@@ -26,11 +27,13 @@ namespace GroundTruthCuration.Core.Services
         /// <param name="logger">The logger instance for logging operations.</param>
         /// <param name="groundTruthRepository">The repository for managing ground truth data.</param>
         /// <param name="groundTruthDefinitionToDtoMapper">The mapper for converting ground truth definitions to DTOs.</param>
-        public GroundTruthCurationService(ILogger<GroundTruthCurationService> logger, IGroundTruthRepository groundTruthRepository, IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto> groundTruthDefinitionToDtoMapper)
+        /// <param name="contextComparer">The comparer for validating context data consistency.</param>
+        public GroundTruthCurationService(ILogger<GroundTruthCurationService> logger, IGroundTruthRepository groundTruthRepository, IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto> groundTruthDefinitionToDtoMapper, IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext> contextComparer)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _groundTruthRepository = groundTruthRepository ?? throw new ArgumentNullException(nameof(groundTruthRepository));
             _groundTruthDefinitionToDtoMapper = groundTruthDefinitionToDtoMapper ?? throw new ArgumentNullException(nameof(groundTruthDefinitionToDtoMapper));
+            _contextComparer = contextComparer ?? throw new ArgumentNullException(nameof(contextComparer));
         }
 
         /// <inheritdoc/>
@@ -66,70 +69,25 @@ namespace GroundTruthCuration.Core.Services
                 .Select(dto => dto.ContextId)
                 .ToHashSet();
 
-            var toRemove = existingContextIds.Where(id => id != null).Select(id => id!.Value).Except(incomingContextIds).ToList();
-            var groundTruthEntryIdsToRemove = groundTruthDefinition.GroundTruthEntries
-                .Where(e => e?.GroundTruthContext != null && toRemove.Contains(e.GroundTruthContext.ContextId))
-                .Select(e => e.GroundTruthEntryId)
-                .ToList();
+            await deleteObsoleteContextsAsync(groundTruthDefinition, existingContextIds, incomingContextIds);
 
-            if (toRemove.Any())
-            {
-                // Remove entries with contexts that are not in the incoming list
-                await _groundTruthRepository.DeleteGroundTruthContextsAndRelatedEntitiesAsync(groundTruthId, toRemove, groundTruthEntryIdsToRemove);
-            }
-
-            // check if context already exists
+            // process contexts
             foreach (var contextDto in groundTruthContexts)
             {
                 // check if context with same ID already exists
-                if (groundTruthDefinition.GroundTruthEntries.Any(e => e != null && e.GroundTruthContext != null &&
-                    e.GroundTruthContext.ContextId == contextDto.ContextId))
+                if (existingContextIds.Contains(contextDto.ContextId))
                 {
-                    // convert to entity
-                    var contextEntity = new GroundTruthContext
-                    {
-                        ContextId = contextDto.ContextId,
-                        GroundTruthId = groundTruthId,
-                        GroundTruthEntryId = contextDto.GroundTruthEntryId == Guid.Empty ? Guid.NewGuid() : contextDto.GroundTruthEntryId,
-                        ContextType = contextDto.ContextType,
-                        ContextParameters = contextDto.ContextParameters.Select(p => new ContextParameter
-                        {
-                            ParameterId = p.ParameterId != Guid.Empty ? p.ParameterId : Guid.NewGuid(),
-                            ContextId = contextDto.ContextId,
-                            ParameterName = p.ParameterName,
-                            ParameterValue = p.ParameterValue,
-                            DataType = p.DataType
-                        }).ToList()
-                    };
-
-                    // update record in table
-                    await _groundTruthRepository.UpdateGroundTruthContextAndRelatedEntitiesAsync(groundTruthId, contextEntity);
+                    await processExistingContextAsync(groundTruthDefinition, contextDto, groundTruthId);
                 }
                 else
                 {
-                    // Add new context
-                    var newContext = new GroundTruthContext
-                    {
-                        ContextId = contextDto.ContextId,
-                        GroundTruthId = groundTruthId,
-                        GroundTruthEntryId = Guid.NewGuid(),
-                        ContextType = contextDto.ContextType,
-                        ContextParameters = contextDto.ContextParameters.Select(p => new ContextParameter
-                        {
-                            ParameterId = p.ParameterId != Guid.Empty ? p.ParameterId : Guid.NewGuid(),
-                            ContextId = contextDto.ContextId,
-                            ParameterName = p.ParameterName,
-                            ParameterValue = p.ParameterValue,
-                            DataType = p.DataType
-                        }).ToList()
-                    };
-
-                    await _groundTruthRepository.AddGroundTruthContextAndRelatedEntitiesAsync(groundTruthId, newContext);
+                    await addNewContextAsync(contextDto, groundTruthId);
                 }
             }
 
             // TODO: execute data queries for new or updated contexts to refresh data
 
+            // Retrieve the updated ground truth definition
             var updatedGroundTruthDefinition = await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(groundTruthId);
 
             if (updatedGroundTruthDefinition == null)
@@ -185,6 +143,89 @@ namespace GroundTruthCuration.Core.Services
         public Task<GroundTruthDefinitionDto> UpdateGroundTruthDataQueryDefinitionsAsync(Guid groundTruthId, List<DataQueryDefinitionDto> dataQueryDefinitions)
         {
             throw new NotImplementedException();
+        }
+
+        private async Task deleteObsoleteContextsAsync(GroundTruthDefinition groundTruthDefinition, HashSet<Guid?> existingContextIds, HashSet<Guid> incomingContextIds)
+        {
+            var toRemove = existingContextIds.Where(id => id != null).Select(id => id!.Value).Except(incomingContextIds).ToList();
+            var groundTruthEntryIdsToRemove = groundTruthDefinition.GroundTruthEntries
+                .Where(e => e?.GroundTruthContext != null && toRemove.Contains(e.GroundTruthContext.ContextId))
+                .Select(e => e.GroundTruthEntryId)
+                .ToList();
+
+            if (toRemove.Any())
+            {
+                // Remove entries with contexts that are not in the incoming list
+                await _groundTruthRepository.DeleteGroundTruthContextsAndRelatedEntitiesAsync(groundTruthDefinition.GroundTruthId, toRemove, groundTruthEntryIdsToRemove);
+            }
+        }
+
+        private async Task processExistingContextAsync(GroundTruthDefinition groundTruthDefinition, GroundTruthContextDto contextDto, Guid groundTruthId)
+        {
+            // get the existing version
+            var existingGroundTruthEntry = groundTruthDefinition.GroundTruthEntries
+                .FirstOrDefault(e => e?.GroundTruthContext != null && e.GroundTruthContext.ContextId == contextDto.ContextId);
+            if (existingGroundTruthEntry == null)
+            {
+                _logger.LogError("Inconsistent state: Context ID {ContextId} found in existing IDs but no matching entry.", contextDto.ContextId);
+                return;
+            }
+            if (existingGroundTruthEntry.GroundTruthContext == null)
+            {
+                _logger.LogError("Inconsistent state: Existing entry for Context ID {ContextId} has null GroundTruthContext.", contextDto.ContextId);
+                return;
+            }
+
+            if (!_contextComparer.HasSameValues(contextDto, existingGroundTruthEntry.GroundTruthContext))
+            {
+                _logger.LogInformation("Updating existing context with ID {ContextId}", contextDto.ContextId);
+
+                // convert to entity
+                var contextEntity = new GroundTruthContext
+                {
+                    ContextId = contextDto.ContextId,
+                    GroundTruthId = groundTruthId,
+                    GroundTruthEntryId = contextDto.GroundTruthEntryId == Guid.Empty ? Guid.NewGuid() : contextDto.GroundTruthEntryId,
+                    ContextType = contextDto.ContextType,
+                    ContextParameters = contextDto.ContextParameters.Select(p => new ContextParameter
+                    {
+                        ParameterId = p.ParameterId != Guid.Empty ? p.ParameterId : Guid.NewGuid(),
+                        ContextId = contextDto.ContextId,
+                        ParameterName = p.ParameterName,
+                        ParameterValue = p.ParameterValue,
+                        DataType = p.DataType
+                    }).ToList()
+                };
+
+                // update record in table
+                await _groundTruthRepository.UpdateGroundTruthContextAndRelatedEntitiesAsync(groundTruthId, contextEntity);
+            }
+            else
+            {
+                _logger.LogInformation("No changes detected for context with ID {ContextId}, skipping update.", contextDto.ContextId);
+            }
+        }
+
+        private async Task addNewContextAsync(GroundTruthContextDto contextDto, Guid groundTruthId)
+        {
+            // Add new context
+            var newContext = new GroundTruthContext
+            {
+                ContextId = contextDto.ContextId,
+                GroundTruthId = groundTruthId,
+                GroundTruthEntryId = Guid.NewGuid(),
+                ContextType = contextDto.ContextType,
+                ContextParameters = contextDto.ContextParameters.Select(p => new ContextParameter
+                {
+                    ParameterId = p.ParameterId != Guid.Empty ? p.ParameterId : Guid.NewGuid(),
+                    ContextId = contextDto.ContextId,
+                    ParameterName = p.ParameterName,
+                    ParameterValue = p.ParameterValue,
+                    DataType = p.DataType
+                }).ToList()
+            };
+
+            await _groundTruthRepository.AddGroundTruthContextAndRelatedEntitiesAsync(groundTruthId, newContext);
         }
     }
 }

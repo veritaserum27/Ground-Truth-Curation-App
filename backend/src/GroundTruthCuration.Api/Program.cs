@@ -51,6 +51,8 @@ builder.Services.AddScoped<IStatusService, StatusService>();
 builder.Services.AddScoped<IGroundTruthCurationService, GroundTruthCurationService>();
 builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>, GroundTruthDefinitionToDtoMapper>();
 builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<IGroundTruthComparer<ContextParameterDto, ContextParameter>, ContextParameterComparer>();
+builder.Services.AddScoped<IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext>, GroundTruthContextComparer>();
 
 var app = builder.Build();
 
