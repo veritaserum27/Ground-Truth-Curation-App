@@ -13,7 +13,6 @@ export async function groundTruthDetailLoader({ params }: LoaderArgs) {
   }
   try {
     const groundTruth = await getGroundTruthDefinition(id);
-    console.log({ groundTruth })
     return { groundTruth };
   } catch (err: any) {
     if (err && typeof err === 'object' && 'status' in err && (err as any).status === 404) {

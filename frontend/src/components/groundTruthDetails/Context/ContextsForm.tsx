@@ -8,8 +8,8 @@ interface ContextsFormProps {
 }
 
 export function ContextsForm({ groundTruthId, contexts }: ContextsFormProps) {
-  const fetcher = useFetcher<{ groundTruth?: any; error?: string }>();
 
+  const fetcher = useFetcher<{ groundTruth?: any; error?: string }>();
   // Create a stable initial snapshot for dirty tracking
   const initial = useMemo(() => structuredClone(contexts) as GroundTruthContext[], [contexts]);
   const [draftContexts, setDraftContexts] = useState<GroundTruthContext[]>(initial);

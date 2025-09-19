@@ -1,5 +1,5 @@
 import CommentsComponent from '@/components/groundTruthDetails/Comments';
-import DataQueryDefinitions from '@/components/groundTruthDetails/DataQueryDefinitions';
+import DataQueryDefinitions from '@/components/groundTruthDetails/DataQueryDefinitions/DataQueryDefinitions';
 import GeneratedResponse from '@/components/groundTruthDetails/GeneratedResponse';
 import { useOutletContext } from 'react-router';
 import Contexts from '../components/groundTruthDetails/Context/Contexts';

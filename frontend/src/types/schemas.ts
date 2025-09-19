@@ -11,6 +11,7 @@ import { z } from 'zod';
 export const DatastoreTypeSchema = z.union([z.literal(0), z.literal(1), z.enum(['Sql', 'CosmosDb'])])
   .transform(v => (v === 0 || v === 'Sql') ? 'Sql' : 'CosmosDb');
 
+
 // Category Enum
 // ValidationStatus Enum
 const validation = ['New, Data Curated', 'Validated', 'Request Revisions', 'Pending'] as const;
@@ -100,6 +101,8 @@ export const GroundTruthDefinitionDtoSchema = z.object({
 
 export const GroundTruthDefinitionDtoArraySchema = z.array(GroundTruthDefinitionDtoSchema);
 export const GroundTruthContextDtoArraySchema = z.array(GroundTruthContextDtoSchema);
+export const DataQueryDefinitionDtoArraySchema = z.array(DataQueryDefinitionDtoSchema);
+
 // Export backend DTO types
 export type Tag = z.infer<typeof TagDtoSchema>;
 export type Comment = z.infer<typeof CommentDtoSchema>;

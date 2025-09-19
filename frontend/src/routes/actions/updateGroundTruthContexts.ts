@@ -20,7 +20,6 @@ export async function clientAction({ request, params }: Route.ClientActionArgs) 
     const formData = await request.formData();
     const raw = formData.get("contexts");
     const parsed = JSON.parse(raw);
-    console.log({ parsed })
     if (typeof raw !== "string") {
       return new Response("Missing contexts payload", { status: 400 });
     }
