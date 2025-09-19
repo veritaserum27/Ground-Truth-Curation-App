@@ -66,7 +66,7 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
             }
             finally
             {
-                await connection.CloseAsync();
+                // No need to explicitly close the connection; 'using' will handle it.
             }
         }
 
