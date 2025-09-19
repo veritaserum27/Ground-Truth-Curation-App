@@ -62,8 +62,8 @@ public class GroundTruthRepository : IGroundTruthRepository
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while executing the SQL query in GetAllGroundTruthDefinitionsAsync.");
-                throw new InvalidOperationException("An error occurred while retrieving ground truth definitions. See inner exception for details.", ex);
+                _logger.LogError(ex, "An error occurred while executing the SQL query in GetStatusAsync.");
+                throw new InvalidOperationException("An error occurred while opening a SQL connection. See inner exception for details.", ex);
             }
             finally
             {
@@ -397,7 +397,7 @@ public class GroundTruthRepository : IGroundTruthRepository
                         {
                             if (param.ParameterId == Guid.Empty)
                             {
-                                param.ParameterId = Guid.NewGuid(); // Assign new GUID if not set
+                                throw new InvalidOperationException("Context parameter ID cannot be an empty GUID.");
                             }
                             await connection.ExecuteAsync(upsertParamSql, new
                             {
