@@ -4,9 +4,9 @@ import {
   Meta, Outlet, Scripts, ScrollRestoration
 } from 'react-router';
 import type { Route } from "./+types/root";
-import { AuthProvider } from './contexts/AuthContext';
-import { DataProvider } from './contexts/DataContext';
 import { Header } from './components/Header';
+import { AuthProvider } from './contexts/AuthContext';
+import { EditingProvider } from './contexts/EditingContext';
 
 export function Layout({ children }: { children?: React.ReactNode }) {
   return (
@@ -33,14 +33,14 @@ export function Layout({ children }: { children?: React.ReactNode }) {
 export default function Root() {
   return (
     <AuthProvider>
-      <DataProvider>
+      <EditingProvider>
         <div className="min-h-screen bg-background">
           <Header />
           <main className="container mx-auto px-4 py-8">
             <Outlet />
           </main>
         </div>
-      </DataProvider>
+      </EditingProvider>
     </AuthProvider>
   )
 }
