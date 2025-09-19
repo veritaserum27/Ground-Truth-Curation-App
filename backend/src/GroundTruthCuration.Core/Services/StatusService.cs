@@ -1,19 +1,25 @@
+using GroundTruthCuration.Core.Delegates;
 using GroundTruthCuration.Core.DTOs;
 using GroundTruthCuration.Core.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+
 namespace GroundTruthCuration.Core.Services;
 
 public class StatusService : IStatusService
 {
-    private readonly IManufacturingDataDocDbRepository _docDbRepository;
-    private readonly IManufacturingDataRelDbRepository _relDbRepository;
+    private readonly IDatastoreRepository _docDbRepository;
+    private readonly IDatastoreRepository _relDbRepository;
     private readonly IGroundTruthRepository _groundTruthRepository;
 
-    public StatusService(IManufacturingDataDocDbRepository docDbRepository, IManufacturingDataRelDbRepository relDbRepository, IGroundTruthRepository groundTruthRepository)
+    public StatusService(DatastoreRepositoryResolver datastoreRepositoryResolver, IGroundTruthRepository groundTruthRepository)
     {
-        _docDbRepository = docDbRepository ?? throw new ArgumentNullException(nameof(docDbRepository));
-        _relDbRepository = relDbRepository ?? throw new ArgumentNullException(nameof(relDbRepository));
+        if (datastoreRepositoryResolver == null)
+        {
+            throw new ArgumentNullException(nameof(datastoreRepositoryResolver));
+        }
+        _docDbRepository = datastoreRepositoryResolver("ManufacturingDataDocDb");
+        _relDbRepository = datastoreRepositoryResolver("ManufacturingDataRelDb");
         _groundTruthRepository = groundTruthRepository ?? throw new ArgumentNullException(nameof(groundTruthRepository));
     }
     public async Task<ICollection<DatabaseStatusDto>> GetDatabaseStatusesAsync()

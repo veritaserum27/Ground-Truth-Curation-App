@@ -63,11 +63,7 @@ public class GroundTruthRepository : IGroundTruthRepository
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while executing the SQL query in GetStatusAsync.");
-                throw new InvalidOperationException("An error occurred while opening a SQL connection. See inner exception for details.", ex);
-            }
-            finally
-            {
-                await connection.CloseAsync();
+                status.IsConnected = false;
             }
         }
 
@@ -258,10 +254,6 @@ public class GroundTruthRepository : IGroundTruthRepository
                     await transaction.RollbackAsync();
                     throw new InvalidOperationException($"Failed to add ground truth context for GroundTruthId: {groundTruthId}. See inner exception for details.", ex);
                 }
-                finally
-                {
-                    await connection.CloseAsync();
-                }
             }
         }
     }
@@ -312,10 +304,6 @@ public class GroundTruthRepository : IGroundTruthRepository
                     _logger.LogError(ex, "Error removing ground truth entries by context IDs for GroundTruthId: {GroundTruthId}", groundTruthId);
                     await transaction.RollbackAsync();
                     throw new InvalidOperationException($"Failed to remove ground truth entries for GroundTruthId: {groundTruthId}. See inner exception for details.", ex);
-                }
-                finally
-                {
-                    await connection.CloseAsync();
                 }
             }
         }
@@ -417,10 +405,6 @@ public class GroundTruthRepository : IGroundTruthRepository
                     _logger.LogError(ex, "Error updating ground truth context for GroundTruthId: {GroundTruthId}, ContextId: {ContextId}", groundTruthId, updatedContext.ContextId);
                     await transaction.RollbackAsync();
                     throw new InvalidOperationException($"Failed to update ground truth context for GroundTruthId: {groundTruthId}, ContextId: {updatedContext.ContextId}. See inner exception for details.", ex);
-                }
-                finally
-                {
-                    await connection.CloseAsync();
                 }
             }
         }

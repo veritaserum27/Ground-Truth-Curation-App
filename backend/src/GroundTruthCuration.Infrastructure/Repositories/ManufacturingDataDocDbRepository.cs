@@ -10,7 +10,7 @@ namespace GroundTruthCuration.Infrastructure.Repositories;
 /// <summary>
 /// Repository for interacting with the Manufacturing Data DocumentDB CosmosDB datastore
 /// </summary>
-public class ManufacturingDataDocDbRepository : IManufacturingDataDocDbRepository
+public class ManufacturingDataDocDbRepository : IDatastoreRepository
 {
     private readonly ILogger<ManufacturingDataDocDbRepository> _logger;
     private readonly string _connectionString;

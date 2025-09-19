@@ -10,7 +10,7 @@ namespace GroundTruthCuration.Infrastructure.Repositories;
 /// <summary>
 /// Repository for interacting with the Manufacturing Data RelationalDB SQL Server datastore.
 /// </summary>
-public class ManufacturingDataRelDbRepository : IManufacturingDataRelDbRepository
+public class ManufacturingDataRelDbRepository : IDatastoreRepository
 {
     private readonly string _connectionString;
     private readonly ILogger<ManufacturingDataRelDbRepository> _logger;
@@ -62,6 +62,7 @@ public class ManufacturingDataRelDbRepository : IManufacturingDataRelDbRepositor
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error connecting to the database");
+                status.IsConnected = false;
             }
         }
 
