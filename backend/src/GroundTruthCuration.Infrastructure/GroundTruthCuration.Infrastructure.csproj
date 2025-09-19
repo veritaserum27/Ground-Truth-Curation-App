@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GroundTruthCuration.Core\GroundTruthCuration.Core.csproj" />
+    <ProjectReference Include="..\GroundTruthCuration.Jobs\GroundTruthCuration.Jobs.csproj" />
   </ItemGroup>
 
   <ItemGroup>

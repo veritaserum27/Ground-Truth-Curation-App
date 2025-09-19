@@ -6,6 +6,9 @@ using GroundTruthCuration.Core.Utilities;
 using GroundTruthCuration.Core.Services;
 using GroundTruthCuration.Infrastructure.Repositories;
 using GroundTruthCuration.Core.Delegates;
+using GroundTruthCuration.Infrastructure.BackgroundJobExecutors;
+using GroundTruthCuration.Jobs;
+using GroundTruthCuration.Jobs.Processing.Executors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +56,12 @@ builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruth
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IGroundTruthComparer<ContextParameterDto, ContextParameter>, ContextParameterComparer>();
 builder.Services.AddScoped<IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext>, GroundTruthContextComparer>();
+
+// Background job processing registrations,
+// be sure to register IBackgroundJobExecutors before the rest of the job services
+builder.Services.AddBackgroundJobExecutor<DataQueryExecution>();
+builder.Services.AddBackgroundJobExecutor<ResponseGeneration>();
+builder.Services.AddDefaultGroundTruthCurationJobsServices();
 
 var app = builder.Build();
 
