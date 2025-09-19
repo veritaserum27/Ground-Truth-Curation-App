@@ -94,4 +94,26 @@ public interface IGroundTruthRepository
     /// <param name="updatedContext"></param>
     /// <returns></returns>
     Task UpdateGroundTruthContextAndRelatedEntitiesAsync(Guid groundTruthId, GroundTruthContext updatedContext);
+
+    /// <summary>
+    /// Removes data query definitions associated with a specific ground truth definition. 
+    /// This method ensures that all specified data query definitions are deleted in a single transaction to maintain data integrity.
+    /// </summary>
+    /// <param name="dataQueryIds"></param>
+    /// <returns></returns>
+    Task DeleteDataQueryDefinitionsAsync(IEnumerable<Guid> dataQueryIds);
+
+    /// <summary>
+    /// Updates an existing data query definition associated with a specific ground truth definition.
+    /// </summary>
+    /// <param name="dataQueryDefinition"></param>
+    /// <returns></returns>
+    Task UpdateDataQueryDefinitionAsync(DataQueryDefinition dataQueryDefinition);
+
+    /// <summary>
+    /// Adds a new data query definition associated with a specific ground truth definition.
+    /// </summary>
+    /// <param name="dataQueryDefinition"></param>
+    /// <returns></returns>
+    Task AddDataQueryDefinitionAsync(DataQueryDefinition dataQueryDefinition);
 }

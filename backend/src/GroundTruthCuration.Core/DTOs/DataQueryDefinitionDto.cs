@@ -12,7 +12,7 @@ public class DataQueryDefinitionDto
     /// <summary>
     /// Gets or sets the identifier of the associated ground truth definition.
     /// </summary>
-    public required Guid GroundTruthId { get; set; }
+    public Guid? GroundTruthId { get; set; }
 
     /// <summary>
     /// Gets or sets the type of datastore (e.g., SQL, CosmosDb).
@@ -58,5 +58,5 @@ public class DataQueryDefinitionDto
     /// <summary>
     /// Gets or sets the date and time when this query definition was created.
     /// </summary>
-    public DateTime CreationDateTime { get; set; }
+    public DateTime? CreationDateTime { get; set; }
 }

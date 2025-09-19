@@ -185,6 +185,151 @@ public class GroundTruthRepository : IGroundTruthRepository
         throw new NotImplementedException();
     }
 
+    /// <inheritdoc/>
+    public async Task AddDataQueryDefinitionAsync(DataQueryDefinition dataQueryDefinition)
+    {
+        if (dataQueryDefinition == null)
+        {
+            throw new ArgumentNullException(nameof(dataQueryDefinition), "The data query definition cannot be null.");
+        }
+        if (dataQueryDefinition.GroundTruthId == Guid.Empty)
+        {
+            throw new ArgumentException("The ground truth ID in the data query definition cannot be an empty GUID.", nameof(dataQueryDefinition));
+        }
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+            using (var transaction = await connection.BeginTransactionAsync())
+            {
+                try
+                {
+                    string sql = @"
+                        INSERT INTO [dbo].[DATA_QUERY_DEFINITION] (dataQueryId, groundTruthId, datastoreType, datastoreName, queryTarget, 
+                            queryDefinition, isFullQuery, requiredPropertiesJson, userCreated, userUpdated, creationDateTime, 
+                            startDateTime, endDateTime)
+                        VALUES (@DataQueryId, @GroundTruthId, @DatastoreType, @DatastoreName, @QueryTarget, 
+                            @QueryDefinition, @IsFullQuery, @RequiredPropertiesJson, @UserCreated, @UserUpdated, @CreationDateTime, 
+                            @StartDateTime, @EndDateTime);";
+
+                    await connection.ExecuteAsync(sql, new
+                    {
+                        dataQueryDefinition.DataQueryId,
+                        dataQueryDefinition.GroundTruthId,
+                        dataQueryDefinition.DatastoreType,
+                        dataQueryDefinition.DatastoreName,
+                        dataQueryDefinition.QueryTarget,
+                        dataQueryDefinition.QueryDefinition,
+                        dataQueryDefinition.IsFullQuery,
+                        dataQueryDefinition.RequiredPropertiesJson,
+                        dataQueryDefinition.UserCreated,
+                        dataQueryDefinition.UserUpdated,
+                        dataQueryDefinition.CreationDateTime,
+                        dataQueryDefinition.StartDateTime,
+                        dataQueryDefinition.EndDateTime
+                    }, transaction);
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error adding data query definition.");
+                    throw new InvalidOperationException("An error occurred while adding the data query definition.", ex);
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateDataQueryDefinitionAsync(DataQueryDefinition dataQueryDefinition)
+    {
+        if (dataQueryDefinition == null)
+        {
+            throw new ArgumentNullException(nameof(dataQueryDefinition), "The data query definition cannot be null.");
+        }
+        if (dataQueryDefinition.DataQueryId == Guid.Empty)
+        {
+            throw new ArgumentException("The data query ID cannot be an empty GUID.", nameof(dataQueryDefinition));
+        }
+        if (dataQueryDefinition.GroundTruthId == Guid.Empty)
+        {
+            throw new ArgumentException("The ground truth ID in the data query definition cannot be an empty GUID.", nameof(dataQueryDefinition));
+        }
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+            using (var transaction = await connection.BeginTransactionAsync())
+            {
+                try
+                {
+                    string sql = @"
+                        UPDATE [dbo].[DATA_QUERY_DEFINITION]
+                        SET datastoreType = @DatastoreType,
+                            datastoreName = @DatastoreName,
+                            queryTarget = @QueryTarget,
+                            queryDefinition = @QueryDefinition,
+                            isFullQuery = @IsFullQuery,
+                            requiredPropertiesJson = @RequiredPropertiesJson,
+                            userUpdated = @UserUpdated
+                        WHERE dataQueryId = @DataQueryId AND groundTruthId = @GroundTruthId;";
+
+                    await connection.ExecuteAsync(sql, new
+                    {
+                        dataQueryDefinition.DatastoreType,
+                        dataQueryDefinition.DatastoreName,
+                        dataQueryDefinition.QueryTarget,
+                        dataQueryDefinition.QueryDefinition,
+                        dataQueryDefinition.IsFullQuery,
+                        dataQueryDefinition.RequiredPropertiesJson,
+                        dataQueryDefinition.UserUpdated,
+                        dataQueryDefinition.DataQueryId,
+                        dataQueryDefinition.GroundTruthId
+                    }, transaction);
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error updating data query definition with ID: {DataQueryId}", dataQueryDefinition.DataQueryId);
+                    throw new InvalidOperationException($"An error occurred while updating the data query definition with ID {dataQueryDefinition.DataQueryId}.", ex);
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task DeleteDataQueryDefinitionsAsync(IEnumerable<Guid> dataQueryIds)
+    {
+        if (dataQueryIds == null || !dataQueryIds.Any())
+        {
+            throw new ArgumentException("The data query IDs collection cannot be null or empty.", nameof(dataQueryIds));
+        }
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+            try
+            {
+                using (var transaction = await connection.BeginTransactionAsync())
+                {
+                    await connection.ExecuteAsync(
+                            "DELETE FROM [dbo].[DATA_QUERY_DEFINITION] WHERE dataQueryId IN @dataQueryIds;",
+                            new { dataQueryIds }, transaction);
+                    await transaction.CommitAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting data query definitions.");
+                throw new InvalidOperationException("An error occurred while deleting the data query definitions.", ex);
+            }
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task AddGroundTruthContextAndRelatedEntitiesAsync(Guid groundTruthId, GroundTruthContext newContext)
     {
         if (groundTruthId == Guid.Empty)
@@ -258,6 +403,7 @@ public class GroundTruthRepository : IGroundTruthRepository
         }
     }
 
+    /// <inheritdoc/>
     public async Task DeleteGroundTruthContextsAndRelatedEntitiesAsync(Guid groundTruthId, IEnumerable<Guid> contextIds, IEnumerable<Guid> groundTruthEntryIds)
     {
         if (groundTruthId == Guid.Empty)
@@ -538,6 +684,7 @@ public class GroundTruthRepository : IGroundTruthRepository
 
         return parameters;
     }
+
 
     private static string baseSql = @"SELECT
         gtd.groundTruthId AS GroundTruthId,

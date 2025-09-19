@@ -97,7 +97,31 @@ public class GroundTruthController : ControllerBase
     {
         try
         {
-            var result = await _groundTruthCurationService.AddGroundTruthContextsAndRelatedEntitiesAsync(id, contexts);
+            var result = await _groundTruthCurationService.UpdateGroundTruthContextsAndRelatedEntitiesAsync(id, contexts);
+
+            if (result == null)
+            {
+                return NotFound($"Ground truth definition with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    [HttpPut("definition/{id}/data-queries")]
+    public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateDataQueries(Guid id, [FromBody] List<DataQueryDefinitionDto> dataQueries)
+    {
+        try
+        {
+            var result = await _groundTruthCurationService.UpdateGroundTruthDataQueryDefinitionsAsync(id, dataQueries);
 
             if (result == null)
             {
