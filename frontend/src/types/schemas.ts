@@ -99,7 +99,7 @@ export const GroundTruthDefinitionDtoSchema = z.object({
 });
 
 export const GroundTruthDefinitionDtoArraySchema = z.array(GroundTruthDefinitionDtoSchema);
-
+export const GroundTruthContextDtoArraySchema = z.array(GroundTruthContextDtoSchema);
 // Export backend DTO types
 export type Tag = z.infer<typeof TagDtoSchema>;
 export type Comment = z.infer<typeof CommentDtoSchema>;
