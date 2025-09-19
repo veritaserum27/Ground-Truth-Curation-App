@@ -64,10 +64,6 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
                 _logger.LogError(ex, "Error connecting to the database");
                 status.IsConnected = false;
             }
-            finally
-            {
-                // No need to explicitly close the connection; 'using' will handle it.
-            }
         }
 
         return status;
