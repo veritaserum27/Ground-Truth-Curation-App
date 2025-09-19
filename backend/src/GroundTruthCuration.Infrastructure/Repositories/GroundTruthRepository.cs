@@ -318,6 +318,7 @@ public class GroundTruthRepository : IGroundTruthRepository
                     await connection.ExecuteAsync(
                             "DELETE FROM [dbo].[DATA_QUERY_DEFINITION] WHERE dataQueryId IN @dataQueryIds;",
                             new { dataQueryIds }, transaction);
+                    await transaction.CommitAsync();
                 }
             }
             catch (Exception ex)

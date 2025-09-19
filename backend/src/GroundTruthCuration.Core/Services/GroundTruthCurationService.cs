@@ -80,13 +80,15 @@ namespace GroundTruthCuration.Core.Services
                 .Select(dto => dto.ContextId)
                 .ToHashSet();
 
-            await deleteObsoleteContextsAsync(groundTruthDefinition, existingContextIds, incomingContextIds);
+            var toRemove = existingContextIds.Where(id => id != null).Select(id => id!.Value).Except(incomingContextIds).ToList();
+
+            await deleteObsoleteContextsAsync(groundTruthDefinition, toRemove);
 
             // process contexts
             foreach (var contextDto in groundTruthContexts)
             {
-                // check if context with same ID already exists
-                if (existingContextIds.Contains(contextDto.ContextId))
+                // check if context with same ID already exists and it hasn't been marked for removal
+                if (existingContextIds.Contains(contextDto.ContextId) && !toRemove.Contains(contextDto.ContextId))
                 {
                     await processExistingContextAsync(groundTruthDefinition, contextDto, groundTruthId);
                 }
@@ -176,7 +178,9 @@ namespace GroundTruthCuration.Core.Services
                 .Select(dq => dq.DataQueryId ?? Guid.Empty) // Treat null as empty
                 .ToHashSet();
 
-            await deleteObsoleteDataQueriesAsync(existingDataQueryIds, incomingDataQueryIds);
+            var toRemove = existingDataQueryIds.Except(incomingDataQueryIds).ToList();
+
+            await deleteObsoleteDataQueriesAsync(toRemove);
 
             // check for changes in existing definitions
             foreach (var dataQueryDefinition in dataQueryDefinitions)
@@ -186,7 +190,9 @@ namespace GroundTruthCuration.Core.Services
                     dataQueryDefinition.GroundTruthId = groundTruthId;
                 }
 
-                if (dataQueryDefinition.DataQueryId != null && existingDataQueryIds.Contains(dataQueryDefinition.DataQueryId.Value))
+                // if ID exists and isn't marked for removal, process as existing definition
+                if (dataQueryDefinition.DataQueryId != null && existingDataQueryIds.Contains(dataQueryDefinition.DataQueryId.Value)
+                    && !toRemove.Contains(dataQueryDefinition.DataQueryId.Value))
                 {
                     await processExistingDataQueryAsync(groundTruthDefinition, dataQueryDefinition);
                 }
@@ -209,9 +215,8 @@ namespace GroundTruthCuration.Core.Services
             return _groundTruthDefinitionToDtoMapper.Map(updatedGroundTruthDefinition);
         }
 
-        private async Task deleteObsoleteDataQueriesAsync(HashSet<Guid> existingDataQueryIds, HashSet<Guid> incomingDataQueryIds)
+        private async Task deleteObsoleteDataQueriesAsync(List<Guid> toRemove)
         {
-            var toRemove = existingDataQueryIds.Except(incomingDataQueryIds).ToList();
             if (toRemove.Any())
             {
                 await _groundTruthRepository.DeleteDataQueryDefinitionsAsync(toRemove);
@@ -261,9 +266,8 @@ namespace GroundTruthCuration.Core.Services
             await _groundTruthRepository.AddDataQueryDefinitionAsync(newDataQuery);
         }
 
-        private async Task deleteObsoleteContextsAsync(GroundTruthDefinition groundTruthDefinition, HashSet<Guid?> existingContextIds, HashSet<Guid> incomingContextIds)
+        private async Task deleteObsoleteContextsAsync(GroundTruthDefinition groundTruthDefinition, List<Guid> toRemove)
         {
-            var toRemove = existingContextIds.Where(id => id != null).Select(id => id!.Value).Except(incomingContextIds).ToList();
             var groundTruthEntryIdsToRemove = groundTruthDefinition.GroundTruthEntries
                 .Where(e => e?.GroundTruthContext != null && toRemove.Contains(e.GroundTruthContext.ContextId))
                 .Select(e => e.GroundTruthEntryId)
