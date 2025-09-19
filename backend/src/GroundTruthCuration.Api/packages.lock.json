@@ -955,11 +955,18 @@
         "dependencies": {
           "Dapper": "[2.1.66, )",
           "GroundTruthCuration.Core": "[1.0.0, )",
+          "GroundTruthCuration.Jobs": "[1.0.0, )",
           "Microsoft.Azure.Cosmos": "[3.53.1, )",
           "Microsoft.Data.SqlClient": "[6.1.1, )",
           "Microsoft.Extensions.Configuration": "[9.0.9, )",
           "Microsoft.Extensions.Configuration.Binder": "[9.0.9, )",
           "Newtonsoft.Json": "[13.0.3, )"
+        }
+      },
+      "groundtruthcuration.jobs": {
+        "type": "Project",
+        "dependencies": {
+          "Swashbuckle.AspNetCore": "[6.4.0, )"
         }
       }
     }

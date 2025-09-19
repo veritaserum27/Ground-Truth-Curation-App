@@ -1,0 +1,39 @@
+### List supported job types
+GET http://localhost:5105/api/jobs/types
+
+### Submit a data query execution job
+# @name submitJob
+POST http://localhost:5105/api/jobs
+Content-Type: application/json
+
+{
+  "type": "DataQueryExecution"
+}
+
+### Submit a response generation job
+# @name submitJob
+POST http://localhost:5105/api/jobs
+Content-Type: application/json
+
+{
+  "type": "ResponseGeneration"
+}
+
+###
+
+@jobId = {{submitJob.response.body.$.id}}
+
+### Get job status
+GET http://localhost:5105/api/jobs/{{jobId}}
+
+### List all jobs
+GET http://localhost:5105/api/jobs
+
+### List running or queued jobs
+GET http://localhost:5105/api/jobs?status=Queued
+
+### Attempt cancellation
+DELETE http://localhost:5105/api/jobs/{{jobId}}
+
+### Fetch job result
+GET http://localhost:5105/api/jobs/{{jobId}}/result
