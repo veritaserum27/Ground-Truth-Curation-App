@@ -943,6 +943,7 @@
       "groundtruthcuration.core": {
         "type": "Project",
         "dependencies": {
+          "Dapper": "[2.1.66, )",
           "Microsoft.Extensions.Logging": "[9.0.9, )"
         }
       },

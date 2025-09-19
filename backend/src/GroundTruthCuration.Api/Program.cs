@@ -50,6 +50,7 @@ builder.Services.AddSingleton<DatastoreRepositoryResolver>(serviceProvider => ke
 });
 
 // Core layer (domain services) - depends on abstractions (interfaces)
+builder.Services.AddScoped<IDataQueryExecutionService, DataQueryExecutionService>();
 builder.Services.AddScoped<IStatusService, StatusService>();
 builder.Services.AddScoped<IGroundTruthCurationService, GroundTruthCurationService>();
 builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>, GroundTruthDefinitionToDtoMapper>();
