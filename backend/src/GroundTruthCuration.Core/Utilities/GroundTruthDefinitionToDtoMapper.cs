@@ -2,8 +2,9 @@ using System.Text.Json;
 using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using GroundTruthCuration.Core.DTOs;
 
-namespace GroundTruthCuration.Core.DTOs;
+namespace GroundTruthCuration.Core.Utilities;
 
 public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>
 {

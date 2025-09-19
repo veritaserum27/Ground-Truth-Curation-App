@@ -2,6 +2,7 @@ using GroundTruthCuration.Core;
 using GroundTruthCuration.Core.DTOs;
 using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
+using GroundTruthCuration.Core.Utilities;
 using GroundTruthCuration.Core.Services;
 using GroundTruthCuration.Infrastructure.Repositories;
 
@@ -72,19 +73,19 @@ app.MapControllers();
 // Log user-friendly URLs using proper logging
 app.Lifetime.ApplicationStarted.Register(() =>
 {
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    var port = Environment.GetEnvironmentVariable("PORT") ?? "5105";
+  var logger = app.Services.GetRequiredService<ILogger<Program>>();
+  var port = Environment.GetEnvironmentVariable("PORT") ?? "5105";
 
-    // Add a small delay to ensure this appears after built-in messages
-    Task.Run(async () =>
-    {
-        await Task.Delay(100);
-        logger.LogInformation("");
-        logger.LogInformation("🚀 Ground Truth Curation API is running!");
-        logger.LogInformation("📖 Swagger UI: http://localhost:{Port}/swagger/index.html", port);
-        logger.LogInformation("🏥 Health Check: http://localhost:{Port}/healthz", port);
-        logger.LogInformation("");
-    });
+  // Add a small delay to ensure this appears after built-in messages
+  Task.Run(async () =>
+  {
+    await Task.Delay(100);
+    logger.LogInformation("");
+    logger.LogInformation("🚀 Ground Truth Curation API is running!");
+    logger.LogInformation("📖 Swagger UI: http://localhost:{Port}/swagger/index.html", port);
+    logger.LogInformation("🏥 Health Check: http://localhost:{Port}/healthz", port);
+    logger.LogInformation("");
+  });
 });
 
 app.Run();
