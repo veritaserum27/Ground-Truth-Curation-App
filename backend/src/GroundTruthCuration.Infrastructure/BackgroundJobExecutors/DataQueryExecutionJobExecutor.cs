@@ -2,7 +2,7 @@ using System.Text.Json;
 using GroundTruthCuration.Jobs.Entities;
 using GroundTruthCuration.Jobs.Processing;
 
-namespace GroundTruthCuration.Infrastructure.BackgroundJobs;
+namespace GroundTruthCuration.Infrastructure.BackgroundJobExecutors;
 
 public class DataQueryExecutionJobExecutor : IBackgroundJobExecutor
 {
