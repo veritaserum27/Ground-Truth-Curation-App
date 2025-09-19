@@ -7,7 +7,10 @@ export default [
 
   ...prefix("ground-truths", [
     index("./pages/GroundTruthListPage.tsx"),
-    route(":id", "./pages/GroundTruthDetailPage.tsx"),
+    route(":id", "./pages/GroundTruthDetailLayout.tsx", [
+      index("./pages/GroundTruthDetailView.tsx"),
+      route("edit", "./pages/GroundTruthEditForm.tsx")
+    ]),
   ]),
   route("/login", "pages/LoginPage.tsx"),
   route("*?", "catchall.tsx"),

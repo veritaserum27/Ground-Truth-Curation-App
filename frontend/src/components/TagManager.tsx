@@ -1,8 +1,7 @@
+import { Plus, Tag as TagIcon, X } from 'lucide-react';
 import { useState } from 'react';
-import { Plus, X, Tag as TagIcon } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import type { Tag } from "../types/index";
+import { useEditingData } from '../contexts/EditingContext';
 
 interface TagManagerProps {
   selectedTags: string[];
@@ -23,7 +22,7 @@ const tagColors = [
 ];
 
 export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: TagManagerProps) => {
-  const { tags, addTag } = useData();
+  const { tags, addTag } = useEditingData();
   const { user } = useAuth();
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -140,18 +139,17 @@ export const TagManager = ({ selectedTags, onTagsChange, disabled = false }: Tag
               <button
                 key={tag.id}
                 onClick={() => handleToggleTag(tag.id)}
-                className={`px-3 py-1 rounded text-sm transition-all cursor-pointer hover:scale-105 ${tag.color} ${
-                  tag.color
-                    .split(' ')
-                    .map(c =>
-                      c.startsWith('bg-')
-                        ? `hover:${c}`
-                        : c.startsWith('text-')
+                className={`px-3 py-1 rounded text-sm transition-all cursor-pointer hover:scale-105 ${tag.color} ${tag.color
+                  .split(' ')
+                  .map(c =>
+                    c.startsWith('bg-')
+                      ? `hover:${c}`
+                      : c.startsWith('text-')
                         ? `hover:${c}`
                         : ''
-                    )
-                    .join(' ')
-                }`}
+                  )
+                  .join(' ')
+                  }`}
               >
                 {tag.name}
                 {tag.isPredefined && (
