@@ -81,8 +81,7 @@ namespace GroundTruthCuration.Core.Services
             {
                 // check if context with same ID already exists
                 if (groundTruthDefinition.GroundTruthEntries.Any(e => e != null && e.GroundTruthContext != null &&
-                    e.GroundTruthContext.ContextId.ToString().Equals(contextDto.ContextId.ToString(),
-                    StringComparison.OrdinalIgnoreCase)))
+                    e.GroundTruthContext.ContextId == contextDto.ContextId))
                 {
                     // convert to entity
                     var contextEntity = new GroundTruthContext
