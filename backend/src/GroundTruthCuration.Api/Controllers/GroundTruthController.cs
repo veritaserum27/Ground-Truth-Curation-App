@@ -14,140 +14,139 @@ namespace GroundTruthCuration.Api.Controllers;
 [Route("api/[controller]")]
 public class GroundTruthController : ControllerBase
 {
-  private readonly ILogger<GroundTruthController> _logger;
-  private readonly IGroundTruthCurationService _groundTruthCurationService;
+    private readonly ILogger<GroundTruthController> _logger;
+    private readonly IGroundTruthCurationService _groundTruthCurationService;
 
-  /// <summary>
-  /// Initializes a new instance of the <see cref="GroundTruthController"/> class.
-  /// </summary>
-  /// <param name="logger">The logger instance for logging information and errors.</param>
-  /// <param name="groundTruthCurationService">The service for managing ground truth curation operations.</param>
-  public GroundTruthController(ILogger<GroundTruthController> logger, IGroundTruthCurationService groundTruthCurationService)
-  {
-    _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    _groundTruthCurationService = groundTruthCurationService ?? throw new ArgumentNullException(nameof(groundTruthCurationService));
-  }
-
-  /// <summary>
-  /// Retrieves a list of ground truth definitions based on the provided filter. If no filter is provided, returns all.
-  /// </summary>
-  /// <param name="filter">Optional filter object containing query parameters for retrieving ground truth definitions (e.g., ValidationStatus, UserQuery).</param>
-  /// <returns>A list of ground truth definitions matching the filter criteria.</returns>
-  [HttpGet("definitions")]
-  public async Task<ActionResult<IEnumerable<GroundTruthDefinitionDto>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
-  {
-    _logger.LogInformation("Fetching ground truth definitions with filter: {@Filter}", filter);
-    try
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GroundTruthController"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance for logging information and errors.</param>
+    /// <param name="groundTruthCurationService">The service for managing ground truth curation operations.</param>
+    public GroundTruthController(ILogger<GroundTruthController> logger, IGroundTruthCurationService groundTruthCurationService)
     {
-      var definitions = await _groundTruthCurationService.GetAllGroundTruthDefinitionsAsync(filter);
-
-      if (definitions == null || !definitions.Any())
-      {
-        return NotFound("No ground truth definitions found matching the criteria.");
-      }
-
-      return Ok(definitions);
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _groundTruthCurationService = groundTruthCurationService ?? throw new ArgumentNullException(nameof(groundTruthCurationService));
     }
-    catch (ArgumentException ex)
+
+    /// <summary>
+    /// Retrieves a list of ground truth definitions based on the provided filter. If no filter is provided, returns all.
+    /// </summary>
+    /// <param name="filter">Optional filter object containing query parameters for retrieving ground truth definitions (e.g., ValidationStatus, UserQuery).</param>
+    /// <returns>A list of ground truth definitions matching the filter criteria.</returns>
+    [HttpGet("definitions")]
+    public async Task<ActionResult<IEnumerable<GroundTruthDefinitionDto>>> GetDefinitions([FromQuery] GroundTruthDefinitionFilter? filter = null)
     {
-      _logger.LogError(ex, "Error fetching ground truth definitions");
-      return BadRequest(ex.Message);
+        _logger.LogInformation("Fetching ground truth definitions with filter: {@Filter}", filter);
+        try
+        {
+            var definitions = await _groundTruthCurationService.GetAllGroundTruthDefinitionsAsync(filter);
+
+            if (definitions == null || !definitions.Any())
+            {
+                return NotFound("No ground truth definitions found matching the criteria.");
+            }
+
+            return Ok(definitions);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Error fetching ground truth definitions");
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error fetching ground truth definitions");
+            return StatusCode(500, $"Internal server error: {ex.Message}"); // 500
+        }
     }
-    catch (Exception ex)
+
+    [HttpPost("definitions")]
+    public async Task<ActionResult<GroundTruthDefinition>> CreateDefinition([FromBody] CreateDefinitionRequest request)
     {
-      _logger.LogError(ex, "Unexpected error fetching ground truth definitions");
-      return StatusCode(500, $"Internal server error: {ex.Message}"); // 500
+        throw new NotImplementedException();
     }
-  }
 
-  [HttpPost("definitions")]
-  public async Task<ActionResult<GroundTruthDefinition>> CreateDefinition([FromBody] CreateDefinitionRequest request)
-  {
-    throw new NotImplementedException();
-  }
-
-  /// <summary>
-  /// Retrieves a specific ground truth definition by its unique identifier.
-  /// </summary>
-  /// <param name="id">The unique identifier of the ground truth definition.</param>
-  /// <returns>The ground truth definition if found, or a NotFound result if not.</returns>
-  [HttpGet("definitions/{id}")]
-  public async Task<ActionResult<GroundTruthDefinitionDto>> GetDefinition(Guid id)
-  {
-    try
+    /// <summary>
+    /// Retrieves a specific ground truth definition by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the ground truth definition.</param>
+    /// <returns>The ground truth definition if found, or a NotFound result if not.</returns>
+    [HttpGet("definitions/{id}")]
+    public async Task<ActionResult<GroundTruthDefinitionDto>> GetDefinition(Guid id)
     {
-      // This demonstrates the flow: API -> Core Service -> Infrastructure Repository
-      var definition = await _groundTruthCurationService.GetGroundTruthDefinitionByIdAsync(id);
+        try
+        {
+            // This demonstrates the flow: API -> Core Service -> Infrastructure Repository
+            var definition = await _groundTruthCurationService.GetGroundTruthDefinitionByIdAsync(id);
 
-      if (definition == null)
-      {
-        return NotFound($"Ground truth definition with ID {id} not found.");
-      }
+            if (definition == null)
+            {
+                return NotFound($"Ground truth definition with ID {id} not found.");
+            }
 
-      return Ok(definition);
+            return Ok(definition);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error retrieving ground truth definition: {ex.Message}");
+        }
     }
-    catch (Exception ex)
+
+    [HttpPut("definitions/{id}/contexts")]
+    public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateContexts(Guid id, [FromBody] List<GroundTruthContextDto> contexts)
     {
-      return BadRequest($"Error retrieving ground truth definition: {ex.Message}");
-    }
-  }
+        try
+        {
+            var result = await _groundTruthCurationService.UpdateGroundTruthContextsAndRelatedEntitiesAsync(id, contexts);
 
-  [HttpPut("definitions/{id}/contexts")]
-  public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateContexts(Guid id, [FromBody] List<GroundTruthContextDto> contexts)
-  {
-    try
+            if (result == null)
+            {
+                return NotFound($"Ground truth definition with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    [HttpPut("definitions/{id}/data-queries")]
+    public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateDataQueries(Guid id, [FromBody] List<DataQueryDefinitionDto> dataQueries)
     {
-      var result = await _groundTruthCurationService.UpdateGroundTruthContextsAndRelatedEntitiesAsync(id, contexts);
+        try
+        {
+            var result = await _groundTruthCurationService.UpdateGroundTruthDataQueryDefinitionsAsync(id, dataQueries);
 
-      if (result == null)
-      {
-        return NotFound($"Ground truth definition with ID {id} not found.");
-      }
+            if (result == null)
+            {
+                return NotFound($"Ground truth definition with ID {id} not found.");
+            }
 
-      return Ok(result);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
-    catch (ArgumentException ex)
+
+    [HttpPut("definitions/{id}/validation-status")]
+    public async Task<ActionResult<GroundTruthDefinition>> UpdateValidationStatus(
+        Guid id,
+        [FromBody] UpdateValidationStatusRequest request)
     {
-      return BadRequest(ex.Message);
+        throw new NotImplementedException();
     }
-    catch (Exception ex)
-    {
-      return StatusCode(500, $"Internal server error: {ex.Message}");
-    }
-  }
-
-  [HttpPut("definitions/{id}/data-queries")]
-  public async Task<ActionResult<GroundTruthDefinitionDto>> UpdateDataQueries(Guid id, [FromBody] List<DataQueryDefinitionDto> dataQueries)
-  {
-    try
-    {
-      var result = await _groundTruthCurationService.UpdateGroundTruthDataQueryDefinitionsAsync(id, dataQueries);
-
-
-      if (result == null)
-      {
-        return NotFound($"Ground truth definition with ID {id} not found.");
-      }
-
-      return Ok(result);
-    }
-    catch (ArgumentException ex)
-    {
-      return BadRequest(ex.Message);
-    }
-    catch (Exception ex)
-    {
-      return StatusCode(500, $"Internal server error: {ex.Message}");
-    }
-  }
-
-  [HttpPut("definitions/{id}/validation-status")]
-  public async Task<ActionResult<GroundTruthDefinition>> UpdateValidationStatus(
-      Guid id,
-      [FromBody] UpdateValidationStatusRequest request)
-  {
-    throw new NotImplementedException();
-  }
 }
 
 
