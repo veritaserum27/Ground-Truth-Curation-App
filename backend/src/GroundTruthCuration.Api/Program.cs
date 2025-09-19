@@ -45,7 +45,7 @@ builder.Services.AddSingleton<DatastoreRepositoryResolver>(serviceProvider => ke
   {
     "ManufacturingDataDocDb" => serviceProvider.GetRequiredService<ManufacturingDataDocDbRepository>(),
     "ManufacturingDataRelDb" => serviceProvider.GetRequiredService<ManufacturingDataRelDbRepository>(),
-    _ => throw new KeyNotFoundException()
+    _ => throw new KeyNotFoundException($"No repository found for key: {key}")
   };
 });
 
