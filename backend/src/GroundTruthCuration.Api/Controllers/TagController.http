@@ -1,0 +1,63 @@
+### Create a new tag
+POST http://localhost:5105/api/tag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Priority2",
+  "description": "Second High priority items"
+}
+
+### Attempt to create duplicate tag (should return 409 Conflict)
+POST http://localhost:5105/api/tag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Priority2",
+  "description": "tag for Priority 2 items - duplicated"
+}
+
+### Create another tag
+POST http://localhost:5105/api/tag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Invalid",
+  "description": "Test of invalid tag for invalid GTs context."
+}
+
+### Get tag by name (existing)
+GET http://localhost:5105/api/tag/Priority2
+Accept: application/json
+
+### Get tag by name (case-insensitive)
+### http://localhost:5105/api/tag/{id}
+GET http://localhost:5105/api/tag/priority2
+Accept: application/json
+
+### Get tag by name (non-existent, should 404)
+### http://localhost:5105/api/tag/{id}
+GET http://localhost:5105/api/tag/DoesNotExist
+Accept: application/json
+
+### Get all tags
+GET http://localhost:5105/api/tag
+Accept: application/json
+
+### Update existing tag (replace {id})
+### http://localhost:5105/api/tag/{id}
+PUT http://localhost:5105/api/tag/e4eb0190-3975-42ab-b8f2-a08aae1381cd
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Priority",
+  "description": "Priority indication only, no level of priority set yet."
+}
+
+### Delete tag (replace {id})
+### http://localhost:5105/api/tag/{id}
+DELETE http://localhost:5105/api/tag/e4eb0190-3975-42ab-b8f2-a08aae1381cd
+Accept: application/json

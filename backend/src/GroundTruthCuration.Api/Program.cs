@@ -14,6 +14,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var AllowSpecificOrigins = "Frontend";
+// CORS configuration (allow configured frontend dev origins)
+builder.Services.AddCors(options =>
+{
+  options.AddPolicy(AllowSpecificOrigins, policy =>
+    policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5105", "https://localhost:7278")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
+
 // Register application services
 builder.Services.AddScoped<IHello, Hello>();
 
@@ -22,11 +33,13 @@ builder.Services.AddScoped<IHello, Hello>();
 builder.Services.AddSingleton<IGroundTruthRepository, GroundTruthRepository>();
 builder.Services.AddSingleton<IManufacturingDataDocDbRepository, ManufacturingDataDocDbRepository>();
 builder.Services.AddSingleton<IManufacturingDataRelDbRepository, ManufacturingDataRelDbRepository>();
+builder.Services.AddSingleton<ITagRepository, TagRepository>();
 
 // Core layer (domain services) - depends on abstractions (interfaces)
 builder.Services.AddScoped<IStatusService, StatusService>();
 builder.Services.AddScoped<IGroundTruthCurationService, GroundTruthCurationService>();
 builder.Services.AddScoped<IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>, GroundTruthDefinitionToDtoMapper>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 // Background job processing registrations
 builder.Services.AddDefaultGroundTruthCurationJobsServices();
@@ -36,17 +49,18 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    app.MapGet("/", () => Results.Redirect("/swagger"));
+  app.UseSwagger();
+  app.UseSwaggerUI();
+  app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
 // HTTPS redirection: enable only if explicitly requested via config (CertificateSettings:GenerateAspNetCertificate=true)
 var enableHttpsRedirection = builder.Configuration.GetValue<bool>("CertificateSettings:GenerateAspNetCertificate");
 if (enableHttpsRedirection)
 {
-    app.UseHttpsRedirection();
+  app.UseHttpsRedirection();
 }
+app.UseCors(AllowSpecificOrigins);
 
 app.MapGet("/healthz", () => Results.Ok("healthy"))
     .WithName("Healthz")
