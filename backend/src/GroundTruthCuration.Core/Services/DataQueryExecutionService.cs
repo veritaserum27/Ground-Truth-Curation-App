@@ -127,31 +127,7 @@ public class DataQueryExecutionService : IDataQueryExecutionService
             if (dataQueryDefinition.DatastoreType == DatastoreType.Sql)
             {
                 // Build SQL query parameters
-                var sqlParameters = new DynamicParameters();
-                foreach (var param in context.ContextParameters)
-                {
-                    if (String.Equals(param.DataType, "integer", StringComparison.OrdinalIgnoreCase)
-                        && int.TryParse(param.ParameterValue, out int intValue))
-                    {
-                        sqlParameters.Add(param.ParameterName, intValue);
-                    }
-                    else if (String.Equals(param.DataType, "float", StringComparison.OrdinalIgnoreCase)
-                        && double.TryParse(param.ParameterValue, out double doubleValue))
-                    {
-                        sqlParameters.Add(param.ParameterName, doubleValue);
-                    }
-                    else if (String.Equals(param.DataType, "boolean", StringComparison.OrdinalIgnoreCase)
-                        && bool.TryParse(param.ParameterValue, out bool boolValue))
-                    {
-                        sqlParameters.Add(param.ParameterName, boolValue);
-                    }
-                    else
-                    {
-                        // Default to string
-                        sqlParameters.Add(param.ParameterName, param.ParameterValue);
-                    }
-                    sqlParameters.Add(param.ParameterName, param.ParameterValue);
-                }
+                var sqlParameters = buildSqlParameters(context);
 
                 // Execute query against relational DB
                 if (!string.Equals(dataQueryDefinition.DatastoreName, "ManufacturingDataRelDb",
@@ -171,31 +147,102 @@ public class DataQueryExecutionService : IDataQueryExecutionService
                 interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}.");
 
                 // Extract required values from results
-                foreach (var result in results)
+                responseRequiredValues.AddRange(extractRequiredValuesFromResultsList(results.ToList(), dataQueryDefinition));
+            }
+            else if (dataQueryDefinition.DatastoreType == DatastoreType.CosmosDb)
+            {
+                // Build document query parameters
+                var queryParameters = new Dictionary<string, string>();
+                foreach (var param in context.ContextParameters)
                 {
-                    var dict = result as IDictionary<string, object>;
-
-                    if (dict != null)
-                    {
-                        var filteredKeys = dict.Keys
-                            .Where(key => dataQueryDefinition.RequiredPropertiesJson.Contains(key));
-
-                        foreach (var key in filteredKeys)
-                        {
-                            responseRequiredValues.Add(dict[key]?.ToString() ?? string.Empty);
-                        }
-                    }
+                    queryParameters[param.ParameterName] = param.ParameterValue;
                 }
 
-            }
+                // Execute query against document DB
+                if (!string.Equals(dataQueryDefinition.DatastoreName, "ManufacturingDataDocDb",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new NotSupportedException($"Datastore '{dataQueryDefinition.DatastoreName}' is not supported for Document queries.");
+                }
 
+                var results = await _manufacturingDataDocDbRepository.ExecuteQueryAsync(queryParameters, dataQueryDefinition);
+
+                totalRecordCount += results.Count;
+                aggregatedResults.Add(new
+                {
+                    dataQueryId = dataQueryDefinition.DataQueryId,
+                    rawData = results
+                });
+
+                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}.");
+
+            }
+            // save to ground truth entry
+            groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues.ToHashSet());
+            groundTruthEntry.RawDataJson = JsonSerializer.Serialize(aggregatedResults);
+            groundTruthEntry.Response = interimResponse.ToString();
+            await _groundTruthRepository.AddOrUpdateGroundTruthEntryAsync(groundTruthEntry);
+            _logger.LogInformation("Completed processing data queries for context {ContextId}. Aggregated {TotalResults} results.",
+                context.ContextId, totalRecordCount);
         }
-        // save to ground truth entry
-        groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues.ToHashSet());
-        groundTruthEntry.RawDataJson = JsonSerializer.Serialize(aggregatedResults);
-        groundTruthEntry.Response = interimResponse.ToString();
-        await _groundTruthRepository.AddOrUpdateGroundTruthEntryAsync(groundTruthEntry);
-        _logger.LogInformation("Completed processing data queries for context {ContextId}. Aggregated {TotalResults} results.",
-            context.ContextId, totalRecordCount);
+    }
+
+    private List<string> extractRequiredValuesFromResultsList(List<object> results, DataQueryDefinition dataQueryDefinition)
+    {
+        var responseRequiredValues = new List<string>();
+
+        if (results == null || results.Count == 0 || String.IsNullOrEmpty(dataQueryDefinition.RequiredPropertiesJson))
+        {
+            return responseRequiredValues;
+        }
+
+        // Extract required values from results
+
+        foreach (var result in results)
+        {
+            var dict = result as IDictionary<string, object>;
+
+            if (dict != null)
+            {
+                var filteredKeys = dict.Keys
+                    .Where(key => dataQueryDefinition.RequiredPropertiesJson.Contains(key));
+
+                foreach (var key in filteredKeys)
+                {
+                    responseRequiredValues.Add(dict[key]?.ToString() ?? string.Empty);
+                }
+            }
+        }
+        return responseRequiredValues;
+    }
+
+    private static DynamicParameters buildSqlParameters(GroundTruthContext context)
+    {
+        var sqlParameters = new DynamicParameters();
+        foreach (var param in context.ContextParameters)
+        {
+            if (String.Equals(param.DataType, "integer", StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(param.ParameterValue, out int intValue))
+            {
+                sqlParameters.Add(param.ParameterName, intValue);
+            }
+            else if (String.Equals(param.DataType, "float", StringComparison.OrdinalIgnoreCase)
+                && double.TryParse(param.ParameterValue, out double doubleValue))
+            {
+                sqlParameters.Add(param.ParameterName, doubleValue);
+            }
+            else if (String.Equals(param.DataType, "boolean", StringComparison.OrdinalIgnoreCase)
+                && bool.TryParse(param.ParameterValue, out bool boolValue))
+            {
+                sqlParameters.Add(param.ParameterName, boolValue);
+            }
+            else
+            {
+                // Default to string
+                sqlParameters.Add(param.ParameterName, param.ParameterValue);
+            }
+            sqlParameters.Add(param.ParameterName, param.ParameterValue);
+        }
+        return sqlParameters;
     }
 }
