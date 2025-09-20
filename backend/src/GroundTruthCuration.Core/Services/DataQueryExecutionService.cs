@@ -115,11 +115,9 @@ public class DataQueryExecutionService : IDataQueryExecutionService
         var totalRecordCount = 0;
         var aggregatedResults = new List<object>();
         var interimResponse = new StringBuilder();
-        var responseRequiredValues = new List<string>();
+        var responseRequiredValues = new HashSet<string>();
 
-        // TODO: fix bug around keeping existing data when data query definitions are unchanged
         // Don't overwrite existing data if data query definition is unchanged, something with empty guid right now
-
         if (!string.IsNullOrEmpty(groundTruthEntry.RawDataJson))
         {
             interimResponse.AppendLine();
@@ -141,22 +139,21 @@ public class DataQueryExecutionService : IDataQueryExecutionService
 
         if (existingRawData.Count > 0 && dataQueryDefinitionsUnchanged.Count > 0)
         {
-            totalRecordCount += existingRawData.Sum(rd => (rd.RawData as ICollection<object>)?.Count ?? 0);
+            totalRecordCount += existingRawData.Sum(rd => rd.RawData?.Count ?? 0);
             aggregatedResults.AddRange(existingRawData);
-            interimResponse.AppendLine($"Existing raw data for {existingRawData.Count} data queries retained.");
+            interimResponse.AppendLine($"Retained {totalRecordCount} existing raw data records for {dataQueryDefinitionsUnchanged.Count} unchanged data query definition(s).");
 
             // for each data query definition that is unchanged, extract required values from existing raw data
             foreach (var dataQueryDefinition in dataQueryDefinitionsUnchanged)
             {
-                // TODO: this is not working, need to extract from existing raw data
                 var extractedValues = extractRequiredValuesFromResultsList(
                     existingRawData
                     .Where(rd => rd.DataQueryId == dataQueryDefinition.DataQueryId)
-                    .SelectMany(rd => rd.RawData as ICollection<object> ?? new List<object>())
+                    .SelectMany(rd => rd.RawData)
                     .ToList(),
                     dataQueryDefinition);
-                responseRequiredValues.AddRange(extractedValues);
-                interimResponse.AppendLine($"Existing {extractedValues.Count} required values retained.");
+                responseRequiredValues.UnionWith(extractedValues);
+                interimResponse.AppendLine($"Existing required value(s) retained: {string.Join(", ", extractedValues)}.");
             }
         }
 
@@ -178,15 +175,25 @@ public class DataQueryExecutionService : IDataQueryExecutionService
                 var results = await _manufacturingDataRelDbRepository.ExecuteQueryAsync(sqlParameters, dataQueryDefinition);
 
                 totalRecordCount += results.Count;
-                aggregatedResults.Add(new
+                var newRawData = new RawDataDto
                 {
-                    dataQueryId = dataQueryDefinition.DataQueryId,
-                    rawData = results
-                });
-                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}.");
-
+                    DataQueryId = dataQueryDefinition.DataQueryId,
+                    RawData = results
+                        .Select(r => r is Dictionary<string, object> dict
+                            ? dict
+                            : r is IDictionary<string, object> idict
+                                ? new Dictionary<string, object>(idict)
+                                : r.GetType().GetProperties().ToDictionary(
+                                    prop => prop.Name,
+                                    prop => prop.GetValue(r) ?? new object()))
+                        .ToList()
+                };
+                aggregatedResults.Add(newRawData);
                 // Extract required values from results
-                responseRequiredValues.AddRange(extractRequiredValuesFromResultsList(results.ToList(), dataQueryDefinition));
+                var extractedValues = extractRequiredValuesFromResultsList(newRawData.RawData.ToList(), dataQueryDefinition);
+                responseRequiredValues.UnionWith(extractedValues);
+
+                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}. It includes the following required values: {string.Join(", ", extractedValues)}");
             }
             else if (dataQueryDefinition.DatastoreType == DatastoreType.CosmosDb)
             {
@@ -208,17 +215,19 @@ public class DataQueryExecutionService : IDataQueryExecutionService
                 var results = await _manufacturingDataDocDbRepository.ExecuteQueryAsync(queryParameters, dataQueryDefinition);
 
                 totalRecordCount += results.Count;
-                aggregatedResults.Add(new
+                var newRawData = new RawDataDto
                 {
-                    dataQueryId = dataQueryDefinition.DataQueryId,
-                    rawData = results
-                });
+                    DataQueryId = dataQueryDefinition.DataQueryId,
+                    RawData = results.Cast<Dictionary<string, object>>().ToList()
+                };
+                aggregatedResults.Add(newRawData);
 
-                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}.");
-
+                var extractedValues = extractRequiredValuesFromResultsList(newRawData.RawData.ToList(), dataQueryDefinition);
+                responseRequiredValues.UnionWith(extractedValues);
+                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}. It includes the following required values: {string.Join(", ", extractedValues)}");
             }
             // save to ground truth entry
-            groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues.ToHashSet());
+            groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues);
             groundTruthEntry.RawDataJson = JsonSerializer.Serialize(aggregatedResults);
             groundTruthEntry.Response = interimResponse.ToString();
             await _groundTruthRepository.AddOrUpdateGroundTruthEntryAsync(groundTruthEntry);
@@ -227,9 +236,9 @@ public class DataQueryExecutionService : IDataQueryExecutionService
         }
     }
 
-    private List<string> extractRequiredValuesFromResultsList(List<object> results, DataQueryDefinition dataQueryDefinition)
+    private HashSet<string> extractRequiredValuesFromResultsList(List<Dictionary<string, object>> results, DataQueryDefinition dataQueryDefinition)
     {
-        var responseRequiredValues = new List<string>();
+        var responseRequiredValues = new HashSet<string>();
 
         if (results == null || results.Count == 0 || String.IsNullOrEmpty(dataQueryDefinition.RequiredPropertiesJson))
         {
