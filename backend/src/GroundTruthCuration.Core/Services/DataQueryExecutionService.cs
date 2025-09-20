@@ -6,6 +6,7 @@ using Dapper;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using GroundTruthCuration.Core.DTOs;
+using System.Text;
 
 namespace GroundTruthCuration.Core.Services;
 
@@ -113,6 +114,13 @@ public class DataQueryExecutionService : IDataQueryExecutionService
     private async Task processDataQueriesForContext(List<DataQueryDefinition> dataQueryDefinitions,
         GroundTruthContext context, GroundTruthEntry groundTruthEntry)
     {
+        var totalRecordCount = 0;
+        var aggregatedResults = new List<object>();
+        var interimResponse = new StringBuilder();
+
+        // Extract response required values
+        var responseRequiredValues = new List<string>();
+
         foreach (var dataQueryDefinition in dataQueryDefinitions)
         {
             // Build query parameters based on context parameters
@@ -154,8 +162,13 @@ public class DataQueryExecutionService : IDataQueryExecutionService
 
                 var results = await _manufacturingDataRelDbRepository.ExecuteQueryAsync(sqlParameters, dataQueryDefinition);
 
-                // Extract response required values
-                var responseRequiredValues = new List<string>();
+                totalRecordCount += results.Count;
+                aggregatedResults.Add(new
+                {
+                    dataQueryId = dataQueryDefinition.DataQueryId,
+                    rawData = results
+                });
+                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}.");
 
                 // Extract required values from results
                 foreach (var result in results)
@@ -174,12 +187,15 @@ public class DataQueryExecutionService : IDataQueryExecutionService
                     }
                 }
 
-                // save to ground truth entry
-                groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues);
-                groundTruthEntry.RawDataJson = JsonSerializer.Serialize(results);
-                groundTruthEntry.Response = $"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}. ";
-                await _groundTruthRepository.AddOrUpdateGroundTruthEntryAsync(groundTruthEntry);
             }
+
         }
+        // save to ground truth entry
+        groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues.ToHashSet());
+        groundTruthEntry.RawDataJson = JsonSerializer.Serialize(aggregatedResults);
+        groundTruthEntry.Response = interimResponse.ToString();
+        await _groundTruthRepository.AddOrUpdateGroundTruthEntryAsync(groundTruthEntry);
+        _logger.LogInformation("Completed processing data queries for context {ContextId}. Aggregated {TotalResults} results.",
+            context.ContextId, totalRecordCount);
     }
 }

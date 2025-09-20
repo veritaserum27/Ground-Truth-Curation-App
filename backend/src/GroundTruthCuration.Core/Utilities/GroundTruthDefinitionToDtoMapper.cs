@@ -128,7 +128,7 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
             // the raw string should now be a list of dictionaries with DataQueryId and RawData keys
             foreach (var rawDataDict in rawDataDictionaries)
             {
-                _logger.LogInformation("Deserialized RawData entry: {Dict}", rawDataDict);
+                _logger.LogInformation("Deserialized RawData entry. Keys: {Keys}", string.Join(", ", rawDataDict.Keys));
 
 
                 var dataQueryId = rawDataDict.ContainsKey("dataQueryId") && rawDataDict["dataQueryId"] is JsonElement idElement && idElement.ValueKind == JsonValueKind.String
