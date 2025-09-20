@@ -1,11 +1,10 @@
 using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.DTOs;
-using GroundTruthCuration.Core.Interfaces;
 using System.Text.Json;
 
 namespace GroundTruthCuration.Core.Utilities;
 
-public class DataQueryDefinitionDtoToEntityMapper : IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition>
+public static class GroundTruthDtosToEntitiesMapper
 {
     /// <summary>
     /// Maps a DataQueryDefinitionDto to a DataQueryDefinition entity.
@@ -13,7 +12,7 @@ public class DataQueryDefinitionDtoToEntityMapper : IGroundTruthMapper<DataQuery
     /// <param name="dataQueryDto"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public DataQueryDefinition Map(DataQueryDefinitionDto dataQueryDto)
+    public static DataQueryDefinition MapToDataQueryDefinition(DataQueryDefinitionDto dataQueryDto)
     {
         if (dataQueryDto == null)
         {

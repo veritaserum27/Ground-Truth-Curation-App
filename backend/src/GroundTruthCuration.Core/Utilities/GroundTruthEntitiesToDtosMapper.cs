@@ -1,19 +1,12 @@
 using System.Text.Json;
 using GroundTruthCuration.Core.Entities;
-using GroundTruthCuration.Core.Interfaces;
-using Microsoft.Extensions.Logging;
 using GroundTruthCuration.Core.DTOs;
 
 namespace GroundTruthCuration.Core.Utilities;
 
-public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto>
+public static class GroundTruthEntitiesToDtosMapper
 {
-    private readonly ILogger<GroundTruthDefinitionToDtoMapper> _logger;
-    public GroundTruthDefinitionToDtoMapper(ILogger<GroundTruthDefinitionToDtoMapper> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-    public GroundTruthDefinitionDto Map(GroundTruthDefinition source)
+    public static GroundTruthDefinitionDto MapToGroundTruthDefinitionDto(GroundTruthDefinition source)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -26,18 +19,8 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
             UserCreated = source.UserCreated,
             UserUpdated = source.UserUpdated,
             CreationDateTime = source.CreationDateTime,
-            GroundTruthEntries = source.GroundTruthEntries?.Select(entry => new GroundTruthEntryDto
-            {
-                GroundTruthEntryId = entry.GroundTruthEntryId,
-                GroundTruthId = entry.GroundTruthId,
-                GroundTruthContext = Map(entry.GroundTruthContext),
-                Response = entry.Response,
-                RequiredValues = string.IsNullOrWhiteSpace(entry.RequiredValuesJson) ? new List<string>()
-                    : JsonSerializer.Deserialize<List<string>>(entry.RequiredValuesJson) ?? new List<string>(),
-                RawData = Map(entry.RawDataJson),
-                CreationDateTime = entry.CreationDateTime,
-            }).ToList() ?? new List<GroundTruthEntryDto>(),
-            DataQueryDefinitions = source.DataQueryDefinitions?.Select(query => Map(query)).ToList() ?? new List<DataQueryDefinitionDto>(),
+            GroundTruthEntries = source.GroundTruthEntries?.Select(entry => MapToGroundTruthEntryDto(entry)).ToList() ?? new List<GroundTruthEntryDto>(),
+            DataQueryDefinitions = source.DataQueryDefinitions?.Select(query => MapToDataQueryDefinitionDto(query)).ToList() ?? new List<DataQueryDefinitionDto>(),
             Comments = source.Comments?.Select(comment => new CommentDto
             {
                 CommentId = comment.CommentId,
@@ -57,7 +40,24 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
         return dto;
     }
 
-    public ContextParameterDto? Map(ContextParameter? parameter)
+    public static GroundTruthEntryDto MapToGroundTruthEntryDto(GroundTruthEntry entry)
+    {
+        if (entry == null) throw new ArgumentNullException(nameof(entry));
+
+        return new GroundTruthEntryDto
+        {
+            GroundTruthEntryId = entry.GroundTruthEntryId,
+            GroundTruthId = entry.GroundTruthId,
+            GroundTruthContext = MapToGroundTruthContextDto(entry.GroundTruthContext),
+            Response = entry.Response,
+            RequiredValues = string.IsNullOrWhiteSpace(entry.RequiredValuesJson) ? new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(entry.RequiredValuesJson) ?? new List<string>(),
+            RawData = MapToRawDataDtoList(entry.RawDataJson),
+            CreationDateTime = entry.CreationDateTime,
+        };
+    }
+
+    public static ContextParameterDto? MapToContextParameterDto(ContextParameter? parameter)
     {
         if (parameter == null) return null;
 
@@ -70,7 +70,7 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
         };
     }
 
-    public GroundTruthContextDto? Map(GroundTruthContext? context)
+    public static GroundTruthContextDto? MapToGroundTruthContextDto(GroundTruthContext? context)
     {
         if (context == null) return null;
 
@@ -81,14 +81,14 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
             GroundTruthId = context.GroundTruthId,
             GroundTruthEntryId = context.GroundTruthEntryId,
             ContextParameters = context.ContextParameters?
-                .Select(param => Map(param))
+                .Select(param => MapToContextParameterDto(param))
                 .Where(mappedParam => mappedParam != null)
                 .Cast<ContextParameterDto>()
                 .ToList() ?? new List<ContextParameterDto>()
         };
     }
 
-    public DataQueryDefinitionDto Map(DataQueryDefinition source)
+    public static DataQueryDefinitionDto MapToDataQueryDefinitionDto(DataQueryDefinition source)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -108,7 +108,7 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
         };
     }
 
-    public List<RawDataDto> Map(string rawDataJson)
+    public static List<RawDataDto> MapToRawDataDtoList(string rawDataJson)
     {
         var rawDataDtos = new List<RawDataDto>();
 
@@ -128,9 +128,6 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
             // the raw string should now be a list of dictionaries with DataQueryId and RawData keys
             foreach (var rawDataDict in rawDataDictionaries)
             {
-                _logger.LogInformation("Deserialized RawData entry. Keys: {Keys}", string.Join(", ", rawDataDict.Keys));
-
-
                 var dataQueryId = rawDataDict.ContainsKey("dataQueryId") && rawDataDict["dataQueryId"] is JsonElement idElement && idElement.ValueKind == JsonValueKind.String
                     ? Guid.Parse(idElement.GetString() ?? string.Empty)
                     : Guid.Empty;
@@ -148,7 +145,6 @@ public class GroundTruthDefinitionToDtoMapper : IGroundTruthMapper<GroundTruthDe
         }
         catch (JsonException)
         {
-            _logger.LogError("Failed to deserialize RawDataJson: {RawDataJson}", rawDataJson);
             // Handle JSON deserialization errors if necessary
             return new List<RawDataDto>
             {

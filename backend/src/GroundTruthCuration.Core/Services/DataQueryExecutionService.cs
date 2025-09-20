@@ -2,6 +2,7 @@ using GroundTruthCuration.Core.Delegates;
 using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
 using GroundTruthCuration.Core.Constants;
+using GroundTruthCuration.Core.Utilities;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -16,11 +17,9 @@ public class DataQueryExecutionService : IDataQueryExecutionService
     private readonly IDatastoreRepository _manufacturingDataDocDbRepository;
     private readonly IDatastoreRepository _manufacturingDataRelDbRepository;
     private readonly IGroundTruthRepository _groundTruthRepository;
-    private readonly IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> _dataQueryMapper;
 
     public DataQueryExecutionService(ILogger<DataQueryExecutionService> logger,
-        DatastoreRepositoryResolver datastoreRepositoryResolver, IGroundTruthRepository groundTruthRepository,
-        IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> dataQueryMapper)
+        DatastoreRepositoryResolver datastoreRepositoryResolver, IGroundTruthRepository groundTruthRepository)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         if (datastoreRepositoryResolver == null)
@@ -30,9 +29,9 @@ public class DataQueryExecutionService : IDataQueryExecutionService
         _manufacturingDataDocDbRepository = datastoreRepositoryResolver("ManufacturingDataDocDb");
         _manufacturingDataRelDbRepository = datastoreRepositoryResolver("ManufacturingDataRelDb");
         _groundTruthRepository = groundTruthRepository ?? throw new ArgumentNullException(nameof(groundTruthRepository));
-        _dataQueryMapper = dataQueryMapper ?? throw new ArgumentNullException(nameof(dataQueryMapper));
     }
     public async Task ExecuteDataQueriesAsync(GroundTruthDefinition groundTruthDefinition,
+        List<DataQueryDefinition> dataQueryDefinitionsUnchanged,
         List<DataQueryDefinition> dataQueryDefinitionsToExecute, List<GroundTruthContext> contextsToExecute)
     {
         if (groundTruthDefinition == null)
@@ -84,8 +83,7 @@ public class DataQueryExecutionService : IDataQueryExecutionService
                 };
             }
 
-            // TODO: collect data from each query to aggregate into single entry
-            await processDataQueriesForContext(dataQueryDefinitionsToExecute, context,
+            await processDataQueriesForContext(dataQueryDefinitionsUnchanged, dataQueryDefinitionsToExecute, context,
                    groundTruthEntry);
         }
     }
@@ -105,21 +103,51 @@ public class DataQueryExecutionService : IDataQueryExecutionService
 
         foreach (var context in contexts)
         {
-            await processDataQueriesForContext(groundTruthDefinition.DataQueryDefinitions.ToList(), context,
+            await processDataQueriesForContext(new List<DataQueryDefinition>(), groundTruthDefinition.DataQueryDefinitions.ToList(), context,
                 groundTruthDefinition.GroundTruthEntries
                 .First(e => e.GroundTruthContext?.ContextId == context.ContextId));
         }
     }
 
-    private async Task processDataQueriesForContext(List<DataQueryDefinition> dataQueryDefinitions,
+    private async Task processDataQueriesForContext(List<DataQueryDefinition> dataQueryDefinitionsUnchanged, List<DataQueryDefinition> dataQueryDefinitions,
         GroundTruthContext context, GroundTruthEntry groundTruthEntry)
     {
         var totalRecordCount = 0;
         var aggregatedResults = new List<object>();
         var interimResponse = new StringBuilder();
-
-        // Extract response required values
         var responseRequiredValues = new List<string>();
+
+        if (!string.IsNullOrEmpty(groundTruthEntry.RawDataJson))
+        {
+            interimResponse.AppendLine();
+        }
+
+        var groundTruthEntryDto = GroundTruthEntitiesToDtosMapper.MapToGroundTruthEntryDto(groundTruthEntry);
+
+        if (groundTruthEntryDto == null)
+        {
+            throw new InvalidOperationException($"Failed to map GroundTruthEntry with ID {groundTruthEntry.GroundTruthEntryId} to DTO.");
+        }
+
+        // populate with existing values that won't be executed
+        var dataQueryIdsUnchanged = dataQueryDefinitionsUnchanged.Select(dq => dq.DataQueryId).ToHashSet();
+
+        var existingRawData = groundTruthEntryDto.RawData
+            .Where(rd => !dataQueryIdsUnchanged.Contains(rd.DataQueryId))
+            .ToList();
+
+        if (existingRawData.Count > 0)
+        {
+            totalRecordCount += existingRawData.Sum(rd => (rd.RawData as ICollection<object>)?.Count ?? 0);
+            aggregatedResults.AddRange(existingRawData);
+            interimResponse.AppendLine($"Existing raw data for {existingRawData.Count} data queries retained.");
+        }
+
+        if (groundTruthEntryDto.RequiredValues != null && groundTruthEntryDto.RequiredValues.Count > 0)
+        {
+            responseRequiredValues.AddRange(groundTruthEntryDto.RequiredValues);
+            interimResponse.AppendLine($"Existing {groundTruthEntryDto.RequiredValues.Count} required values retained.");
+        }
 
         foreach (var dataQueryDefinition in dataQueryDefinitions)
         {

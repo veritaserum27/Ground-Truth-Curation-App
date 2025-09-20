@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Data;
 
 namespace GroundTruthCuration.Core.Services
 {
@@ -19,8 +20,6 @@ namespace GroundTruthCuration.Core.Services
     {
         private readonly ILogger<GroundTruthCurationService> _logger;
         private readonly IGroundTruthRepository _groundTruthRepository;
-        private readonly IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto> _groundTruthDefinitionToDtoMapper;
-        private readonly IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> _dataQueryFromDtoMapper;
         private readonly IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext> _contextComparer;
         private readonly IGroundTruthComparer<DataQueryDefinitionDto, DataQueryDefinition> _dataQueryComparer;
         private readonly IDataQueryExecutionService _dataQueryExecutionService;
@@ -30,26 +29,20 @@ namespace GroundTruthCuration.Core.Services
         /// </summary>
         /// <param name="logger">The logger instance for logging operations.</param>
         /// <param name="groundTruthRepository">The repository for managing ground truth data.</param>
-        /// <param name="groundTruthDefinitionToDtoMapper">The mapper for converting ground truth definitions to DTOs.</param>
         /// <param name="contextComparer">The comparer for validating context data consistency.</param>
         /// <param name="dataQueryExecutionService">The service for executing data queries.</param>
         /// <param name="dataQueryComparer">The comparer for validating data query definitions.</param>
-        /// <param name="dataQueryFromDtoMapper"></param>
         public GroundTruthCurationService(ILogger<GroundTruthCurationService> logger,
             IGroundTruthRepository groundTruthRepository,
             IDataQueryExecutionService dataQueryExecutionService,
-            IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto> groundTruthDefinitionToDtoMapper,
             IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext> contextComparer,
-            IGroundTruthComparer<DataQueryDefinitionDto, DataQueryDefinition> dataQueryComparer,
-            IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> dataQueryFromDtoMapper)
+            IGroundTruthComparer<DataQueryDefinitionDto, DataQueryDefinition> dataQueryComparer)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _groundTruthRepository = groundTruthRepository ?? throw new ArgumentNullException(nameof(groundTruthRepository));
             _dataQueryExecutionService = dataQueryExecutionService ?? throw new ArgumentNullException(nameof(dataQueryExecutionService));
-            _groundTruthDefinitionToDtoMapper = groundTruthDefinitionToDtoMapper ?? throw new ArgumentNullException(nameof(groundTruthDefinitionToDtoMapper));
             _contextComparer = contextComparer ?? throw new ArgumentNullException(nameof(contextComparer));
             _dataQueryComparer = dataQueryComparer ?? throw new ArgumentNullException(nameof(dataQueryComparer));
-            _dataQueryFromDtoMapper = dataQueryFromDtoMapper ?? throw new ArgumentNullException(nameof(dataQueryFromDtoMapper));
         }
 
         /// <inheritdoc/>
@@ -107,6 +100,7 @@ namespace GroundTruthCuration.Core.Services
 
             // execute data queries for new or updated contexts to refresh data
             await _dataQueryExecutionService.ExecuteDataQueriesAsync(groundTruthDefinition,
+                new List<DataQueryDefinition>(),
                 groundTruthDefinition.DataQueryDefinitions.ToList(), contextsToExecute);
 
             // Retrieve the updated ground truth definition
@@ -118,7 +112,7 @@ namespace GroundTruthCuration.Core.Services
                 return null;
             }
 
-            return _groundTruthDefinitionToDtoMapper.Map(updatedGroundTruthDefinition);
+            return GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(updatedGroundTruthDefinition);
         }
 
         /// <inheritdoc/>
@@ -144,7 +138,7 @@ namespace GroundTruthCuration.Core.Services
         {
             var groundTruthDefinitionEntities = (await _groundTruthRepository.GetAllGroundTruthDefinitionsAsync(filter)).ToList();
             // map entities to DTOs
-            return groundTruthDefinitionEntities.Select(entity => _groundTruthDefinitionToDtoMapper.Map(entity)).ToList();
+            return groundTruthDefinitionEntities.Select(entity => GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(entity)).ToList();
         }
 
         /// <inheritdoc/>
@@ -158,7 +152,7 @@ namespace GroundTruthCuration.Core.Services
             }
 
             // map entity to DTO
-            return _groundTruthDefinitionToDtoMapper.Map(groundTruthDefinition);
+            return GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(groundTruthDefinition);
         }
 
         /// <inheritdoc/>
@@ -220,8 +214,13 @@ namespace GroundTruthCuration.Core.Services
                 .Select(e => e.GroundTruthContext!)
                 .ToList();
 
+            var dataQueryDefinitionsUnchanged = groundTruthDefinition.DataQueryDefinitions
+                .Where(dq => !toRemove.Contains(dq.DataQueryId) && !dataQueriesToExecute.Any(dqte => dqte.DataQueryId == dq.DataQueryId))
+                .Select(dq => dq)
+                .ToList();
+
             // execute data queries for new or updated definitions
-            await _dataQueryExecutionService.ExecuteDataQueriesAsync(groundTruthDefinition, dataQueriesToExecute, contextsToExecute);
+            await _dataQueryExecutionService.ExecuteDataQueriesAsync(groundTruthDefinition, dataQueryDefinitionsUnchanged, dataQueriesToExecute, contextsToExecute);
 
             // return updated ground truth definition
             var updatedGroundTruthDefinition = await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(groundTruthId);
@@ -231,7 +230,7 @@ namespace GroundTruthCuration.Core.Services
                 return null;
             }
 
-            return _groundTruthDefinitionToDtoMapper.Map(updatedGroundTruthDefinition);
+            return GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(updatedGroundTruthDefinition);
         }
 
         private async Task deleteObsoleteDataQueriesAsync(List<Guid> toRemove)
@@ -259,7 +258,7 @@ namespace GroundTruthCuration.Core.Services
                 _logger.LogInformation("Updating existing data query with ID {DataQueryId}", dataQueryDto.DataQueryId);
 
                 // convert to entity
-                var dataQueryEntity = _dataQueryFromDtoMapper.Map(dataQueryDto);
+                var dataQueryEntity = GroundTruthDtosToEntitiesMapper.MapToDataQueryDefinition(dataQueryDto);
 
                 await _groundTruthRepository.UpdateDataQueryDefinitionAsync(dataQueryEntity);
 

@@ -9,10 +9,11 @@ public interface IDataQueryExecutionService
     /// This will eventually handled in a background job.
     /// </summary>
     /// <param name="groundTruthDefinition"></param>
+    /// <param name="dataQueryDefinitionsUnchanged"></param>
     /// <param name="dataQueryDefinitionsToExecute"></param>
     /// <param name="contextsToExecute"></param>
     /// <returns></returns>
-    Task ExecuteDataQueriesAsync(GroundTruthDefinition groundTruthDefinition, List<DataQueryDefinition> dataQueryDefinitionsToExecute, List<GroundTruthContext> contextsToExecute);
+    Task ExecuteDataQueriesAsync(GroundTruthDefinition groundTruthDefinition, List<DataQueryDefinition> dataQueryDefinitionsUnchanged, List<DataQueryDefinition> dataQueryDefinitionsToExecute, List<GroundTruthContext> contextsToExecute);
 
     /// <summary>
     /// Executes all data queries associated with the specified ground truth definition ID.
