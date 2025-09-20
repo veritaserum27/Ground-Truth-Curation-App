@@ -300,7 +300,7 @@ public class GroundTruthRepository : IGroundTruthRepository
                     {
                         dataQueryDefinition.DataQueryId,
                         dataQueryDefinition.GroundTruthId,
-                        dataQueryDefinition.DatastoreType,
+                        DatastoreType = dataQueryDefinition.DatastoreType.ToString(),
                         dataQueryDefinition.DatastoreName,
                         dataQueryDefinition.QueryTarget,
                         dataQueryDefinition.QueryDefinition,
@@ -361,7 +361,7 @@ public class GroundTruthRepository : IGroundTruthRepository
 
                     await connection.ExecuteAsync(sql, new
                     {
-                        dataQueryDefinition.DatastoreType,
+                        DatastoreType = dataQueryDefinition.DatastoreType.ToString(),
                         dataQueryDefinition.DatastoreName,
                         dataQueryDefinition.QueryTarget,
                         dataQueryDefinition.QueryDefinition,
