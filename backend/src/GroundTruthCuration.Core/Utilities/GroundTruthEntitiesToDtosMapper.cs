@@ -128,13 +128,31 @@ public static class GroundTruthEntitiesToDtosMapper
             // the raw string should now be a list of dictionaries with DataQueryId and RawData keys
             foreach (var rawDataDict in rawDataDictionaries)
             {
-                var dataQueryId = rawDataDict.ContainsKey("dataQueryId") && rawDataDict["dataQueryId"] is JsonElement idElement && idElement.ValueKind == JsonValueKind.String
-                    ? Guid.Parse(idElement.GetString() ?? string.Empty)
-                    : Guid.Empty;
 
-                var rawDataList = rawDataDict.ContainsKey("rawData") && rawDataDict["rawData"] is JsonElement dataElement && dataElement.ValueKind == JsonValueKind.Array
-                    ? JsonSerializer.Deserialize<List<Dictionary<string, object>>>(dataElement.GetRawText()) ?? new List<Dictionary<string, object>>()
-                    : new List<Dictionary<string, object>>();
+                // Prefer camelCase, fallback to PascalCase for compatibility
+                var dataQueryIdKey = rawDataDict.ContainsKey("dataQueryId") ? "dataQueryId" :
+                                    rawDataDict.ContainsKey("DataQueryId") ? "DataQueryId" : null;
+
+                var rawDataKey = rawDataDict.ContainsKey("rawData") ? "rawData" :
+                                rawDataDict.ContainsKey("RawData") ? "RawData" : null;
+
+                Guid dataQueryId = Guid.Empty;
+                if (dataQueryIdKey != null && rawDataDict[dataQueryIdKey] is JsonElement idElement && idElement.ValueKind == JsonValueKind.String)
+                {
+                    Guid.TryParse(idElement.GetString(), out dataQueryId);
+                }
+
+                if (dataQueryId == Guid.Empty)
+                {
+                    // TODO: handle missing or invalid DataQueryId if necessary
+                    continue;
+                }
+
+                var rawDataList = new List<Dictionary<string, object>>();
+                if (rawDataKey != null && rawDataDict[rawDataKey] is JsonElement dataElement && dataElement.ValueKind == JsonValueKind.Array)
+                {
+                    rawDataList = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(dataElement.GetRawText()) ?? new List<Dictionary<string, object>>();
+                }
 
                 rawDataDtos.Add(new RawDataDto
                 {

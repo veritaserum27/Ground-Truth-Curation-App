@@ -5,6 +5,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using GroundTruthCuration.Core.Entities;
+using System.Text.Json;
 
 namespace GroundTruthCuration.Infrastructure.Repositories;
 
@@ -45,10 +46,27 @@ public class ManufacturingDataDocDbRepository : IDatastoreRepository
             while (queryIterator.HasMoreResults)
             {
                 var response = await queryIterator.ReadNextAsync();
-                results.AddRange(response.Resource);
+                foreach (var item in response.Resource)
+                {
+                    if (item is Newtonsoft.Json.Linq.JObject jObject)
+                    {
+                        var dict = jObject.ToObject<Dictionary<string, object>>();
+                        if (dict != null)
+                            results.Add(dict);
+                    }
+                    else if (item is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
+                    {
+                        var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonElement.GetRawText());
+                        if (dict != null)
+                            results.Add(dict);
+                    }
+                    else
+                    {
+                        results.Add(item);
+                    }
+                }
                 if (results.Count >= maxItemCount)
                 {
-                    // Stop if we've hit the max
                     break;
                 }
             }

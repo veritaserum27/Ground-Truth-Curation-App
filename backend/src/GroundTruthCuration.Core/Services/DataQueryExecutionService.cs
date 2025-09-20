@@ -117,6 +117,9 @@ public class DataQueryExecutionService : IDataQueryExecutionService
         var interimResponse = new StringBuilder();
         var responseRequiredValues = new List<string>();
 
+        // TODO: fix bug around keeping existing data when data query definitions are unchanged
+        // Don't overwrite existing data if data query definition is unchanged, something with empty guid right now
+
         if (!string.IsNullOrEmpty(groundTruthEntry.RawDataJson))
         {
             interimResponse.AppendLine();
@@ -133,20 +136,28 @@ public class DataQueryExecutionService : IDataQueryExecutionService
         var dataQueryIdsUnchanged = dataQueryDefinitionsUnchanged.Select(dq => dq.DataQueryId).ToHashSet();
 
         var existingRawData = groundTruthEntryDto.RawData
-            .Where(rd => !dataQueryIdsUnchanged.Contains(rd.DataQueryId))
+            .Where(rd => dataQueryIdsUnchanged.Contains(rd.DataQueryId))
             .ToList();
 
-        if (existingRawData.Count > 0)
+        if (existingRawData.Count > 0 && dataQueryDefinitionsUnchanged.Count > 0)
         {
             totalRecordCount += existingRawData.Sum(rd => (rd.RawData as ICollection<object>)?.Count ?? 0);
             aggregatedResults.AddRange(existingRawData);
             interimResponse.AppendLine($"Existing raw data for {existingRawData.Count} data queries retained.");
-        }
 
-        if (groundTruthEntryDto.RequiredValues != null && groundTruthEntryDto.RequiredValues.Count > 0)
-        {
-            responseRequiredValues.AddRange(groundTruthEntryDto.RequiredValues);
-            interimResponse.AppendLine($"Existing {groundTruthEntryDto.RequiredValues.Count} required values retained.");
+            // for each data query definition that is unchanged, extract required values from existing raw data
+            foreach (var dataQueryDefinition in dataQueryDefinitionsUnchanged)
+            {
+                // TODO: this is not working, need to extract from existing raw data
+                var extractedValues = extractRequiredValuesFromResultsList(
+                    existingRawData
+                    .Where(rd => rd.DataQueryId == dataQueryDefinition.DataQueryId)
+                    .SelectMany(rd => rd.RawData as ICollection<object> ?? new List<object>())
+                    .ToList(),
+                    dataQueryDefinition);
+                responseRequiredValues.AddRange(extractedValues);
+                interimResponse.AppendLine($"Existing {extractedValues.Count} required values retained.");
+            }
         }
 
         foreach (var dataQueryDefinition in dataQueryDefinitions)
@@ -179,6 +190,7 @@ public class DataQueryExecutionService : IDataQueryExecutionService
             }
             else if (dataQueryDefinition.DatastoreType == DatastoreType.CosmosDb)
             {
+                // TODO: build query string with parameters
                 // Build document query parameters
                 var queryParameters = new Dictionary<string, string>();
                 foreach (var param in context.ContextParameters)
