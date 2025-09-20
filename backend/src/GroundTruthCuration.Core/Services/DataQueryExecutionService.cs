@@ -197,7 +197,7 @@ public class DataQueryExecutionService : IDataQueryExecutionService
             }
             else if (dataQueryDefinition.DatastoreType == DatastoreType.CosmosDb)
             {
-                // TODO: build query string with parameters
+                // TODO: build query string with parameters, incorporate data types
                 // Build document query parameters
                 var queryParameters = new Dictionary<string, string>();
                 foreach (var param in context.ContextParameters)

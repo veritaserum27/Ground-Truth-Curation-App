@@ -35,8 +35,20 @@ public class ManufacturingDataDocDbRepository : IDatastoreRepository
         {
             MaxItemCount = maxItemCount
         };
+
+        var cosmosQueryDefinition = new QueryDefinition(dataQueryDefinition.QueryDefinition);
+
+        if (parameters is IDictionary<string, string> dictParams)
+        {
+            foreach (var kvp in dictParams)
+            {
+                var paramName = kvp.Key.StartsWith('@') ? kvp.Key : "@" + kvp.Key;
+                cosmosQueryDefinition = cosmosQueryDefinition.WithParameter(paramName, kvp.Value);
+            }
+        }
+
         var queryIterator = container.GetItemQueryIterator<object>(
-                    dataQueryDefinition.QueryDefinition,
+                    cosmosQueryDefinition,
                     requestOptions: queryRequestOptions
                 );
 
