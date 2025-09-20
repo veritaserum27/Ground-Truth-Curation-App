@@ -24,9 +24,48 @@ public class ManufacturingDataDocDbRepository : IDatastoreRepository
         _databaseName = _configuration.GetValue<string>("Datastores:ManufacturingDataDocDb:DatabaseName") ?? throw new InvalidOperationException("Database name 'Datastores:ManufacturingDataDocDb:DatabaseName' is null or missing.");
     }
 
-    public Task<ICollection<object>> ExecuteQueryAsync<T>(T parameters, DataQueryDefinition dataQueryDefinition)
+    public async Task<ICollection<object>> ExecuteQueryAsync<T>(T parameters, DataQueryDefinition dataQueryDefinition)
     {
-        throw new NotImplementedException();
+        var cosmosClient = new CosmosClient(_connectionString);
+        var container = cosmosClient.GetContainer(_databaseName, dataQueryDefinition.QueryTarget);
+
+        var maxItemCount = 100;
+        var queryRequestOptions = new QueryRequestOptions
+        {
+            MaxItemCount = maxItemCount
+        };
+        var queryIterator = container.GetItemQueryIterator<object>(
+                    dataQueryDefinition.QueryDefinition,
+                    requestOptions: queryRequestOptions
+                );
+
+        try
+        {
+            var results = new List<object>();
+            while (queryIterator.HasMoreResults)
+            {
+                var response = await queryIterator.ReadNextAsync();
+                results.AddRange(response.Resource);
+                if (results.Count >= maxItemCount)
+                {
+                    // Stop if we've hit the max
+                    break;
+                }
+            }
+
+            return results;
+        }
+        catch (CosmosException ex)
+        {
+            var contextMessage = $"Cosmos DB query {dataQueryDefinition.QueryDefinition} failed on target '{dataQueryDefinition.QueryTarget}' with parameters '{parameters}': {ex.Message}";
+            _logger.LogError(ex, contextMessage);
+            throw new InvalidOperationException(contextMessage, ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while executing the Cosmos DB query: {Message}", ex.Message);
+            throw new InvalidOperationException($"Error executing query on target '{dataQueryDefinition.QueryTarget}' with parameters '{parameters}': {ex.Message}", ex);
+        }
     }
 
     /// <inheritdoc/>
