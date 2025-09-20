@@ -186,6 +186,90 @@ public class GroundTruthRepository : IGroundTruthRepository
     }
 
     /// <inheritdoc/>
+    public async Task AddOrUpdateGroundTruthEntryAsync(GroundTruthEntry groundTruthEntry)
+    {
+        if (groundTruthEntry == null)
+        {
+            throw new ArgumentNullException(nameof(groundTruthEntry), "The ground truth entry cannot be null.");
+        }
+        if (groundTruthEntry.GroundTruthEntryId == Guid.Empty)
+        {
+            throw new InvalidOperationException("The ground truth entry ID cannot be an empty GUID.");
+        }
+        if (groundTruthEntry.GroundTruthId == Guid.Empty)
+        {
+            throw new InvalidOperationException("The ground truth ID in the ground truth entry cannot be an empty GUID.");
+        }
+
+        // does this entry already exist?
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+            using (var transaction = await connection.BeginTransactionAsync())
+            {
+                try
+                {
+                    string checkSql = @"
+                        SELECT COUNT(1) FROM [dbo].[GROUND_TRUTH_ENTRY]
+                        WHERE groundTruthEntryId = @GroundTruthEntryId AND groundTruthId = @GroundTruthId;";
+
+                    int count = await connection.ExecuteScalarAsync<int>(checkSql, new
+                    {
+                        groundTruthEntry.GroundTruthEntryId,
+                        groundTruthEntry.GroundTruthId
+                    }, transaction);
+
+                    if (count == 0)
+                    {
+                        // Insert new entry
+                        string insertSql = @"
+                            INSERT INTO [dbo].[GROUND_TRUTH_ENTRY] (groundTruthEntryId, groundTruthId, response, requiredValuesJSON, rawDataJSON, creationDateTime, startDateTime, endDateTime)
+                            VALUES (@GroundTruthEntryId, @GroundTruthId, @Response, @RequiredValuesJSON, @RawDataJSON, @CreationDateTime, @StartDateTime, @EndDateTime);";
+
+                        await connection.ExecuteAsync(insertSql, new
+                        {
+                            groundTruthEntry.GroundTruthEntryId,
+                            groundTruthEntry.GroundTruthId,
+                            Response = groundTruthEntry.Response,
+                            RequiredValuesJSON = groundTruthEntry.RequiredValuesJson,
+                            RawDataJSON = groundTruthEntry.RawDataJson,
+                            CreationDateTime = groundTruthEntry.CreationDateTime,
+                            StartDateTime = groundTruthEntry.StartDateTime,
+                            EndDateTime = groundTruthEntry.EndDateTime
+                        }, transaction);
+                        await transaction.CommitAsync();
+                    }
+                    else
+                    {
+                        // Update existing entry
+                        string updateSql = @"
+                            UPDATE [dbo].[GROUND_TRUTH_ENTRY]
+                            SET response = @Response,
+                                requiredValuesJSON = @RequiredValuesJSON,
+                                rawDataJSON = @RawDataJSON
+                            WHERE groundTruthEntryId = @GroundTruthEntryId AND groundTruthId = @GroundTruthId;";
+
+                        await connection.ExecuteAsync(updateSql, new
+                        {
+                            groundTruthEntry.Response,
+                            RequiredValuesJSON = groundTruthEntry.RequiredValuesJson,
+                            RawDataJSON = groundTruthEntry.RawDataJson,
+                            groundTruthEntry.GroundTruthEntryId,
+                            groundTruthEntry.GroundTruthId
+                        }, transaction);
+                        await transaction.CommitAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error adding or updating ground truth entry with ID: {GroundTruthEntryId}", groundTruthEntry.GroundTruthEntryId);
+                    throw new InvalidOperationException($"An error occurred while adding or updating the ground truth entry with ID {groundTruthEntry.GroundTruthEntryId}.", ex);
+                }
+            }
+        }
+    }
+    /// <inheritdoc/>
     public async Task AddDataQueryDefinitionAsync(DataQueryDefinition dataQueryDefinition)
     {
         if (dataQueryDefinition == null)

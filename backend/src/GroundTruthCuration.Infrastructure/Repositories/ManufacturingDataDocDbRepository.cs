@@ -4,6 +4,7 @@ using GroundTruthCuration.Core.Constants;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using GroundTruthCuration.Core.Entities;
 
 namespace GroundTruthCuration.Infrastructure.Repositories;
 
@@ -23,8 +24,7 @@ public class ManufacturingDataDocDbRepository : IDatastoreRepository
         _databaseName = _configuration.GetValue<string>("Datastores:ManufacturingDataDocDb:DatabaseName") ?? throw new InvalidOperationException("Database name 'Datastores:ManufacturingDataDocDb:DatabaseName' is null or missing.");
     }
 
-    /// <inheritdoc/>
-    public Task<ICollection<T>> ExecuteQueryAsync<T>(ICollection<T> parameters, string query)
+    public Task<ICollection<object>> ExecuteQueryAsync<T>(T parameters, DataQueryDefinition dataQueryDefinition)
     {
         throw new NotImplementedException();
     }
