@@ -12,11 +12,10 @@ public interface IDatastoreRepository
     /// <summary>
     /// Executes the query against the datastore
     /// </summary>
-    /// <typeparam name="T"></typeparam>
     /// <param name="parameters">The parameters to include in the query</param>
     /// <param name="dataQueryDefinition">The definition of the query to execute</param>
     /// <returns></returns>
-    Task<ICollection<object>> ExecuteQueryAsync<T>(T parameters, DataQueryDefinition dataQueryDefinition);
+    Task<ICollection<object>> ExecuteQueryAsync(object parameters, DataQueryDefinition dataQueryDefinition);
 
     /// <summary>
     /// Gets the connectivity status of the datastore

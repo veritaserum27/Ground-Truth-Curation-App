@@ -25,7 +25,7 @@ public class ManufacturingDataDocDbRepository : IDatastoreRepository
         _databaseName = _configuration.GetValue<string>("Datastores:ManufacturingDataDocDb:DatabaseName") ?? throw new InvalidOperationException("Database name 'Datastores:ManufacturingDataDocDb:DatabaseName' is null or missing.");
     }
 
-    public async Task<ICollection<object>> ExecuteQueryAsync<T>(T parameters, DataQueryDefinition dataQueryDefinition)
+    public async Task<ICollection<object>> ExecuteQueryAsync(object parameters, DataQueryDefinition dataQueryDefinition)
     {
         var cosmosClient = new CosmosClient(_connectionString);
         var container = cosmosClient.GetContainer(_databaseName, dataQueryDefinition.QueryTarget);

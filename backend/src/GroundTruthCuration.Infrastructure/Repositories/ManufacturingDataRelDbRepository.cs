@@ -26,7 +26,7 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
                             ?? throw new InvalidOperationException("The connection string 'Datastores:ManufacturingDataRelDb:ConnectionString' is null or missing.");
     }
 
-    public async Task<ICollection<object>> ExecuteQueryAsync<T>(T parameters, DataQueryDefinition dataQueryDefinition)
+    public async Task<ICollection<object>> ExecuteQueryAsync(object parameters, DataQueryDefinition dataQueryDefinition)
     {
         if (dataQueryDefinition == null)
         {
@@ -39,19 +39,15 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
             try
             {
                 await connection.OpenAsync();
-                if (EqualityComparer<T>.Default.Equals(parameters, default(T)))
-                {
-                    var queryResults = await connection.QueryAsync<object>(query);
-                    return queryResults.ToList();
-                }
 
-                // case to DynamicParameters to support optional parameters
-                if (parameters is not DynamicParameters)
+                DynamicParameters? dapperParams = parameters switch
                 {
-                    parameters = (T)(object)new DynamicParameters(parameters);
-                }
+                    null => null, // no parameters, execute "plain" query
+                    DynamicParameters dp => dp, // already DynamicParameters, use as-is
+                    _ => new DynamicParameters(parameters) // otherwise, convert to DynamicParameters
+                };
 
-                var results = await connection.QueryAsync<object>(dataQueryDefinition.QueryDefinition, parameters);
+                var results = await connection.QueryAsync<object>(query, dapperParams);
                 return results.ToList();
             }
             catch (Exception ex)
@@ -105,7 +101,7 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
 
     private static string buildQueryFromDataQueryDefinition(DataQueryDefinition dataQueryDefinition)
     {
-        // In a real implementation, this method would construct the SQL query string
+        // In a complete implementation, this method would construct the SQL query string
         // based on the details in the DataQueryDefinition object.
         // For simplicity, we assume the QueryDefinition property contains the full SQL query.
         if (!dataQueryDefinition.IsFullQuery)
