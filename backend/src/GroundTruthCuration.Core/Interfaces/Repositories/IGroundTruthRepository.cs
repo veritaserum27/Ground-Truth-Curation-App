@@ -116,4 +116,13 @@ public interface IGroundTruthRepository
     /// <param name="dataQueryDefinition"></param>
     /// <returns></returns>
     Task AddDataQueryDefinitionAsync(DataQueryDefinition dataQueryDefinition);
+
+    /// <summary>
+    /// Adds or updates a ground truth entry in the repository. 
+    /// If the entry already exists (based on its unique identifier), it will be updated;
+    /// otherwise, a new entry will be created.
+    /// </summary>
+    /// <param name="groundTruthEntry"></param>
+    /// <returns></returns>
+    Task AddOrUpdateGroundTruthEntryAsync(GroundTruthEntry groundTruthEntry);
 }

@@ -4,6 +4,8 @@ using GroundTruthCuration.Core.Constants;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using GroundTruthCuration.Core.Entities;
+using System.Text.Json;
 
 namespace GroundTruthCuration.Infrastructure.Repositories;
 
@@ -23,10 +25,77 @@ public class ManufacturingDataDocDbRepository : IDatastoreRepository
         _databaseName = _configuration.GetValue<string>("Datastores:ManufacturingDataDocDb:DatabaseName") ?? throw new InvalidOperationException("Database name 'Datastores:ManufacturingDataDocDb:DatabaseName' is null or missing.");
     }
 
-    /// <inheritdoc/>
-    public Task<ICollection<T>> ExecuteQueryAsync<T>(ICollection<T> parameters, string query)
+    public async Task<ICollection<object>> ExecuteQueryAsync(object parameters, DataQueryDefinition dataQueryDefinition)
     {
-        throw new NotImplementedException();
+        var cosmosClient = new CosmosClient(_connectionString);
+        var container = cosmosClient.GetContainer(_databaseName, dataQueryDefinition.QueryTarget);
+
+        var maxItemCount = 100;
+        var queryRequestOptions = new QueryRequestOptions
+        {
+            MaxItemCount = maxItemCount
+        };
+
+        var cosmosQueryDefinition = new QueryDefinition(dataQueryDefinition.QueryDefinition);
+
+        if (parameters is IDictionary<string, string> dictParams)
+        {
+            foreach (var kvp in dictParams)
+            {
+                var paramName = kvp.Key.StartsWith('@') ? kvp.Key : "@" + kvp.Key;
+                cosmosQueryDefinition = cosmosQueryDefinition.WithParameter(paramName, kvp.Value);
+            }
+        }
+
+        var queryIterator = container.GetItemQueryIterator<object>(
+                    cosmosQueryDefinition,
+                    requestOptions: queryRequestOptions
+                );
+
+        try
+        {
+            var results = new List<object>();
+            while (queryIterator.HasMoreResults)
+            {
+                var response = await queryIterator.ReadNextAsync();
+                foreach (var item in response.Resource)
+                {
+                    if (item is Newtonsoft.Json.Linq.JObject jObject)
+                    {
+                        var dict = jObject.ToObject<Dictionary<string, object>>();
+                        if (dict != null)
+                            results.Add(dict);
+                    }
+                    else if (item is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
+                    {
+                        var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonElement.GetRawText());
+                        if (dict != null)
+                            results.Add(dict);
+                    }
+                    else
+                    {
+                        results.Add(item);
+                    }
+                }
+                if (results.Count >= maxItemCount)
+                {
+                    break;
+                }
+            }
+
+            return results;
+        }
+        catch (CosmosException ex)
+        {
+            var contextMessage = $"Cosmos DB query {dataQueryDefinition.QueryDefinition} failed on target '{dataQueryDefinition.QueryTarget}' with parameters '{parameters}': {ex.Message}";
+            _logger.LogError(ex, contextMessage);
+            throw new InvalidOperationException(contextMessage, ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while executing the Cosmos DB query: {Message}", ex.Message);
+            throw new InvalidOperationException($"Error executing query on target '{dataQueryDefinition.QueryTarget}' with parameters '{parameters}': {ex.Message}", ex);
+        }
     }
 
     /// <inheritdoc/>

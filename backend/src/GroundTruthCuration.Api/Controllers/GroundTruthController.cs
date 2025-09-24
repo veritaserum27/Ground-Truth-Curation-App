@@ -16,16 +16,20 @@ public class GroundTruthController : ControllerBase
 {
     private readonly ILogger<GroundTruthController> _logger;
     private readonly IGroundTruthCurationService _groundTruthCurationService;
+    private readonly IDataQueryExecutionService _dataQueryExecutionService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundTruthController"/> class.
     /// </summary>
     /// <param name="logger">The logger instance for logging information and errors.</param>
     /// <param name="groundTruthCurationService">The service for managing ground truth curation operations.</param>
-    public GroundTruthController(ILogger<GroundTruthController> logger, IGroundTruthCurationService groundTruthCurationService)
+    /// <param name="dataQueryExecutionService">The service for executing data queries related to ground truth definitions.</param>
+    public GroundTruthController(ILogger<GroundTruthController> logger, IGroundTruthCurationService groundTruthCurationService,
+     IDataQueryExecutionService dataQueryExecutionService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _groundTruthCurationService = groundTruthCurationService ?? throw new ArgumentNullException(nameof(groundTruthCurationService));
+        _dataQueryExecutionService = dataQueryExecutionService ?? throw new ArgumentNullException(nameof(dataQueryExecutionService));
     }
 
     /// <summary>
@@ -129,6 +133,25 @@ public class GroundTruthController : ControllerBase
             }
 
             return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    [HttpPost("definitions/{id}/data-queries/execute")]
+    public async Task<ActionResult<GroundTruthDefinitionDto>> ExecuteDataQueries(Guid id)
+    {
+        try
+        {
+            await _dataQueryExecutionService.ExecuteDataQueriesByGroundTruthIdAsync(id);
+
+            return Ok($"Data queries for ground truth definition ID {id} have been scheduled for execution.");
         }
         catch (ArgumentException ex)
         {

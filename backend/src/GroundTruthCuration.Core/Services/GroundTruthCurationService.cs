@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Data;
 
 namespace GroundTruthCuration.Core.Services
 {
@@ -19,32 +20,29 @@ namespace GroundTruthCuration.Core.Services
     {
         private readonly ILogger<GroundTruthCurationService> _logger;
         private readonly IGroundTruthRepository _groundTruthRepository;
-        private readonly IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto> _groundTruthDefinitionToDtoMapper;
-        private readonly IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> _dataQueryFromDtoMapper;
         private readonly IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext> _contextComparer;
         private readonly IGroundTruthComparer<DataQueryDefinitionDto, DataQueryDefinition> _dataQueryComparer;
+        private readonly IDataQueryExecutionService _dataQueryExecutionService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GroundTruthCurationService"/> class.
         /// </summary>
         /// <param name="logger">The logger instance for logging operations.</param>
         /// <param name="groundTruthRepository">The repository for managing ground truth data.</param>
-        /// <param name="groundTruthDefinitionToDtoMapper">The mapper for converting ground truth definitions to DTOs.</param>
         /// <param name="contextComparer">The comparer for validating context data consistency.</param>
+        /// <param name="dataQueryExecutionService">The service for executing data queries.</param>
         /// <param name="dataQueryComparer">The comparer for validating data query definitions.</param>
-        /// <param name="dataQueryFromDtoMapper"></param>
-        public GroundTruthCurationService(ILogger<GroundTruthCurationService> logger, IGroundTruthRepository groundTruthRepository,
-            IGroundTruthMapper<GroundTruthDefinition, GroundTruthDefinitionDto> groundTruthDefinitionToDtoMapper,
+        public GroundTruthCurationService(ILogger<GroundTruthCurationService> logger,
+            IGroundTruthRepository groundTruthRepository,
+            IDataQueryExecutionService dataQueryExecutionService,
             IGroundTruthComparer<GroundTruthContextDto, GroundTruthContext> contextComparer,
-            IGroundTruthComparer<DataQueryDefinitionDto, DataQueryDefinition> dataQueryComparer,
-            IGroundTruthMapper<DataQueryDefinitionDto, DataQueryDefinition> dataQueryFromDtoMapper)
+            IGroundTruthComparer<DataQueryDefinitionDto, DataQueryDefinition> dataQueryComparer)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _groundTruthRepository = groundTruthRepository ?? throw new ArgumentNullException(nameof(groundTruthRepository));
-            _groundTruthDefinitionToDtoMapper = groundTruthDefinitionToDtoMapper ?? throw new ArgumentNullException(nameof(groundTruthDefinitionToDtoMapper));
+            _dataQueryExecutionService = dataQueryExecutionService ?? throw new ArgumentNullException(nameof(dataQueryExecutionService));
             _contextComparer = contextComparer ?? throw new ArgumentNullException(nameof(contextComparer));
             _dataQueryComparer = dataQueryComparer ?? throw new ArgumentNullException(nameof(dataQueryComparer));
-            _dataQueryFromDtoMapper = dataQueryFromDtoMapper ?? throw new ArgumentNullException(nameof(dataQueryFromDtoMapper));
         }
 
         /// <inheritdoc/>
@@ -84,21 +82,26 @@ namespace GroundTruthCuration.Core.Services
 
             await deleteObsoleteContextsAsync(groundTruthDefinition, toRemove);
 
+            var contextsToExecute = new List<GroundTruthContext>();
+
             // process contexts
             foreach (var contextDto in groundTruthContexts)
             {
                 // check if context with same ID already exists and it hasn't been marked for removal
                 if (existingContextIds.Contains(contextDto.ContextId) && !toRemove.Contains(contextDto.ContextId))
                 {
-                    await processExistingContextAsync(groundTruthDefinition, contextDto, groundTruthId);
+                    await processExistingContextAsync(groundTruthDefinition, contextDto, groundTruthId, contextsToExecute);
                 }
                 else
                 {
-                    await addNewContextAsync(contextDto, groundTruthId);
+                    await addNewContextAsync(contextDto, groundTruthId, contextsToExecute);
                 }
             }
 
-            // TODO: execute data queries for new or updated contexts to refresh data
+            // execute data queries for new or updated contexts to refresh data
+            await _dataQueryExecutionService.ExecuteDataQueriesAsync(groundTruthDefinition,
+                new List<DataQueryDefinition>(),
+                groundTruthDefinition.DataQueryDefinitions.ToList(), contextsToExecute);
 
             // Retrieve the updated ground truth definition
             var updatedGroundTruthDefinition = await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(groundTruthId);
@@ -109,7 +112,7 @@ namespace GroundTruthCuration.Core.Services
                 return null;
             }
 
-            return _groundTruthDefinitionToDtoMapper.Map(updatedGroundTruthDefinition);
+            return GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(updatedGroundTruthDefinition);
         }
 
         /// <inheritdoc/>
@@ -135,7 +138,7 @@ namespace GroundTruthCuration.Core.Services
         {
             var groundTruthDefinitionEntities = (await _groundTruthRepository.GetAllGroundTruthDefinitionsAsync(filter)).ToList();
             // map entities to DTOs
-            return groundTruthDefinitionEntities.Select(entity => _groundTruthDefinitionToDtoMapper.Map(entity)).ToList();
+            return groundTruthDefinitionEntities.Select(entity => GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(entity)).ToList();
         }
 
         /// <inheritdoc/>
@@ -149,7 +152,7 @@ namespace GroundTruthCuration.Core.Services
             }
 
             // map entity to DTO
-            return _groundTruthDefinitionToDtoMapper.Map(groundTruthDefinition);
+            return GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(groundTruthDefinition);
         }
 
         /// <inheritdoc/>
@@ -180,6 +183,8 @@ namespace GroundTruthCuration.Core.Services
 
             var toRemove = existingDataQueryIds.Except(incomingDataQueryIds).ToList();
 
+            var dataQueriesToExecute = new List<DataQueryDefinition>();
+
             await deleteObsoleteDataQueriesAsync(toRemove);
 
             // check for changes in existing definitions
@@ -194,15 +199,28 @@ namespace GroundTruthCuration.Core.Services
                 if (dataQueryDefinition.DataQueryId != null && existingDataQueryIds.Contains(dataQueryDefinition.DataQueryId.Value)
                     && !toRemove.Contains(dataQueryDefinition.DataQueryId.Value))
                 {
-                    await processExistingDataQueryAsync(groundTruthDefinition, dataQueryDefinition);
+                    await processExistingDataQueryAsync(groundTruthDefinition, dataQueryDefinition, dataQueriesToExecute);
                 }
                 else
                 {
-                    await addNewDataQueryAsync(dataQueryDefinition, groundTruthId);
+                    await addNewDataQueryAsync(dataQueryDefinition, groundTruthId, dataQueriesToExecute);
                 }
             }
 
-            // TODO: execute data queries for new or updated definitions
+            // gather context IDs from ground truth definition for data query execution
+            var contextsToExecute = groundTruthDefinition.GroundTruthEntries
+                .Where(e => e?.GroundTruthContext != null)
+                .Where(e => e.GroundTruthContext != null)
+                .Select(e => e.GroundTruthContext!)
+                .ToList();
+
+            var dataQueryDefinitionsUnchanged = groundTruthDefinition.DataQueryDefinitions
+                .Where(dq => !toRemove.Contains(dq.DataQueryId) && !dataQueriesToExecute.Any(dqte => dqte.DataQueryId == dq.DataQueryId))
+                .Select(dq => dq)
+                .ToList();
+
+            // execute data queries for new or updated definitions
+            await _dataQueryExecutionService.ExecuteDataQueriesAsync(groundTruthDefinition, dataQueryDefinitionsUnchanged, dataQueriesToExecute, contextsToExecute);
 
             // return updated ground truth definition
             var updatedGroundTruthDefinition = await _groundTruthRepository.GetGroundTruthDefinitionByIdAsync(groundTruthId);
@@ -212,7 +230,7 @@ namespace GroundTruthCuration.Core.Services
                 return null;
             }
 
-            return _groundTruthDefinitionToDtoMapper.Map(updatedGroundTruthDefinition);
+            return GroundTruthEntitiesToDtosMapper.MapToGroundTruthDefinitionDto(updatedGroundTruthDefinition);
         }
 
         private async Task deleteObsoleteDataQueriesAsync(List<Guid> toRemove)
@@ -223,7 +241,8 @@ namespace GroundTruthCuration.Core.Services
             }
         }
 
-        private async Task processExistingDataQueryAsync(GroundTruthDefinition groundTruthDefinition, DataQueryDefinitionDto dataQueryDto)
+        private async Task processExistingDataQueryAsync(GroundTruthDefinition groundTruthDefinition,
+            DataQueryDefinitionDto dataQueryDto, List<DataQueryDefinition> dataQueriesToExecute)
         {
             // get the existing version
             var existingDataQuery = groundTruthDefinition.DataQueryDefinitions
@@ -239,13 +258,16 @@ namespace GroundTruthCuration.Core.Services
                 _logger.LogInformation("Updating existing data query with ID {DataQueryId}", dataQueryDto.DataQueryId);
 
                 // convert to entity
-                var dataQueryEntity = _dataQueryFromDtoMapper.Map(dataQueryDto);
+                var dataQueryEntity = GroundTruthDtosToEntitiesMapper.MapToDataQueryDefinition(dataQueryDto);
 
                 await _groundTruthRepository.UpdateDataQueryDefinitionAsync(dataQueryEntity);
+
+                dataQueriesToExecute.Add(dataQueryEntity);
             }
         }
 
-        private async Task addNewDataQueryAsync(DataQueryDefinitionDto dataQueryDto, Guid groundTruthId)
+        private async Task addNewDataQueryAsync(DataQueryDefinitionDto dataQueryDto, Guid groundTruthId,
+            List<DataQueryDefinition> dataQueriesToExecute)
         {
             // Add new data query
             var newDataQuery = new DataQueryDefinition
@@ -264,6 +286,7 @@ namespace GroundTruthCuration.Core.Services
             };
 
             await _groundTruthRepository.AddDataQueryDefinitionAsync(newDataQuery);
+            dataQueriesToExecute.Add(newDataQuery);
         }
 
         private async Task deleteObsoleteContextsAsync(GroundTruthDefinition groundTruthDefinition, List<Guid> toRemove)
@@ -280,7 +303,8 @@ namespace GroundTruthCuration.Core.Services
             }
         }
 
-        private async Task processExistingContextAsync(GroundTruthDefinition groundTruthDefinition, GroundTruthContextDto contextDto, Guid groundTruthId)
+        private async Task processExistingContextAsync(GroundTruthDefinition groundTruthDefinition,
+            GroundTruthContextDto contextDto, Guid groundTruthId, List<GroundTruthContext> contextsToExecute)
         {
             // get the existing version
             var existingGroundTruthEntry = groundTruthDefinition.GroundTruthEntries
@@ -319,6 +343,7 @@ namespace GroundTruthCuration.Core.Services
 
                 // update record in table
                 await _groundTruthRepository.UpdateGroundTruthContextAndRelatedEntitiesAsync(groundTruthId, contextEntity);
+                contextsToExecute.Add(contextEntity);
             }
             else
             {
@@ -326,7 +351,8 @@ namespace GroundTruthCuration.Core.Services
             }
         }
 
-        private async Task addNewContextAsync(GroundTruthContextDto contextDto, Guid groundTruthId)
+        private async Task addNewContextAsync(GroundTruthContextDto contextDto, Guid groundTruthId,
+            List<GroundTruthContext> contextsToExecute)
         {
             // Add new context
             var newContext = new GroundTruthContext
@@ -346,6 +372,7 @@ namespace GroundTruthCuration.Core.Services
             };
 
             await _groundTruthRepository.AddGroundTruthContextAndRelatedEntitiesAsync(groundTruthId, newContext);
+            contextsToExecute.Add(newContext);
         }
     }
 }

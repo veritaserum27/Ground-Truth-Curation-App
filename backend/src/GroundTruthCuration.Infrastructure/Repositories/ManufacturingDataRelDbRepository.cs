@@ -1,5 +1,7 @@
+using Dapper;
 using GroundTruthCuration.Core.Constants;
 using GroundTruthCuration.Core.DTOs;
+using GroundTruthCuration.Core.Entities;
 using GroundTruthCuration.Core.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -24,9 +26,37 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
                             ?? throw new InvalidOperationException("The connection string 'Datastores:ManufacturingDataRelDb:ConnectionString' is null or missing.");
     }
 
-    public Task<ICollection<T>> ExecuteQueryAsync<T>(ICollection<T> parameters, string query)
+    public async Task<ICollection<object>> ExecuteQueryAsync(object parameters, DataQueryDefinition dataQueryDefinition)
     {
-        throw new NotImplementedException();
+        if (dataQueryDefinition == null)
+        {
+            throw new ArgumentNullException(nameof(dataQueryDefinition));
+        }
+
+        var query = buildQueryFromDataQueryDefinition(dataQueryDefinition);
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            try
+            {
+                await connection.OpenAsync();
+
+                DynamicParameters? dapperParams = parameters switch
+                {
+                    null => null, // no parameters, execute "plain" query
+                    DynamicParameters dp => dp, // already DynamicParameters, use as-is
+                    _ => new DynamicParameters(parameters) // otherwise, convert to DynamicParameters
+                };
+
+                var results = await connection.QueryAsync<object>(query, dapperParams);
+                return results.ToList();
+            }
+            catch (Exception ex)
+            {
+                var contextualMessage = $"Error executing query: {query} with parameters: {parameters}.";
+                _logger.LogError(ex, contextualMessage);
+                throw new InvalidOperationException(contextualMessage, ex);
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -67,6 +97,19 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
         }
 
         return status;
+    }
+
+    private static string buildQueryFromDataQueryDefinition(DataQueryDefinition dataQueryDefinition)
+    {
+        // In a complete implementation, this method would construct the SQL query string
+        // based on the details in the DataQueryDefinition object.
+        // For simplicity, we assume the QueryDefinition property contains the full SQL query.
+        if (!dataQueryDefinition.IsFullQuery)
+        {
+            throw new NotSupportedException("Only full SQL queries are supported in this implementation.");
+        }
+
+        return dataQueryDefinition.QueryDefinition;
     }
 }
 
