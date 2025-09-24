@@ -145,8 +145,7 @@ public class GroundTruthController : ControllerBase
     }
 
     [HttpPost("definitions/{id}/data-queries/execute")]
-    public async Task<ActionResult<GroundTruthDefinitionDto>> ExecuteDataQueries(Guid id,
-        [FromBody] List<DataQueryDefinitionDto> dataQueryDefinitionDtos, [FromQuery] List<GroundTruthContextDto> contextDtos)
+    public async Task<ActionResult<GroundTruthDefinitionDto>> ExecuteDataQueries(Guid id)
     {
         try
         {
