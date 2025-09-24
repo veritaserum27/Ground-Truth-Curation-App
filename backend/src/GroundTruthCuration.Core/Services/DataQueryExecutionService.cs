@@ -117,12 +117,7 @@ public class DataQueryExecutionService : IDataQueryExecutionService
         var interimResponse = new StringBuilder();
         var responseRequiredValues = new HashSet<string>();
 
-        // Don't overwrite existing data if data query definition is unchanged, something with empty guid right now
-        if (!string.IsNullOrEmpty(groundTruthEntry.RawDataJson))
-        {
-            interimResponse.AppendLine();
-        }
-
+        // Don't overwrite existing data if data query definition is unchanged
         var groundTruthEntryDto = GroundTruthEntitiesToDtosMapper.MapToGroundTruthEntryDto(groundTruthEntry);
 
         if (groundTruthEntryDto == null)
@@ -130,6 +125,41 @@ public class DataQueryExecutionService : IDataQueryExecutionService
             throw new InvalidOperationException($"Failed to map GroundTruthEntry with ID {groundTruthEntry.GroundTruthEntryId} to DTO.");
         }
 
+        totalRecordCount += saveExistingDataForUnchangedDataQueries(dataQueryDefinitionsUnchanged,
+            groundTruthEntryDto, aggregatedResults, interimResponse, responseRequiredValues);
+
+        foreach (var dataQueryDefinition in dataQueryDefinitions)
+        {
+            // Build query parameters based on context parameters
+            if (dataQueryDefinition.DatastoreType == DatastoreType.Sql)
+            {
+                totalRecordCount += await processSqlDataQueryDefinition(dataQueryDefinition, context, groundTruthEntry, aggregatedResults,
+                   responseRequiredValues, interimResponse);
+            }
+            else if (dataQueryDefinition.DatastoreType == DatastoreType.CosmosDb)
+            {
+                totalRecordCount += await processCosmosDbDataQueryDefinition(dataQueryDefinition, context, groundTruthEntry, aggregatedResults,
+                   responseRequiredValues, interimResponse);
+            }
+            else
+            {
+                throw new NotSupportedException($"Datastore type '{dataQueryDefinition.DatastoreType}' is not supported.");
+            }
+        }
+        // save to ground truth entry
+        groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues);
+        groundTruthEntry.RawDataJson = JsonSerializer.Serialize(aggregatedResults);
+        groundTruthEntry.Response = interimResponse.ToString();
+        await _groundTruthRepository.AddOrUpdateGroundTruthEntryAsync(groundTruthEntry);
+        _logger.LogInformation("Completed processing data queries for context {ContextId}. Aggregated {TotalResults} results.",
+            context.ContextId, totalRecordCount);
+    }
+
+    private int saveExistingDataForUnchangedDataQueries(List<DataQueryDefinition> dataQueryDefinitionsUnchanged,
+        GroundTruthEntryDto groundTruthEntryDto, List<object> aggregatedResults, StringBuilder interimResponse,
+        HashSet<string> responseRequiredValues)
+    {
+        var totalRecordCount = 0;
         // populate with existing values that won't be executed
         var dataQueryIdsUnchanged = dataQueryDefinitionsUnchanged.Select(dq => dq.DataQueryId).ToHashSet();
 
@@ -157,87 +187,7 @@ public class DataQueryExecutionService : IDataQueryExecutionService
             }
         }
 
-        foreach (var dataQueryDefinition in dataQueryDefinitions)
-        {
-            // Build query parameters based on context parameters
-            if (dataQueryDefinition.DatastoreType == DatastoreType.Sql)
-            {
-                // Build SQL query parameters
-                var sqlParameters = buildSqlParameters(context);
-
-                // Execute query against relational DB
-                if (!string.Equals(dataQueryDefinition.DatastoreName, "ManufacturingDataRelDb",
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new NotSupportedException($"Datastore '{dataQueryDefinition.DatastoreName}' is not supported for SQL queries.");
-                }
-
-                var results = await _manufacturingDataRelDbRepository.ExecuteQueryAsync(sqlParameters, dataQueryDefinition);
-
-                totalRecordCount += results.Count;
-                var newRawData = new RawDataDto
-                {
-                    DataQueryId = dataQueryDefinition.DataQueryId,
-                    RawData = results
-                        .Select(r => r is Dictionary<string, object> dict
-                            ? dict
-                            : r is IDictionary<string, object> idict
-                                ? new Dictionary<string, object>(idict)
-                                : r.GetType().GetProperties().ToDictionary(
-                                    prop => prop.Name,
-                                    prop => prop.GetValue(r) ?? new object()))
-                        .ToList()
-                };
-                aggregatedResults.Add(newRawData);
-                // Extract required values from results
-                var extractedValues = extractRequiredValuesFromResultsList(newRawData.RawData.ToList(), dataQueryDefinition);
-                responseRequiredValues.UnionWith(extractedValues);
-
-                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}. It includes the following required values: {string.Join(", ", extractedValues)}");
-            }
-            else if (dataQueryDefinition.DatastoreType == DatastoreType.CosmosDb)
-            {
-                // TODO: build query string with parameters, incorporate data types
-                // Build document query parameters
-                var queryParameters = new Dictionary<string, string>();
-                foreach (var param in context.ContextParameters)
-                {
-                    queryParameters[param.ParameterName] = param.ParameterValue;
-                }
-
-                // Execute query against document DB
-                if (!string.Equals(dataQueryDefinition.DatastoreName, "ManufacturingDataDocDb",
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new NotSupportedException($"Datastore '{dataQueryDefinition.DatastoreName}' is not supported for Document queries.");
-                }
-
-                var results = await _manufacturingDataDocDbRepository.ExecuteQueryAsync(queryParameters, dataQueryDefinition);
-
-                totalRecordCount += results.Count;
-                var newRawData = new RawDataDto
-                {
-                    DataQueryId = dataQueryDefinition.DataQueryId,
-                    RawData = results.Cast<Dictionary<string, object>>().ToList()
-                };
-                aggregatedResults.Add(newRawData);
-
-                var extractedValues = extractRequiredValuesFromResultsList(newRawData.RawData.ToList(), dataQueryDefinition);
-                responseRequiredValues.UnionWith(extractedValues);
-                interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}. It includes the following required values: {string.Join(", ", extractedValues)}");
-            }
-            else
-            {
-                throw new NotSupportedException($"Datastore type '{dataQueryDefinition.DatastoreType}' is not supported.");
-            }
-        }
-        // save to ground truth entry
-        groundTruthEntry.RequiredValuesJson = JsonSerializer.Serialize(responseRequiredValues);
-        groundTruthEntry.RawDataJson = JsonSerializer.Serialize(aggregatedResults);
-        groundTruthEntry.Response = interimResponse.ToString();
-        await _groundTruthRepository.AddOrUpdateGroundTruthEntryAsync(groundTruthEntry);
-        _logger.LogInformation("Completed processing data queries for context {ContextId}. Aggregated {TotalResults} results.",
-            context.ContextId, totalRecordCount);
+        return totalRecordCount;
     }
 
     private HashSet<string> extractRequiredValuesFromResultsList(List<Dictionary<string, object>> results, DataQueryDefinition dataQueryDefinition)
@@ -296,5 +246,77 @@ public class DataQueryExecutionService : IDataQueryExecutionService
             }
         }
         return sqlParameters;
+    }
+
+    private async Task<int> processSqlDataQueryDefinition(DataQueryDefinition dataQueryDefinition, GroundTruthContext context,
+        GroundTruthEntry groundTruthEntry, List<object> aggregatedResults, HashSet<string> responseRequiredValues,
+        StringBuilder interimResponse)
+    {
+        /// Build SQL query parameters
+        var sqlParameters = buildSqlParameters(context);
+
+        // Execute query against relational DB
+        if (!string.Equals(dataQueryDefinition.DatastoreName, "ManufacturingDataRelDb",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NotSupportedException($"Datastore '{dataQueryDefinition.DatastoreName}' is not supported for SQL queries.");
+        }
+
+        var results = await _manufacturingDataRelDbRepository.ExecuteQueryAsync(sqlParameters, dataQueryDefinition);
+
+        var newRawData = new RawDataDto
+        {
+            DataQueryId = dataQueryDefinition.DataQueryId,
+            RawData = results
+                .Select(r => r is Dictionary<string, object> dict
+                    ? dict
+                    : r is IDictionary<string, object> idict
+                        ? new Dictionary<string, object>(idict)
+                        : r.GetType().GetProperties().ToDictionary(
+                            prop => prop.Name,
+                            prop => prop.GetValue(r) ?? new object()))
+                .ToList()
+        };
+        aggregatedResults.Add(newRawData);
+        // Extract required values from results
+        var extractedValues = extractRequiredValuesFromResultsList(newRawData.RawData.ToList(), dataQueryDefinition);
+        responseRequiredValues.UnionWith(extractedValues);
+
+        interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}. It includes the following required values: {string.Join(", ", extractedValues)}");
+        return results.Count;
+    }
+
+    private async Task<int> processCosmosDbDataQueryDefinition(DataQueryDefinition dataQueryDefinition, GroundTruthContext context,
+        GroundTruthEntry groundTruthEntry, List<object> aggregatedResults, HashSet<string> responseRequiredValues,
+        StringBuilder interimResponse)
+    {
+        // TODO: build query string with parameters, incorporate data types
+        // Build document query parameters
+        var queryParameters = new Dictionary<string, string>();
+        foreach (var param in context.ContextParameters)
+        {
+            queryParameters[param.ParameterName] = param.ParameterValue;
+        }
+
+        // Execute query against document DB
+        if (!string.Equals(dataQueryDefinition.DatastoreName, "ManufacturingDataDocDb",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NotSupportedException($"Datastore '{dataQueryDefinition.DatastoreName}' is not supported for Document queries.");
+        }
+
+        var results = await _manufacturingDataDocDbRepository.ExecuteQueryAsync(queryParameters, dataQueryDefinition);
+
+        var newRawData = new RawDataDto
+        {
+            DataQueryId = dataQueryDefinition.DataQueryId,
+            RawData = results.Cast<Dictionary<string, object>>().ToList()
+        };
+        aggregatedResults.Add(newRawData);
+
+        var extractedValues = extractRequiredValuesFromResultsList(newRawData.RawData.ToList(), dataQueryDefinition);
+        responseRequiredValues.UnionWith(extractedValues);
+        interimResponse.AppendLine($"Retrieved {results.Count} {dataQueryDefinition.DatastoreType} records from {dataQueryDefinition.DatastoreName}. It includes the following required values: {string.Join(", ", extractedValues)}");
+        return results.Count;
     }
 }
