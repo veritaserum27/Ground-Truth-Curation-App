@@ -1,3 +1,6 @@
+-- Requires create-ground-truth-tag-relationships.sql to have been executed first
+-- so default tags exist for relationship inserts below
+
 --Declare variables to store the generated GUIDs
 DECLARE @groundTruthId1 UNIQUEIDENTIFIER = NEWID();
 DECLARE @groundTruthId2 UNIQUEIDENTIFIER = NEWID();
