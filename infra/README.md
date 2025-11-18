@@ -11,6 +11,7 @@ The infrastructure creates:
 - **Ground Truth SQL Server**: `ground-truth-curation-sql` for curation workflow
 - **Ground Truth SQL Database**: `GroundTruthCurationDB` for curation workflow data
 - **Azure Cosmos DB**: `gt-system-data-cosmos` serverless NoSQL database for system/demo data
+- **Virtual Network**: Dedicated VNet and subnet hosting private endpoints for database resources
 
 ## Files
 
@@ -40,10 +41,10 @@ The infrastructure creates:
    ```bash
    # Run the setup script (creates virtual environment and installs dependencies)
    ./setup.sh
-   
+
    # After the script completes, activate the virtual environment
    cd .. && source .venv/bin/activate
-   
+
    # Verify activation (you should see (.venv) in your prompt)
    which python
    ```
@@ -53,10 +54,10 @@ The infrastructure creates:
    ```bash
    # Create virtual environment in project root
    cd .. && python3 -m venv .venv
-   
+
    # Activate virtual environment
    source .venv/bin/activate
-   
+
    # Install dependencies
    pip install -r infra/requirements.txt
    ```
@@ -78,6 +79,8 @@ The infrastructure creates:
    cd infra
    cp .env.example .env
    # Edit .env and set SQL_ADMIN_PASSWORD=YourSecurePassword123!
+   # Optional: set ADMIN_CLIENT_IP=203.0.113.10 to force a SQL firewall rule
+   # Optional: set SKIP_ADMIN_IP_DISCOVERY=1 to skip automatic IP detection
    ```
 
 2. **Login to Azure**:
@@ -197,19 +200,44 @@ The default configuration creates a Basic tier SQL Database suitable for develop
 
 ⚠️ **Important Security Notes**:
 
-1. **Firewall rules allow all IPs** - This is configured for hackathon/development use
-2. **Change the default admin password** in `main.parameters.json`
-3. **Restrict firewall rules** for production deployments
-4. **Mixed authentication** is enabled - disable Azure AD-only restriction for SQL auth
+1. **Private networking** - A virtual network and data-services subnet host private endpoints for SQL Servers and Cosmos DB.
+2. **Targeted firewall rule** - `deploy.sh` auto-detects your public IP and opens a single-address SQL firewall rule.
+   Set `ADMIN_CLIENT_IP` in `.env` to override, or `SKIP_ADMIN_IP_DISCOVERY=1` to disable detection.
+3. **Credential hygiene** - Change the default admin password in `main.parameters.json` and store it securely.
+4. **Public access review** - Cosmos DB keeps public network access enabled for tooling; disable it if your environment requires private-only connectivity.
+5. **Authentication mix** - SQL auth remains enabled for tooling (Azure AD-only mode is disabled); adjust to meet compliance requirements.
+
+If automatic IP discovery fails, add a firewall rule manually:
+
+```bash
+az sql server firewall-rule create \
+   --resource-group <resource-group> \
+   --server <sql-server-name> \
+   --name AdminWorkstation \
+   --start-ip-address <your-ip> \
+   --end-ip-address <your-ip>
+```
+
+You can also add the rule through the Azure portal under **Security > Networking** for each SQL Server.
+
+### Networking Overview
+
+- **Virtual network**: `<prefix>-vnet` by default; customize CIDR ranges via `vnetAddressPrefixes` and `dataSubnetPrefix` parameters.
+- **Data-services subnet**: Hosts private endpoints and disables private endpoint network policies as required by Azure.
+- **Private DNS zones**: `privatelink.database.windows.net` and `privatelink.documents.azure.com` are linked to the VNet for seamless name resolution.
+- **SQL firewall management**: Automatic IP detection feeds the `adminClientIpAddress` parameter. Provide `ADMIN_CLIENT_IP` or skip detection to control access manually.
+- **Connectivity expectation**: Without an IP rule, SQL endpoints are reachable only from within the virtual network (VPN, peered VNet, or Azure service).
 
 ### Connection Information
 
 After deployment, you'll get:
 - **System SQL Server**: `gt-system-data-sql.database.windows.net`
 - **System Database**: `ManufacturingDataRelDB` (for support tickets and system data)
-- **Ground Truth SQL Server**: `ground-truth-curation-sql.database.windows.net`  
+- **Ground Truth SQL Server**: `ground-truth-curation-sql.database.windows.net`
 - **Ground Truth Database**: `GroundTruthCurationDB` (for curation workflow data)
 - **Cosmos DB Account**: `gt-system-data-cosmos` (for manufacturing defects)
+- **Virtual Network**: `<prefix>-vnet` (data-services subnet resource ID captured in `.env`)
+- **Private Endpoints**: Resource IDs for SQL and Cosmos endpoints appended to `.env`
 - Connection strings for both SQL databases
 - Admin credentials (as configured in parameters)
 
@@ -217,18 +245,18 @@ After deployment, you'll get:
 
 The table includes 33 columns optimized for the CSV data with proper data types:
 
-| Column | Type | Description |
-|--------|------|-------------|
-| ticket_id | BIGINT | Primary key |
-| day_of_week | NVARCHAR(10) | Day name |
-| company_id | INT | Company identifier |
-| priority | NVARCHAR(20) | Ticket priority |
-| customer_sentiment | NVARCHAR(20) | Customer satisfaction (nullable) |
-| error_rate_pct | DECIMAL(15,9) | Error rate percentage with high precision |
-| product_area | NVARCHAR(50) | Product area affected |
-| customer_tier | NVARCHAR(20) | Customer tier classification |
-| region | NVARCHAR(50) | Geographic region |
-| ... | ... | [See full schema in create-support-tickets-table.sql] |
+| Column             | Type          | Description                                           |
+| ------------------ | ------------- | ----------------------------------------------------- |
+| ticket_id          | BIGINT        | Primary key                                           |
+| day_of_week        | NVARCHAR(10)  | Day name                                              |
+| company_id         | INT           | Company identifier                                    |
+| priority           | NVARCHAR(20)  | Ticket priority                                       |
+| customer_sentiment | NVARCHAR(20)  | Customer satisfaction (nullable)                      |
+| error_rate_pct     | DECIMAL(15,9) | Error rate percentage with high precision             |
+| product_area       | NVARCHAR(50)  | Product area affected                                 |
+| customer_tier      | NVARCHAR(20)  | Customer tier classification                          |
+| region             | NVARCHAR(50)  | Geographic region                                     |
+| ...                | ...           | [See full schema in create-support-tickets-table.sql] |
 
 ### Key Features
 
@@ -241,7 +269,7 @@ The table includes 33 columns optimized for the CSV data with proper data types:
 
 Optimized indexes are created for common query patterns:
 - company_id
-- priority  
+- priority
 - customer_tier
 - product_area
 - region
@@ -278,7 +306,7 @@ Successfully imports all 48,900 records from the Support_tickets.csv file.
 
 1. **"Location not available"** - Change location in parameters file to `westus2`
 2. **"Server name already exists"** - The script uses uniqueString() to avoid conflicts
-3. **"Firewall blocking connection"** - Firewall rules are configured for open access in hackathon setup
+3. **"Firewall blocking connection"** - Confirm that your IP was detected or provide `ADMIN_CLIENT_IP`; otherwise connect from a resource inside the VNet.
 4. **"Authentication failed"** - Use SQL Server authentication (not Azure AD) for import scripts
 
 ### Cleanup

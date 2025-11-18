@@ -1,0 +1,17 @@
+# ============================================================================
+# Ground Truth Curation App - Seed Data Python Dependencies
+# ============================================================================
+# Install with: pip install -r requirements.txt
+# Or use setup.sh to create a virtual environment and install automatically
+
+# SQL Server connectivity (for System DB and Ground Truth DB)
+pyodbc>=4.0.34
+
+# Azure Cosmos DB SDK (for NoSQL data seeding)
+azure-cosmos>=4.5.0
+
+# Azure authentication (passwordless Azure AD for SQL and Cosmos)
+azure-identity>=1.12.0
+
+# Environment variable management
+python-dotenv>=1.0.0

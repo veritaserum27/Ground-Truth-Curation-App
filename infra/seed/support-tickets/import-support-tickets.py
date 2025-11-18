@@ -26,7 +26,8 @@ except ImportError:
 # Load environment variables from .env file
 print("🔍 Loading environment variables...")
 script_dir = os.path.dirname(os.path.abspath(__file__))
-env_file = os.path.join(script_dir, ".env")
+seed_dir = os.path.dirname(script_dir)  # infra/seed/
+env_file = os.path.join(seed_dir, ".env")
 print(f"📁 Looking for .env file at: {env_file}")
 
 if os.path.exists(env_file):
@@ -38,16 +39,16 @@ else:
 
 # Database connection parameters from environment variables
 CONNECTION_PARAMS = {
-    "server": os.getenv("DB_SERVER"),
-    "database": os.getenv("DB_DATABASE", "SystemDemoDB"),
-    "username": os.getenv("DB_USERNAME"),
-    "password": os.getenv("DB_PASSWORD"),
-    "driver": os.getenv("DB_DRIVER", "{ODBC Driver 18 for SQL Server}"),
-    "port": int(os.getenv("DB_PORT", 1433)),
+    "server": os.getenv("SYSTEM_DB_SERVER"),
+    "database": os.getenv("SYSTEM_DB_DATABASE", "SystemDemoDB"),
+    "username": os.getenv("SYSTEM_DB_USERNAME"),
+    "password": os.getenv("SYSTEM_DB_PASSWORD"),
+    "driver": os.getenv("SYSTEM_DB_DRIVER", "{ODBC Driver 18 for SQL Server}"),
+    "port": int(os.getenv("SYSTEM_DB_PORT", 1433)),
 }
 
 # Validate required environment variables
-required_vars = ["DB_SERVER", "DB_USERNAME", "DB_PASSWORD"]
+required_vars = ["SYSTEM_DB_SERVER", "SYSTEM_DB_USERNAME", "SYSTEM_DB_PASSWORD"]
 missing_vars = [var for var in required_vars if not os.getenv(var)]
 
 if missing_vars:
