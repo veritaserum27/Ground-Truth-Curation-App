@@ -89,6 +89,7 @@ resource groundTruthSqlPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-
 }
 
 output serverName string = groundTruthSqlServer.name
+output serverId string = groundTruthSqlServer.id
 output serverFqdn string = groundTruthSqlServer.properties.fullyQualifiedDomainName
 output databaseName string = groundTruthSqlDatabase.name
 output privateEndpointId string = groundTruthSqlPrivateEndpoint.id

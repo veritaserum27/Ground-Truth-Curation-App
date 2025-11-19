@@ -89,6 +89,7 @@ resource systemSqlPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01
 }
 
 output serverName string = systemSqlServer.name
+output serverId string = systemSqlServer.id
 output serverFqdn string = systemSqlServer.properties.fullyQualifiedDomainName
 output databaseName string = systemSqlDatabase.name
 output privateEndpointId string = systemSqlPrivateEndpoint.id

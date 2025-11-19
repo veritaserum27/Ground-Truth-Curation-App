@@ -211,6 +211,26 @@ COSMOS_PRIVATE_ENDPOINT=$(az deployment group show \
     --name "$DEPLOYMENT_NAME" \
     --query properties.outputs.cosmosPrivateEndpointId.value -o tsv)
 
+BACKEND_APP_NAME=$(az deployment group show \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$DEPLOYMENT_NAME" \
+    --query properties.outputs.backendAppName.value -o tsv 2>/dev/null || echo "")
+
+FRONTEND_APP_NAME=$(az deployment group show \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$DEPLOYMENT_NAME" \
+    --query properties.outputs.frontendAppName.value -o tsv 2>/dev/null || echo "")
+
+BACKEND_APP_URL=$(az deployment group show \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$DEPLOYMENT_NAME" \
+    --query properties.outputs.backendAppUrl.value -o tsv 2>/dev/null || echo "")
+
+FRONTEND_APP_URL=$(az deployment group show \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$DEPLOYMENT_NAME" \
+    --query properties.outputs.frontendAppUrl.value -o tsv 2>/dev/null || echo "")
+
 ADMIN_FIREWALL_IP=$(az deployment group show \
     --resource-group "$RESOURCE_GROUP" \
     --name "$DEPLOYMENT_NAME" \
@@ -227,6 +247,61 @@ COSMOS_PRIMARY_KEY=$(az cosmosdb keys list \
     --name "$COSMOS_ACCOUNT" \
     --type keys \
     --query primaryMasterKey -o tsv)
+
+# Configure SQL database access for backend Managed Identity
+if [ -n "$BACKEND_APP_NAME" ]; then
+    echo ""
+    echo "🔐 Configuring SQL database access for backend Managed Identity..."
+
+    # Check if sqlcmd is available
+    if command -v sqlcmd &> /dev/null; then
+        echo "✅ sqlcmd found, configuring database roles..."
+
+        # Configure Ground Truth DB
+        echo "📝 Configuring access for $BACKEND_APP_NAME on Ground Truth Database..."
+        sqlcmd -S "$GROUND_TRUTH_SQL_SERVER" -d "$GROUND_TRUTH_DATABASE" -G -Q "
+            IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'$BACKEND_APP_NAME')
+            BEGIN
+                CREATE USER [$BACKEND_APP_NAME] FROM EXTERNAL PROVIDER;
+                PRINT 'Created user $BACKEND_APP_NAME';
+            END
+            ELSE
+            BEGIN
+                PRINT 'User $BACKEND_APP_NAME already exists';
+            END;
+
+            ALTER ROLE db_datareader ADD MEMBER [$BACKEND_APP_NAME];
+            ALTER ROLE db_datawriter ADD MEMBER [$BACKEND_APP_NAME];
+            PRINT 'Granted db_datareader and db_datawriter roles to $BACKEND_APP_NAME';
+        " 2>&1 | grep -v "Changed database context" || echo "⚠️  Ground Truth DB role assignment may have failed"
+
+        # Configure System DB
+        echo "📝 Configuring access for $BACKEND_APP_NAME on System Database..."
+        sqlcmd -S "$SYSTEM_SQL_SERVER" -d "$SYSTEM_DATABASE" -G -Q "
+            IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'$BACKEND_APP_NAME')
+            BEGIN
+                CREATE USER [$BACKEND_APP_NAME] FROM EXTERNAL PROVIDER;
+                PRINT 'Created user $BACKEND_APP_NAME';
+            END
+            ELSE
+            BEGIN
+                PRINT 'User $BACKEND_APP_NAME already exists';
+            END;
+
+            ALTER ROLE db_datareader ADD MEMBER [$BACKEND_APP_NAME];
+            ALTER ROLE db_datawriter ADD MEMBER [$BACKEND_APP_NAME];
+            PRINT 'Granted db_datareader and db_datawriter roles to $BACKEND_APP_NAME';
+        " 2>&1 | grep -v "Changed database context" || echo "⚠️  System DB role assignment may have failed"
+
+        echo "✅ SQL database access configured for backend Managed Identity"
+    else
+        echo "⚠️  sqlcmd not found. Skipping automatic SQL database access configuration."
+        echo "    Install sqlcmd to enable automatic configuration (see infra/deploy/README.md)"
+        echo ""
+        echo "    Or manually run the SQL script: infra/deploy/scripts/configure-backend-sql-access.sql"
+        echo "    Replace {{BACKEND_APP_NAME}} with: $BACKEND_APP_NAME"
+    fi
+fi
 
 # Update .env file with deployed infrastructure details
 echo "📝 Updating .env file with deployment details..."
@@ -272,6 +347,25 @@ COSMOS_PRIVATE_ENDPOINT=$COSMOS_PRIVATE_ENDPOINT
 SQL_FIREWALL_IP=$ADMIN_FIREWALL_IP
 SQL_FIREWALL_RULE_ENABLED=$SQL_FIREWALL_APPLIED
 
+# App Services
+EOF
+
+    if [ -n "$BACKEND_APP_NAME" ]; then
+        cat >> .env << EOF
+BACKEND_APP_NAME=$BACKEND_APP_NAME
+BACKEND_APP_URL=$BACKEND_APP_URL
+EOF
+    fi
+
+    if [ -n "$FRONTEND_APP_NAME" ]; then
+        cat >> .env << EOF
+FRONTEND_APP_NAME=$FRONTEND_APP_NAME
+FRONTEND_APP_URL=$FRONTEND_APP_URL
+EOF
+    fi
+
+    cat >> .env << EOF
+
 # Azure Resource Details
 AZURE_RESOURCE_GROUP=$RESOURCE_GROUP
 AZURE_LOCATION=$LOCATION
@@ -312,14 +406,35 @@ if [ "$SQL_FIREWALL_APPLIED" = "true" ]; then
 else
     echo "SQL Firewall Rule IP: (none - private endpoints only)"
 fi
+if [ -n "$BACKEND_APP_NAME" ]; then
+    echo "Backend App Service: $BACKEND_APP_NAME"
+    echo "Backend App URL: $BACKEND_APP_URL"
+fi
+if [ -n "$FRONTEND_APP_NAME" ]; then
+    echo "Frontend App Service: $FRONTEND_APP_NAME"
+    echo "Frontend App URL: $FRONTEND_APP_URL"
+fi
 echo "Resource Group: $RESOURCE_GROUP"
 echo "Location: $LOCATION"
 echo ""
 echo "📝 Next Steps:"
-echo "1. Run the table creation script: create-support-tickets-table.sql"
-echo "2. Import CSV data using: python import-support-tickets-csv.py"
-echo "3. Upload defects data using: python upload-defects-csv.py"
-echo "4. Update connection strings in your applications"
+if [ -n "$BACKEND_APP_NAME" ] || [ -n "$FRONTEND_APP_NAME" ]; then
+    echo "1. Deploy your applications to App Services:"
+    if [ -n "$BACKEND_APP_NAME" ]; then
+        echo "   - Backend: az webapp deploy --resource-group $RESOURCE_GROUP --name $BACKEND_APP_NAME --src-path <your-backend-zip>"
+    fi
+    if [ -n "$FRONTEND_APP_NAME" ]; then
+        echo "   - Frontend: az webapp deploy --resource-group $RESOURCE_GROUP --name $FRONTEND_APP_NAME --src-path <your-frontend-zip>"
+    fi
+    echo "2. Run the table creation script: create-support-tickets-table.sql"
+    echo "3. Import CSV data using: python import-support-tickets-csv.py"
+    echo "4. Upload defects data using: python upload-defects-csv.py"
+else
+    echo "1. Run the table creation script: create-support-tickets-table.sql"
+    echo "2. Import CSV data using: python import-support-tickets-csv.py"
+    echo "3. Upload defects data using: python upload-defects-csv.py"
+    echo "4. Update connection strings in your applications"
+fi
 echo ""
 echo "🔧 Connection Details:"
 echo "System SQL Server: $SYSTEM_SQL_SERVER"
