@@ -10,7 +10,8 @@ on:
         type: choice
         options:
         - staging
-        - production
+        - iac
+        - main
       include_sample_data:
         description: 'Include sample ground truth data (dev/test only)'
         required: false

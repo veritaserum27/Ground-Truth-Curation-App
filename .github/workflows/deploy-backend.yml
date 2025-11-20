@@ -1,9 +1,9 @@
-name: Deploy Backend
+name: deploy-backend
 
 on:
   push:
     branches:
-    - main
+    - iac
     paths:
     - 'backend/**'
     - '.github/workflows/deploy-backend.yml'

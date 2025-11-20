@@ -1,9 +1,9 @@
-name: Deploy Frontend
+name: deploy-frontend
 
 on:
   push:
     branches:
-    - main
+    - iac
     paths:
     - 'frontend/**'
     - '.github/workflows/deploy-frontend.yml'
