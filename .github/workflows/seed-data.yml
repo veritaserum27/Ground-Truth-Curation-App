@@ -1,0 +1,205 @@
+name: Seed Database Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      include_sample_data:
+        description: 'Include sample ground truth data (dev/test only)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  RESOURCE_NAME_PREFIX: ${{ vars.RESOURCE_NAME_PREFIX }}
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  seed:
+    name: Seed Databases
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'infra/seed/requirements.txt'
+
+      - name: Install Python dependencies
+        working-directory: infra/seed
+        run: |
+          echo "📦 Installing Python dependencies..."
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Get deployment outputs
+        id: outputs
+        run: |
+          echo "🔍 Retrieving deployment outputs..."
+          
+          # Get the latest deployment
+          DEPLOYMENT_NAME=$(az deployment group list \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "[?contains(name, '${{ env.RESOURCE_NAME_PREFIX }}-infra')] | [0].name" \
+            -o tsv)
+          
+          if [ -z "$DEPLOYMENT_NAME" ]; then
+            echo "❌ No infrastructure deployment found!"
+            echo "Please deploy infrastructure first using the deploy-infrastructure workflow."
+            exit 1
+          fi
+          
+          echo "Found deployment: $DEPLOYMENT_NAME"
+          
+          # Get connection details
+          SYSTEM_SQL_SERVER=$(az deployment group show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name "$DEPLOYMENT_NAME" \
+            --query "properties.outputs.systemSqlServerFqdn.value" \
+            -o tsv)
+          
+          SYSTEM_DB_NAME=$(az deployment group show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name "$DEPLOYMENT_NAME" \
+            --query "properties.outputs.systemDatabaseName.value" \
+            -o tsv)
+          
+          GT_SQL_SERVER=$(az deployment group show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name "$DEPLOYMENT_NAME" \
+            --query "properties.outputs.groundTruthSqlServerFqdn.value" \
+            -o tsv)
+          
+          GT_DB_NAME=$(az deployment group show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name "$DEPLOYMENT_NAME" \
+            --query "properties.outputs.groundTruthDatabaseName.value" \
+            -o tsv)
+          
+          COSMOS_ENDPOINT=$(az deployment group show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name "$DEPLOYMENT_NAME" \
+            --query "properties.outputs.cosmosDbAccountEndpoint.value" \
+            -o tsv)
+          
+          COSMOS_DB_NAME=$(az deployment group show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name "$DEPLOYMENT_NAME" \
+            --query "properties.outputs.cosmosDbDatabaseName.value" \
+            -o tsv)
+          
+          # Set outputs
+          echo "systemSqlServer=$SYSTEM_SQL_SERVER" >> $GITHUB_OUTPUT
+          echo "systemDbName=$SYSTEM_DB_NAME" >> $GITHUB_OUTPUT
+          echo "gtSqlServer=$GT_SQL_SERVER" >> $GITHUB_OUTPUT
+          echo "gtDbName=$GT_DB_NAME" >> $GITHUB_OUTPUT
+          echo "cosmosEndpoint=$COSMOS_ENDPOINT" >> $GITHUB_OUTPUT
+          echo "cosmosDbName=$COSMOS_DB_NAME" >> $GITHUB_OUTPUT
+          
+          echo "✅ Retrieved deployment outputs"
+
+      - name: Seed Ground Truth SQL Database
+        working-directory: infra/seed/groundtruth
+        run: |
+          echo "🌱 Seeding Ground Truth SQL Database..."
+          
+          # Get Azure CLI access token for SQL authentication
+          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net/ --query accessToken -o tsv)
+          
+          # Run seeding scripts
+          python seed_groundtruth.py \
+            --server "${{ steps.outputs.outputs.gtSqlServer }}" \
+            --database "${{ steps.outputs.outputs.gtDbName }}" \
+            --token "$ACCESS_TOKEN"
+          
+          echo "✅ Ground Truth database seeded"
+
+      - name: Seed System SQL Database
+        working-directory: infra/seed/sql
+        run: |
+          echo "🌱 Seeding System SQL Database..."
+          
+          # Get Azure CLI access token for SQL authentication
+          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net/ --query accessToken -o tsv)
+          
+          # Run seeding scripts
+          python seed_system_data.py \
+            --server "${{ steps.outputs.outputs.systemSqlServer }}" \
+            --database "${{ steps.outputs.outputs.systemDbName }}" \
+            --token "$ACCESS_TOKEN"
+          
+          echo "✅ System database seeded"
+
+      - name: Seed Cosmos DB
+        working-directory: infra/seed/cosmos
+        run: |
+          echo "🌱 Seeding Cosmos DB..."
+          
+          # Use Azure CLI credentials for Cosmos DB
+          python seed_cosmos.py \
+            --endpoint "${{ steps.outputs.outputs.cosmosEndpoint }}" \
+            --database "${{ steps.outputs.outputs.cosmosDbName }}"
+          
+          echo "✅ Cosmos DB seeded"
+
+      - name: Seed Sample Data (Optional)
+        if: ${{ github.event.inputs.include_sample_data == 'true' }}
+        working-directory: infra/seed/groundtruth
+        run: |
+          echo "🌱 Seeding sample ground truth data..."
+          
+          # Get Azure CLI access token for SQL authentication
+          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net/ --query accessToken -o tsv)
+          
+          # Run sample data seeding
+          python seed_sample_data.py \
+            --server "${{ steps.outputs.outputs.gtSqlServer }}" \
+            --database "${{ steps.outputs.outputs.gtDbName }}" \
+            --token "$ACCESS_TOKEN"
+          
+          echo "✅ Sample data seeded"
+
+      - name: Display seeding summary
+        run: |
+          echo "## 🎉 Database Seeding Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Resource Group**: ${{ env.AZURE_RESOURCE_GROUP }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Sample Data Included**: ${{ github.event.inputs.include_sample_data }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Databases Seeded" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Ground Truth SQL Database" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ System SQL Database" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Cosmos DB" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.include_sample_data }}" == "true" ]; then
+            echo "- ✅ Sample Ground Truth Data" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All databases seeded successfully!" >> $GITHUB_STEP_SUMMARY

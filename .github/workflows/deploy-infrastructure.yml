@@ -1,0 +1,186 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - '.github/workflows/deploy-infrastructure.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      skip_what_if:
+        description: 'Skip what-if validation'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+  RESOURCE_NAME_PREFIX: ${{ vars.RESOURCE_NAME_PREFIX }}
+
+jobs:
+  validate:
+    name: Validate Bicep Templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run Bicep linter
+        working-directory: infra/deploy
+        run: |
+          echo "🔍 Running Bicep linter..."
+          az bicep build --file main.bicep
+
+      - name: Run what-if analysis
+        if: ${{ !inputs.skip_what_if }}
+        working-directory: infra/deploy
+        run: |
+          echo "🔮 Running what-if deployment analysis..."
+          az deployment group what-if \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --template-file main.bicep \
+            --parameters @main.parameters.json \
+            --parameters resourceNamePrefix=${{ env.RESOURCE_NAME_PREFIX }} \
+            --parameters sqlAadAdministratorLogin=${{ vars.SQL_AAD_ADMIN_LOGIN }} \
+            --parameters sqlAadAdministratorObjectId=${{ vars.SQL_AAD_ADMIN_OBJECT_ID }} \
+            --parameters sqlAadAdministratorPrincipalType=${{ vars.SQL_AAD_ADMIN_PRINCIPAL_TYPE || 'User' }} \
+            --parameters sqlAadAdministratorTenantId=${{ secrets.AZURE_TENANT_ID }} \
+            --parameters adminClientIpAddress=${{ vars.ADMIN_CLIENT_IP_ADDRESS || '' }}
+
+  deploy:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    outputs:
+      backend_app_name: ${{ steps.deployment.outputs.backendAppName }}
+      frontend_app_name: ${{ steps.deployment.outputs.frontendAppName }}
+      resource_group: ${{ env.AZURE_RESOURCE_GROUP }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create resource group
+        run: |
+          echo "📦 Creating resource group '${{ env.AZURE_RESOURCE_GROUP }}' in '${{ env.AZURE_LOCATION }}'..."
+          az group create \
+            --name ${{ env.AZURE_RESOURCE_GROUP }} \
+            --location ${{ env.AZURE_LOCATION }} \
+            --output table
+
+      - name: Deploy Bicep template
+        id: deployment
+        working-directory: infra/deploy
+        run: |
+          echo "🚀 Deploying infrastructure..."
+          DEPLOYMENT_NAME="${{ env.RESOURCE_NAME_PREFIX }}-infra-$(date +%Y%m%d-%H%M%S)"
+          
+          az deployment group create \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --template-file main.bicep \
+            --parameters @main.parameters.json \
+            --parameters resourceNamePrefix=${{ env.RESOURCE_NAME_PREFIX }} \
+            --parameters sqlAadAdministratorLogin=${{ vars.SQL_AAD_ADMIN_LOGIN }} \
+            --parameters sqlAadAdministratorObjectId=${{ vars.SQL_AAD_ADMIN_OBJECT_ID }} \
+            --parameters sqlAadAdministratorPrincipalType=${{ vars.SQL_AAD_ADMIN_PRINCIPAL_TYPE || 'User' }} \
+            --parameters sqlAadAdministratorTenantId=${{ secrets.AZURE_TENANT_ID }} \
+            --parameters adminClientIpAddress=${{ vars.ADMIN_CLIENT_IP_ADDRESS || '' }} \
+            --name "$DEPLOYMENT_NAME" \
+            --mode Incremental \
+            --output json > deployment-output.json
+          
+          echo "✅ Deployment completed!"
+          
+          # Extract outputs
+          BACKEND_APP_NAME=$(jq -r '.properties.outputs.backendAppName.value' deployment-output.json)
+          FRONTEND_APP_NAME=$(jq -r '.properties.outputs.frontendAppName.value' deployment-output.json)
+          
+          echo "backendAppName=$BACKEND_APP_NAME" >> $GITHUB_OUTPUT
+          echo "frontendAppName=$FRONTEND_APP_NAME" >> $GITHUB_OUTPUT
+          
+          echo "📊 Deployment Outputs:"
+          echo "  Backend App: $BACKEND_APP_NAME"
+          echo "  Frontend App: $FRONTEND_APP_NAME"
+
+      - name: Display deployment summary
+        working-directory: infra/deploy
+        run: |
+          echo "## 🎉 Infrastructure Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Resource Group**: ${{ env.AZURE_RESOURCE_GROUP }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Location**: ${{ env.AZURE_LOCATION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ github.event.inputs.environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Resources" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse and display key outputs
+          BACKEND_APP=$(jq -r '.properties.outputs.backendAppName.value' deployment-output.json)
+          FRONTEND_APP=$(jq -r '.properties.outputs.frontendAppName.value' deployment-output.json)
+          BACKEND_URL=$(jq -r '.properties.outputs.backendAppUrl.value' deployment-output.json)
+          FRONTEND_URL=$(jq -r '.properties.outputs.frontendAppUrl.value' deployment-output.json)
+          SYSTEM_SQL=$(jq -r '.properties.outputs.systemSqlServerName.value' deployment-output.json)
+          GT_SQL=$(jq -r '.properties.outputs.groundTruthSqlServerName.value' deployment-output.json)
+          COSMOS=$(jq -r '.properties.outputs.cosmosDbAccountName.value' deployment-output.json)
+          
+          echo "- **Backend App Service**: [$BACKEND_APP]($BACKEND_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend App Service**: [$FRONTEND_APP]($FRONTEND_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "- **System SQL Server**: $SYSTEM_SQL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ground Truth SQL Server**: $GT_SQL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cosmos DB Account**: $COSMOS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All resources deployed successfully!" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployed resources..."
+          
+          # Check if backend app exists
+          BACKEND_STATE=$(az webapp show \
+            --name ${{ steps.deployment.outputs.backendAppName }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query state -o tsv)
+          echo "Backend App State: $BACKEND_STATE"
+          
+          # Check if frontend app exists
+          FRONTEND_STATE=$(az webapp show \
+            --name ${{ steps.deployment.outputs.frontendAppName }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query state -o tsv)
+          echo "Frontend App State: $FRONTEND_STATE"
+          
+          if [ "$BACKEND_STATE" != "Running" ] || [ "$FRONTEND_STATE" != "Running" ]; then
+            echo "⚠️ Warning: One or more App Services are not running yet."
+            echo "This is normal for new deployments. They will start when code is deployed."
+          else
+            echo "✅ All App Services are running!"
+          fi

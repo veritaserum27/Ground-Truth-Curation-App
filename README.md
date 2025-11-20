@@ -1,5 +1,9 @@
 # Ground Truth Curation App
 
+[![Deploy Infrastructure](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-infrastructure.yml/badge.svg)](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-infrastructure.yml)
+[![Deploy Backend](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-backend.yml)
+[![Deploy Frontend](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-frontend.yml)
+
 This application is a tool to curate contextualized ground truth entries for AI projects.
 The process is generic and applicable across data structures and problem domains.
 
