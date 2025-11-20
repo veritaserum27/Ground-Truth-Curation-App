@@ -35,6 +35,48 @@ The infrastructure creates:
 2. **Azure Subscription** - You'll need an active Azure subscription
 3. **Permissions** - Contributor access to create resources
 4. **Python 3.7+** - For running the CSV import script
+5. **SQL Server Command Line Tools (sqlcmd)** - Required for automatic App Service database access configuration
+
+   **Installing sqlcmd:**
+
+   **macOS:**
+
+   ```bash
+   brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+   brew update
+   brew install mssql-tools
+
+   # Add to PATH (add to ~/.zshrc or ~/.bash_profile to make permanent)
+   echo 'export PATH="/usr/local/opt/mssql-tools/bin:$PATH"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+   **Linux (Ubuntu/Debian):**
+
+   ```bash
+   curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+
+   # Ubuntu 20.04
+   sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+
+   # Ubuntu 22.04
+   sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/22.04/prod.list)"
+
+   sudo apt-get update
+   sudo apt-get install mssql-tools unixodbc-dev
+
+   # Add to PATH
+   echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+   **Verify installation:**
+
+   ```bash
+   sqlcmd -?
+   ```
+
+   **Note:** If sqlcmd is not installed, the deployment script will skip automatic SQL database access configuration for App Services. You can manually configure access using the SQL script at `infra/deploy/scripts/configure-backend-sql-access.sql`.
 
    **Option A: Use the automated setup script (Recommended)**
 
