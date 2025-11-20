@@ -3,10 +3,10 @@ name: Deploy Backend
 on:
   push:
     branches:
-      - main
+    - main
     paths:
-      - 'backend/**'
-      - '.github/workflows/deploy-backend.yml'
+    - 'backend/**'
+    - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
     inputs:
       environment:
@@ -15,8 +15,8 @@ on:
         default: 'staging'
         type: choice
         options:
-          - staging
-          - production
+        - staging
+        - production
 
 permissions:
   id-token: write
@@ -32,53 +32,53 @@ jobs:
     name: Build Backend
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
-          cache-dependency-path: 'backend/**/packages.lock.json'
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        cache: true
+        cache-dependency-path: 'backend/**/packages.lock.json'
 
-      - name: Restore dependencies
-        working-directory: backend
-        run: |
-          echo "📦 Restoring .NET dependencies..."
-          dotnet restore GroundTruthCuration.sln --locked-mode
+    - name: Restore dependencies
+      working-directory: backend
+      run: |
+        echo "📦 Restoring .NET dependencies..."
+        dotnet restore GroundTruthCuration.sln --locked-mode
 
-      - name: Build solution
-        working-directory: backend
-        run: |
-          echo "🔨 Building solution in Release configuration..."
-          dotnet build GroundTruthCuration.sln \
-            --configuration Release \
-            --no-restore
+    - name: Build solution
+      working-directory: backend
+      run: |
+        echo "🔨 Building solution in Release configuration..."
+        dotnet build GroundTruthCuration.sln \
+          --configuration Release \
+          --no-restore
 
-      - name: Publish API
-        working-directory: backend
-        run: |
-          echo "📤 Publishing API project..."
-          dotnet publish src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj \
-            --configuration Release \
-            --no-build \
-            --output ./publish
+    - name: Publish API
+      working-directory: backend
+      run: |
+        echo "📤 Publishing API project..."
+        dotnet publish src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj \
+          --configuration Release \
+          --no-build \
+          --output ./publish
 
-      - name: Create deployment package
-        working-directory: backend/publish
-        run: |
-          echo "📦 Creating zip deployment package..."
-          zip -r ../backend-api.zip .
-          cd ..
-          ls -lh backend-api.zip
+    - name: Create deployment package
+      working-directory: backend/publish
+      run: |
+        echo "📦 Creating zip deployment package..."
+        zip -r ../backend-api.zip .
+        cd ..
+        ls -lh backend-api.zip
 
-      - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-api-${{ github.sha }}
-          path: backend/backend-api.zip
-          retention-days: 7
+    - name: Upload deployment artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-api-${{ github.sha }}
+        path: backend/backend-api.zip
+        retention-days: 7
 
   deploy:
     name: Deploy Backend to Azure
@@ -86,80 +86,80 @@ jobs:
     needs: build
     environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
-      - name: Download deployment artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-api-${{ github.sha }}
-          path: ./deploy
+    - name: Download deployment artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-api-${{ github.sha }}
+        path: ./deploy
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to App Service
-        run: |
-          echo "🚀 Deploying backend API to Azure App Service..."
-          az webapp deployment source config-zip \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name ${{ env.BACKEND_APP_NAME }} \
-            --src ./deploy/backend-api.zip
-          
-          echo "✅ Deployment completed!"
+    - name: Deploy to App Service
+      run: |
+        echo "🚀 Deploying backend API to Azure App Service..."
+        az webapp deployment source config-zip \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --src ./deploy/backend-api.zip
 
-      - name: Wait for deployment
-        run: |
-          echo "⏳ Waiting for App Service to process deployment..."
-          sleep 30
+        echo "✅ Deployment completed!"
 
-      - name: Verify deployment
-        run: |
-          echo "🔍 Verifying backend deployment..."
-          
-          # Get the app URL
-          APP_URL=$(az webapp show \
-            --name ${{ env.BACKEND_APP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query defaultHostName -o tsv)
-          
-          echo "Backend URL: https://$APP_URL"
-          
-          # Check health endpoint
-          HEALTH_URL="https://$APP_URL/healthz"
-          echo "Checking health endpoint: $HEALTH_URL"
-          
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
-          
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Backend is healthy! (HTTP $HTTP_STATUS)"
-          else
-            echo "⚠️ Health check returned HTTP $HTTP_STATUS"
-            echo "The app may still be starting. Check Azure Portal for details."
-          fi
-          
-          # Display deployment summary
-          echo "## 🎉 Backend Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**App Name**: ${{ env.BACKEND_APP_NAME }}" >> $GITHUB_STEP_SUMMARY
-          echo "**URL**: [https://$APP_URL](https://$APP_URL)" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment**: ${{ github.event.inputs.environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Health Check**: $HEALTH_URL" >> $GITHUB_STEP_SUMMARY
-          echo "**Status**: HTTP $HTTP_STATUS" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Backend deployment successful and healthy!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Backend deployed but health check pending. Monitor in Azure Portal." >> $GITHUB_STEP_SUMMARY
-          fi
+    - name: Wait for deployment
+      run: |
+        echo "⏳ Waiting for App Service to process deployment..."
+        sleep 30
 
-      - name: Restart App Service
-        run: |
-          echo "🔄 Restarting App Service to ensure clean startup..."
-          az webapp restart \
-            --name ${{ env.BACKEND_APP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
-          
-          echo "✅ App Service restarted successfully!"
+    - name: Verify deployment
+      run: |
+        echo "🔍 Verifying backend deployment..."
+
+        # Get the app URL
+        APP_URL=$(az webapp show \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --query defaultHostName -o tsv)
+
+        echo "Backend URL: https://$APP_URL"
+
+        # Check health endpoint
+        HEALTH_URL="https://$APP_URL/healthz"
+        echo "Checking health endpoint: $HEALTH_URL"
+
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+
+        if [ "$HTTP_STATUS" -eq 200 ]; then
+          echo "✅ Backend is healthy! (HTTP $HTTP_STATUS)"
+        else
+          echo "⚠️ Health check returned HTTP $HTTP_STATUS"
+          echo "The app may still be starting. Check Azure Portal for details."
+        fi
+
+        # Display deployment summary
+        echo "## 🎉 Backend Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**App Name**: ${{ env.BACKEND_APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "**URL**: [https://$APP_URL](https://$APP_URL)" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment**: ${{ github.event.inputs.environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Health Check**: $HEALTH_URL" >> $GITHUB_STEP_SUMMARY
+        echo "**Status**: HTTP $HTTP_STATUS" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "$HTTP_STATUS" -eq 200 ]; then
+          echo "✅ Backend deployment successful and healthy!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Backend deployed but health check pending. Monitor in Azure Portal." >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Restart App Service
+      run: |
+        echo "🔄 Restarting App Service to ensure clean startup..."
+        az webapp restart \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+
+        echo "✅ App Service restarted successfully!"

@@ -191,12 +191,12 @@ graph LR
 
 ## 📊 Workflow Triggers
 
-| Workflow       | Automatic                | Manual | Trigger       |
-| -------------- | ------------------------ | ------ | ------------- |
-| Infrastructure | Push to `main` with `infra/**` changes | ✅ | After PR merge |
-| Backend        | Push to `main` with `backend/**` changes | ✅ | After PR merge |
-| Frontend       | Push to `main` with `frontend/**` changes | ✅ | After PR merge |
-| Seed Data      | ❌                        | ✅      | Manual only   |
+| Workflow       | Automatic                                 | Manual | Trigger        |
+| -------------- | ----------------------------------------- | ------ | -------------- |
+| Infrastructure | Push to `main` with `infra/**` changes    | ✅      | After PR merge |
+| Backend        | Push to `main` with `backend/**` changes  | ✅      | After PR merge |
+| Frontend       | Push to `main` with `frontend/**` changes | ✅      | After PR merge |
+| Seed Data      | ❌                                         | ✅      | Manual only    |
 
 **Note**: Deployment workflows run after PR approval and merge to `main`. Create separate lint/format/scan workflows to run when PRs are opened.
 

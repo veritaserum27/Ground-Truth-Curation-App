@@ -4,12 +4,12 @@ This directory contains GitHub Actions workflows for automated CI/CD of the Grou
 
 ## 📋 Workflows Overview
 
-| Workflow | Purpose | Triggers | Manual |
-|----------|---------|----------|--------|
-| [Deploy Infrastructure](#deploy-infrastructure) | Deploys Azure resources via Bicep | Push to `infra/**` | ✅ |
-| [Deploy Backend](#deploy-backend) | Builds and deploys .NET API | Push to `backend/**` | ✅ |
-| [Deploy Frontend](#deploy-frontend) | Builds and deploys React app | Push to `frontend/**` | ✅ |
-| [Seed Data](#seed-data) | Seeds databases with data | Manual only | ✅ |
+| Workflow                                        | Purpose                           | Triggers              | Manual |
+| ----------------------------------------------- | --------------------------------- | --------------------- | ------ |
+| [Deploy Infrastructure](#deploy-infrastructure) | Deploys Azure resources via Bicep | Push to `infra/**`    | ✅      |
+| [Deploy Backend](#deploy-backend)               | Builds and deploys .NET API       | Push to `backend/**`  | ✅      |
+| [Deploy Frontend](#deploy-frontend)             | Builds and deploys React app      | Push to `frontend/**` | ✅      |
+| [Seed Data](#seed-data)                         | Seeds databases with data         | Manual only           | ✅      |
 
 ## 🚀 Getting Started
 

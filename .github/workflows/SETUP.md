@@ -198,31 +198,31 @@ Navigate to your GitHub repository: **Settings → Secrets and variables → Act
 
 Create the following **Repository secrets**:
 
-| Secret Name | Description | How to Get |
-|-------------|-------------|------------|
-| `AZURE_CLIENT_ID` | Service principal application (client) ID | From Step 1.4 output |
-| `AZURE_TENANT_ID` | Azure AD tenant ID | Run: `az account show --query tenantId -o tsv` |
-| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID | Run: `az account show --query id -o tsv` |
+| Secret Name             | Description                               | How to Get                                     |
+| ----------------------- | ----------------------------------------- | ---------------------------------------------- |
+| `AZURE_CLIENT_ID`       | Service principal application (client) ID | From Step 1.4 output                           |
+| `AZURE_TENANT_ID`       | Azure AD tenant ID                        | Run: `az account show --query tenantId -o tsv` |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID                     | Run: `az account show --query id -o tsv`       |
 
 ### 2.2 Required Variables
 
 Create the following **Repository variables**:
 
-| Variable Name | Description | Example Value |
-|---------------|-------------|---------------|
-| `AZURE_RESOURCE_GROUP` | Resource group name for deployment | `brleight-ground-truth-app-rg` |
-| `AZURE_LOCATION` | Azure region for resources | `centralus` |
-| `RESOURCE_NAME_PREFIX` | Prefix for all Azure resources | `brleight` |
-| `SQL_AAD_ADMIN_LOGIN` | Azure AD admin email for SQL servers | `admin@contoso.com` |
-| `SQL_AAD_ADMIN_OBJECT_ID` | Azure AD admin object ID | Run: `az ad user show --id <email> --query id -o tsv` |
+| Variable Name             | Description                          | Example Value                                         |
+| ------------------------- | ------------------------------------ | ----------------------------------------------------- |
+| `AZURE_RESOURCE_GROUP`    | Resource group name for deployment   | `brleight-ground-truth-app-rg`                        |
+| `AZURE_LOCATION`          | Azure region for resources           | `centralus`                                           |
+| `RESOURCE_NAME_PREFIX`    | Prefix for all Azure resources       | `brleight`                                            |
+| `SQL_AAD_ADMIN_LOGIN`     | Azure AD admin email for SQL servers | `admin@contoso.com`                                   |
+| `SQL_AAD_ADMIN_OBJECT_ID` | Azure AD admin object ID             | Run: `az ad user show --id <email> --query id -o tsv` |
 
 ### 2.3 Optional Variables
 
-| Variable Name | Description | Default |
-|---------------|-------------|---------|
-| `SQL_AAD_ADMIN_PRINCIPAL_TYPE` | Type of SQL admin (User/Group/ServicePrincipal) | `User` |
-| `ADMIN_CLIENT_IP_ADDRESS` | Your IP for SQL firewall (leave empty for private endpoint only) | `` |
-| `APP_SERVICE_PLAN_SKU` | App Service Plan SKU | `B1` |
+| Variable Name                  | Description                                                      | Default |
+| ------------------------------ | ---------------------------------------------------------------- | ------- |
+| `SQL_AAD_ADMIN_PRINCIPAL_TYPE` | Type of SQL admin (User/Group/ServicePrincipal)                  | `User`  |
+| `ADMIN_CLIENT_IP_ADDRESS`      | Your IP for SQL firewall (leave empty for private endpoint only) | ``      |
+| `APP_SERVICE_PLAN_SKU`         | App Service Plan SKU                                             | `B1`    |
 
 ### 2.4 Getting Azure AD Admin Object ID
 
@@ -288,12 +288,12 @@ For production deployments with approval gates:
 
 ## Workflow Triggers
 
-| Workflow | Automatic Trigger | Manual Trigger |
-|----------|------------------|----------------|
-| Infrastructure | Push to `infra/**` | ✅ Yes |
-| Backend | Push to `backend/**` | ✅ Yes |
-| Frontend | Push to `frontend/**` | ✅ Yes |
-| Seed Data | ❌ No | ✅ Yes (manual only) |
+| Workflow       | Automatic Trigger     | Manual Trigger      |
+| -------------- | --------------------- | ------------------- |
+| Infrastructure | Push to `infra/**`    | ✅ Yes               |
+| Backend        | Push to `backend/**`  | ✅ Yes               |
+| Frontend       | Push to `frontend/**` | ✅ Yes               |
+| Seed Data      | ❌ No                  | ✅ Yes (manual only) |
 
 ## Troubleshooting
 
