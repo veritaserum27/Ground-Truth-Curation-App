@@ -2,13 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Ground Truth API (HTTPS)",
+            "name": "Ground Truth v1 API (HTTPS)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/backend/src/GroundTruthCuration.Api/bin/Debug/net8.0/GroundTruthCuration.Api.dll",
+            "program": "${workspaceFolder}/backend_v1/src/GroundTruthCuration.Api/bin/Debug/net8.0/GroundTruthCuration.Api.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/backend/src/GroundTruthCuration.Api",
+            "cwd": "${workspaceFolder}/backend_v1/src/GroundTruthCuration.Api",
             "stopAtEntry": false,
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
@@ -19,13 +19,13 @@
             "justMyCode": false
         },
         {
-            "name": "Ground Truth API (HTTP Only)",
+            "name": "Ground Truth v1 API (HTTP Only)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/backend/src/GroundTruthCuration.Api/bin/Debug/net8.0/GroundTruthCuration.Api.dll",
+            "program": "${workspaceFolder}/backend_v1/src/GroundTruthCuration.Api/bin/Debug/net8.0/GroundTruthCuration.Api.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/backend/src/GroundTruthCuration.Api",
+            "cwd": "${workspaceFolder}/backend_v1/src/GroundTruthCuration.Api",
             "stopAtEntry": false,
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
@@ -40,7 +40,7 @@
             "justMyCode": false
         },
         {
-            "name": "Ground Truth API (Terminal Debug)",
+            "name": "Ground Truth v1 API (Terminal Debug)",
             "type": "coreclr",
             "request": "attach",
             "processName": "GroundTruthCuration.Api"

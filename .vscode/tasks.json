@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/backend/GroundTruthCuration.sln",
+                "${workspaceFolder}/backend_v1/GroundTruthCuration.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -23,7 +23,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/backend/GroundTruthCuration.sln",
+                "${workspaceFolder}/backend_v1/GroundTruthCuration.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -41,7 +41,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/backend/src/GroundTruthCuration.Api"
+                "${workspaceFolder}/backend_v1/src/GroundTruthCuration.Api"
             ],
             "group": "build",
             "presentation": {
@@ -72,7 +72,7 @@
             "type": "process",
             "args": [
                 "clean",
-                "${workspaceFolder}/backend/GroundTruthCuration.sln",
+                "${workspaceFolder}/backend_v1/GroundTruthCuration.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
