@@ -4,7 +4,7 @@ This directory contains scripts and data for seeding all databases in the Ground
 
 ## 📁 Directory Structure
 
-```
+```text
 infra/seed/
 ├── README.md                    # This file
 ├── .env.example                 # Environment variable template
@@ -62,7 +62,7 @@ infra/seed/
 
 ### 1. Prerequisites
 
-- **Azure Resources Deployed**: SQL servers and Cosmos DB account must exist
+- **Azure Resources Deployed**: SQL servers and Cosmos DB account must exist (see the [deployment instructions](../README.md))
 - **Python 3.8+**: Required for running seed scripts
 - **Azure CLI**: For Azure AD authentication (`az login`)
 - **ODBC Driver 18 for SQL Server**: For SQL Server connectivity
@@ -79,6 +79,8 @@ This will:
 - Install all required dependencies from `requirements.txt`
 
 ### 3. Configure Environment Variables
+
+If you executed [../deploy/deploy.sh](../deploy/deploy.sh), the values required are populated in your `.env` in that directory.
 
 ```bash
 # Copy the example file
@@ -221,6 +223,7 @@ If you have existing scripts referencing the old folder structure:
 If you see "Driver not found" errors:
 
 **macOS**:
+
 ```bash
 brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
 brew update
@@ -228,6 +231,7 @@ brew install msodbcsql18
 ```
 
 **Ubuntu/Debian**:
+
 ```bash
 curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
 curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list
@@ -238,6 +242,7 @@ sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
 ### Azure AD Authentication Failed
 
 Ensure you're logged in to Azure CLI:
+
 ```bash
 az login
 az account show

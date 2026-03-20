@@ -126,7 +126,10 @@ BEGIN
     (
         tagId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
         name NVARCHAR(100) NOT NULL UNIQUE,
-        description NVARCHAR(MAX) NOT NULL
+        description NVARCHAR(MAX) NOT NULL,
+        creationDateTime DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        userCreated NVARCHAR(100) NULL,
+        userUpdated NVARCHAR(100) NULL
     );
 END
 
@@ -140,6 +143,7 @@ BEGIN
         groundTruthId UNIQUEIDENTIFIER NOT NULL,
         tagId UNIQUEIDENTIFIER NOT NULL,
         createdBy NVARCHAR(100) NOT NULL,
+        creationDateTime DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         PRIMARY KEY (groundTruthId, tagId),
         FOREIGN KEY (groundTruthId) REFERENCES GROUND_TRUTH_DEFINITION(groundTruthId),
         FOREIGN KEY (tagId) REFERENCES TAG(tagId)

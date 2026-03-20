@@ -73,7 +73,7 @@ The infrastructure creates:
    **Verify installation:**
 
    ```bash
-   sqlcmd -?
+   sqlcmd '-?'
    ```
 
    **Note:** If sqlcmd is not installed, the deployment script will skip automatic SQL database access configuration for App Services. You can manually configure access using the SQL script at `infra/deploy/scripts/configure-backend-sql-access.sql`.
@@ -81,7 +81,7 @@ The infrastructure creates:
    **Option A: Use the automated setup script (Recommended)**
 
    ```bash
-   # Run the setup script (creates virtual environment and installs dependencies)
+   # Run the setup script in `infra/seed (creates virtual environment and installs dependencies)
    ./setup.sh
 
    # After the script completes, activate the virtual environment

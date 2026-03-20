@@ -10,12 +10,12 @@ Scripts executed (in order):
 
 The tool reads SQL files from the directory containing this script by default.
 It follows the Microsoft quickstart for Azure SQL with Python by retrieving
-the ODBC connection string from the `AZURE_SQL_CONNECTIONSTRING`
+the ODBC connection string from the `GT_AZURE_SQL_CONNECTIONSTRING`
 environment variable (or `--connection-string` argument) and using
 passwordless authentication with Azure AD tokens.
 
 Usage example:
-    export AZURE_SQL_CONNECTIONSTRING='Driver={ODBC Driver 18 for SQL Server};\
+    export GT_AZURE_SQL_CONNECTIONSTRING='Driver={ODBC Driver 18 for SQL Server};\
         Server=tcp:myserver.database.windows.net,1433;\
         Database=GroundTruthDB;Encrypt=yes;TrustServerCertificate=no;\
         Connection Timeout=30'
@@ -80,7 +80,7 @@ def parse_arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
         type=str,
         help=(
             "ODBC connection string for Azure SQL. When omitted, the script "
-            "uses the AZURE_SQL_CONNECTIONSTRING environment variable."
+            "uses the GT_AZURE_SQL_CONNECTIONSTRING environment variable."
         ),
     )
     parser.add_argument(

@@ -114,8 +114,7 @@ print_success "Python $(python --version) activated"
 
 # Check required packages
 print_info "Checking required packages..."
-python -c "import pyodbc, azure.cosmos, azure.identity, dotenv" 2>/dev/null
-if [ $? -ne 0 ]; then
+if ! python -c "import pyodbc, azure.cosmos, azure.identity, dotenv" 2>/dev/null; then
     print_error "Required Python packages not installed!"
     echo ""
     echo "Please run ./setup.sh to install dependencies."

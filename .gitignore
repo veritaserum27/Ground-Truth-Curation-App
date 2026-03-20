@@ -72,4 +72,6 @@ lerna-debug.log*
 .env.production.local
 .react-router/
 
+# Virtual Environments
+.venv/
 

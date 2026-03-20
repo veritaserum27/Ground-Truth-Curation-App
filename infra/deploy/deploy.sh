@@ -449,4 +449,6 @@ echo "💰 Billing Note: Cosmos DB is configured for serverless (consumption-bas
 echo "   You only pay for Request Units (RUs) consumed and storage used."
 echo ""
 echo "⚠️  Security Note: This deployment uses hackathon-friendly settings"
-echo "   (open firewall, public access). Review security for production use."
+echo "   - SQL Servers: Public network access enabled with IP firewall rules"
+echo "   - Private endpoints deployed for app-to-database traffic"
+echo "   - For production: Set publicNetworkAccess='Disabled' in SQL modules"
