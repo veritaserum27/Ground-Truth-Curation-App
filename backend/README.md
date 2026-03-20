@@ -45,6 +45,57 @@ We use three projects to adhere to the [Clean Architecture approach](https://lea
 - .NET 8 SDK
 - Docker Desktop (for container build/run)
 - (Optional) Azure CLI if you want to manually interact with the deployed Container App.
+- Copy `appsettings.json` and rename the new file as `appsettings.development.json`. Update the connection string details with real secret values. If you executed
+[deploy.sh](../infra/deploy/deploy.sh), you will find the values you need in the `.env` file in that directory.
+- This application uses Azure AD token-based authentication to connect to SQL. Connect to each of your SQL databases (not master) and execute the following commands to grant access:
+
+```SQL
+-- Create the user for your Azure AD account
+CREATE USER [youruser@yourdomain.com] FROM EXTERNAL PROVIDER;
+GO
+
+-- Grant read/write permissions
+ALTER ROLE db_datareader ADD MEMBER [youruser@yourdomain.com];
+ALTER ROLE db_datawriter ADD MEMBER [youruser@yourdomain.com];
+GO
+
+-- Optional: If you need to execute stored procedures
+ALTER ROLE db_ddladmin ADD MEMBER [youruser@yourdomain.com];
+GO
+```
+
+### Troubleshooting Database Connection Issues
+
+**Common Setup Problems:**
+
+1. **"Database not found" error (SQL Error 4060)**
+   - ❌ **Symptom:** `Cannot open database 'DatabaseName' requested by the
+     login`
+   - ✅ **Fix:** Verify the database name in your
+     `appsettings.development.json` matches the actual database name in Azure
+   - Check logs for: `📊 GroundTruthRepository configured: Server=...,
+     Database=...`
+   - Verify database exists: Connect to SQL Server with Azure Data Studio or
+     VS Code SQL extension
+
+2. **"Authentication failed" error (SQL Error 18456)**
+   - ❌ **Symptom:** `Login failed for user '<token-identified principal>'`
+   - ✅ **Fix:** Ensure you ran the SQL user creation commands above
+   - Verify you're logged in: `az account show`
+   - Recreate the database user if needed (drop and recreate)
+
+3. **"Access token acquisition failed"**
+   - ❌ **Symptom:** Token-related errors before SQL connection attempt
+   - ✅ **Fix:** Run `az login` and verify: `az account get-access-token
+     --resource https://database.windows.net/`
+
+**Startup Checklist:**
+
+- [ ] Azure CLI logged in (`az account show`)
+- [ ] Connection strings updated in `appsettings.development.json`
+- [ ] Database names match actual Azure databases
+- [ ] SQL user created in each database (not in `master`)
+- [ ] Roles granted (`db_datareader`, `db_datawriter`)
 
 ## Restore & Build Locally
 

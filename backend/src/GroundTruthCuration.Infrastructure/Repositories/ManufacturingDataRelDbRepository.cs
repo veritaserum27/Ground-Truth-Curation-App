@@ -6,6 +6,7 @@ using GroundTruthCuration.Core.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using GroundTruthCuration.Infrastructure.Utilities;
 
 namespace GroundTruthCuration.Infrastructure.Repositories;
 
@@ -34,12 +35,10 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
         }
 
         var query = buildQueryFromDataQueryDefinition(dataQueryDefinition);
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
             try
             {
-                await connection.OpenAsync();
-
                 DynamicParameters? dapperParams = parameters switch
                 {
                     null => null, // no parameters, execute "plain" query
@@ -82,11 +81,10 @@ public class ManufacturingDataRelDbRepository : IDatastoreRepository
             LastChecked = DateTime.UtcNow
         };
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
             try
             {
-                await connection.OpenAsync();
                 status.IsConnected = true;
             }
             catch (Exception ex)

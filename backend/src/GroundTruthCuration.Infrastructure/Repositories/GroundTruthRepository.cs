@@ -9,6 +9,7 @@ using System;
 using GroundTruthCuration.Core.DTOs;
 using GroundTruthCuration.Core.Constants;
 using Microsoft.Extensions.Logging;
+using GroundTruthCuration.Infrastructure.Utilities;
 
 namespace GroundTruthCuration.Infrastructure.Repositories;
 
@@ -34,6 +35,20 @@ public class GroundTruthRepository : IGroundTruthRepository
 
         _connectionString = _configuration.GetValue<string>("Datastores:GroundTruthCuration:ConnectionString")
                             ?? throw new InvalidOperationException("The connection string 'Datastores:GroundTruthCuration:ConnectionString' is null or missing.");
+        
+        // Log connection configuration for troubleshooting
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(_connectionString);
+            _logger.LogInformation("📊 GroundTruthRepository configured: Server={Server}, Database={Database}, Auth={Auth}",
+                builder.DataSource,
+                builder.InitialCatalog,
+                builder.Authentication);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not parse connection string for logging");
+        }
     }
 
     /// <inheritdoc/>
@@ -53,11 +68,10 @@ public class GroundTruthRepository : IGroundTruthRepository
             LastChecked = DateTime.UtcNow
         };
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
             try
             {
-                await connection.OpenAsync();
                 status.IsConnected = true;
             }
             catch (Exception ex)
@@ -109,7 +123,7 @@ public class GroundTruthRepository : IGroundTruthRepository
         sql += ";";
 
         // connect to database
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
             try
             {
@@ -145,7 +159,7 @@ public class GroundTruthRepository : IGroundTruthRepository
 
         try
         {
-            using (var connection = new SqlConnection(_connectionString))
+            using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
             {
                 var groundTruthDict = new Dictionary<Guid, GroundTruthDefinition>();
 
@@ -202,9 +216,8 @@ public class GroundTruthRepository : IGroundTruthRepository
         }
 
         // does this entry already exist?
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
-            await connection.OpenAsync();
             using (var transaction = await connection.BeginTransactionAsync())
             {
                 try
@@ -281,9 +294,8 @@ public class GroundTruthRepository : IGroundTruthRepository
             throw new ArgumentException("The ground truth ID in the data query definition cannot be an empty GUID.", nameof(dataQueryDefinition));
         }
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
-            await connection.OpenAsync();
             using (var transaction = await connection.BeginTransactionAsync())
             {
                 try
@@ -341,9 +353,8 @@ public class GroundTruthRepository : IGroundTruthRepository
             throw new ArgumentException("The ground truth ID in the data query definition cannot be an empty GUID.", nameof(dataQueryDefinition));
         }
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
-            await connection.OpenAsync();
             using (var transaction = await connection.BeginTransactionAsync())
             {
                 try
@@ -392,9 +403,8 @@ public class GroundTruthRepository : IGroundTruthRepository
             throw new ArgumentException("The data query IDs collection cannot be null or empty.", nameof(dataQueryIds));
         }
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
-            await connection.OpenAsync();
             try
             {
                 using (var transaction = await connection.BeginTransactionAsync())
@@ -425,9 +435,8 @@ public class GroundTruthRepository : IGroundTruthRepository
             throw new ArgumentNullException(nameof(newContext), "The new context cannot be null.");
         }
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
-            await connection.OpenAsync();
             using (var transaction = await connection.BeginTransactionAsync())
             {
                 try
@@ -503,9 +512,8 @@ public class GroundTruthRepository : IGroundTruthRepository
             throw new ArgumentException("The ground truth entry IDs collection cannot be null or empty.", nameof(groundTruthEntryIds));
         }
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
-            await connection.OpenAsync();
             using (var transaction = await connection.BeginTransactionAsync())
             {
                 try
@@ -555,9 +563,8 @@ public class GroundTruthRepository : IGroundTruthRepository
             throw new InvalidOperationException("The context ID cannot be an empty GUID.");
         }
 
-        using (var connection = new SqlConnection(_connectionString))
+        using (var connection = await SqlConnectionHelper.CreateAndOpenConnectionAsync(_connectionString, _logger))
         {
-            await connection.OpenAsync();
             using (var transaction = await connection.BeginTransactionAsync())
             {
                 try
