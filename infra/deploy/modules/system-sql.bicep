@@ -24,7 +24,7 @@ resource systemSqlServer 'Microsoft.Sql/servers@2024-11-01-preview' = {
       principalType: sqlAadAdministratorPrincipalType
       sid: sqlAadAdministratorObjectId
       tenantId: sqlAadAdministratorTenantId
-      azureADOnlyAuthentication: true
+      azureADOnlyAuthentication: false
     }
   }
 }

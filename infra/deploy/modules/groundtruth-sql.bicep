@@ -24,7 +24,7 @@ resource groundTruthSqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
       principalType: sqlAadAdministratorPrincipalType
       sid: sqlAadAdministratorObjectId
       tenantId: sqlAadAdministratorTenantId
-      azureADOnlyAuthentication: true
+      azureADOnlyAuthentication: false
     }
   }
 }
