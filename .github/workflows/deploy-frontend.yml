@@ -88,7 +88,7 @@ jobs:
             "name": "ground-truth-frontend",
             "version": "1.0.0",
             "scripts": {
-              "start": "npx serve -s . -l 8080"
+              "start": "serve -s . -l 8080"
             },
             "dependencies": {
               "serve": "^14.2.0"
@@ -96,12 +96,11 @@ jobs:
           }
           PACKAGEEOF
 
-          # Create startup script for Node.js hosting
-          cat > ../deploy-package/startup.sh << 'STARTUPEOF'
-          #!/bin/bash
-          npx serve -s . -l 8080
-          STARTUPEOF
-          chmod +x ../deploy-package/startup.sh
+          # Install dependencies for deployment
+          echo "📥 Installing runtime dependencies..."
+          cd ../deploy-package
+          npm install --production --no-optional
+          cd ../frontend
 
           echo "✅ Deployment package prepared"
           ls -la ../deploy-package/
@@ -143,10 +142,12 @@ jobs:
       - name: Deploy to App Service
         run: |
           echo "🚀 Deploying frontend to Azure App Service..."
-          az webapp deployment source config-zip \
+          az webapp deploy \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --name ${{ env.FRONTEND_APP_NAME }} \
-            --src ./deploy/frontend-app.zip
+            --src-path ./deploy/frontend-app.zip \
+            --type zip \
+            --async false
 
           echo "✅ Deployment completed!"
 
