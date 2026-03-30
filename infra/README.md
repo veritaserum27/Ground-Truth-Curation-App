@@ -104,6 +104,39 @@ The infrastructure creates:
    pip install -r infra/requirements.txt
    ```
 
+## GitHub Actions Deployment Setup
+
+To enable automated deployments from GitHub Actions to Azure using OIDC authentication (no secrets stored), you need to configure Azure AD app registration and federated identity credentials.
+
+### One-Time Setup
+
+1. **Run the OIDC setup script**:
+
+   ```bash
+   cd infra/deploy/scripts
+   ./setup-github-oidc.sh
+   ```
+
+   This script will:
+   - Create an Azure AD app registration for GitHub OIDC authentication
+   - Configure federated identity credentials for `staging` and `production` environments
+   - Assign Contributor role to the service principal on your subscription
+   - Output the values needed for GitHub secrets
+
+2. **GitHub Repository Setup**:
+
+   Follow the [instructions](../README.md#deployment-to-azure) to deploy to Azure.
+
+### How It Works
+
+The GitHub Actions workflows use **OpenID Connect (OIDC)** to authenticate with Azure:
+- No client secrets are stored in GitHub
+- GitHub issues a short-lived token for each workflow run
+- Azure validates the token against the federated identity credentials
+- The token includes claims like `repo`, `environment`, and `ref` that must match exactly
+
+For more information, see [Azure's OIDC documentation](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure).
+
 ## Quick Deployment
 
 ### Prerequisites
@@ -369,73 +402,6 @@ When Azure Policy enforces `publicNetworkAccess: 'Disabled'`:
 3. **Develop normally**: All database connections work transparently
 4. **Stop development**: Press Ctrl+C in tunnel terminal to close connections
 
-### Cost Management
-
-To minimize costs when not actively developing:
-
-```bash
-# Deallocate VM when done for the day (stops billing for compute)
-az vm deallocate --resource-group gt-mar-2-ground-truth-app-rg --name dev-jumpbox
-
-# Restart VM when you need it
-az vm start --resource-group gt-mar-2-ground-truth-app-rg --name dev-jumpbox
-```
-
-**Billing when deallocated:** Only storage (~$2/month for OS disk) - compute charges stop.
-
-### Cleanup Jumpbox
-
-To completely remove the jumpbox when you no longer need it:
-
-```bash
-az vm delete --resource-group gt-mar-2-ground-truth-app-rg --name dev-jumpbox --yes
-az disk list --resource-group gt-mar-2-ground-truth-app-rg --query "[?contains(name, 'dev-jumpbox')]" -o table
-# Delete any remaining disks if needed
-```
-
-### Troubleshooting SSH Tunnel Connection
-
-If the tunnel script fails or SSH times out:
-
-1. **Verify jumpbox is running:**
-
-   ```bash
-   az vm show -g gt-mar-2-ground-truth-app-rg -n dev-jumpbox -d --query "{Name:name, PowerState:powerState, PublicIP:publicIps}"
-   ```
-
-2. **Check NSG rule was created:**
-
-   ```bash
-   az network nsg rule show --resource-group gt-mar-2-ground-truth-app-rg \
-     --nsg-name gt-mar-2-vnet-data-services-nsg-centralus \
-     --name AllowSSHFromAdmin
-   ```
-
-   If missing or your IP changed, re-run `./quickstart-jumpbox.sh` to update it.
-
-3. **Test SSH connectivity directly:**
-
-   ```bash
-   VM_IP=$(az vm show -g gt-mar-2-ground-truth-app-rg -n dev-jumpbox -d --query publicIps -o tsv)
-   ssh -o ConnectTimeout=5 azureuser@$VM_IP "echo 'SSH works!'"
-   ```
-
-4. **Manual NSG fix (if needed):**
-
-   ```bash
-   MY_IP=$(curl -s https://api.ipify.org)
-   az network nsg rule create \
-     --resource-group gt-mar-2-ground-truth-app-rg \
-     --nsg-name gt-mar-2-vnet-data-services-nsg-centralus \
-     --name AllowSSHFromAdmin \
-     --priority 100 \
-     --direction Inbound \
-     --access Allow \
-     --protocol Tcp \
-     --source-address-prefixes $MY_IP \
-     --destination-port-ranges 22
-   ```
-
 ## Troubleshooting
 
 ### Common Issues
@@ -453,7 +419,7 @@ If the tunnel script fails or SSH times out:
    - **Alternative detection:** `curl -s ipinfo.io/ip` (may differ from Azure's perspective if behind corporate NAT)
    - **Add to firewall:** Azure Portal → SQL Server → Security → Networking → Add firewall rule with the IP from the error message
    - **Important:** Your public IP detected by tools like `ipinfo.io` may differ from your outbound IP to Azure if you're behind corporate NAT/proxy. Always use the IP shown in SQL Server error messages.
-   - Apply the same rule to both SQL servers: `gt-mar-2-ground-truth-curation-sql` and `gt-mar-2-gt-system-data-sql`
+   - Apply the same rule to both SQL servers: `{prefix}-ground-truth-curation-sql` and `{prefix}-gt-system-data-sql`
    - Wait 2-3 minutes for firewall rules to propagate
 
 ### Cleanup
@@ -461,7 +427,7 @@ If the tunnel script fails or SSH times out:
 To remove all resources:
 
 ```bash
-az group delete --name ground-truth-app-rg --yes --no-wait
+az group delete --name <resource group name> --yes --no-wait
 ```
 
 ## Cost Estimation
@@ -492,12 +458,12 @@ The infrastructure includes a serverless Azure Cosmos DB account with:
 - **Automatic indexing**: All properties are indexed by default for flexible queries
 - **Global accessibility**: NoSQL API compatible with MongoDB, SQL queries, and REST APIs
 - **Hackathon-friendly**: Open public access for easy development
-- **Deterministic naming**: `gt-system-data-cosmos` for predictable resource management
+- **Deterministic naming**: `{prefix}-system-data-cosmos` for predictable resource management
 
 ### Cosmos DB Connection Information
 After deployment, you'll get:
-- Cosmos DB Account Name: `gt-system-data-cosmos`
-- Endpoint: `https://gt-system-data-cosmos.documents.azure.com:443/`
+- Cosmos DB Account Name: `{prefix}-system-data-cosmos`
+- Endpoint: `https://{prefix}-system-data-cosmos.documents.azure.com:443/`
 - Primary keys available through Azure portal or CLI
 
 ### Data Upload
