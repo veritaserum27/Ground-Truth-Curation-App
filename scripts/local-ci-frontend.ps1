@@ -3,7 +3,7 @@
 # Local CI emulation script for Frontend
 # Mimics the GitHub Actions ci-frontend.yml workflow
 #
-# Prerequisites: Node.js 20+, pnpm 8+
+# Prerequisites: Node.js 20+, pnpm 9+
 # Usage: ./scripts/local-ci-frontend.ps1
 #
 
@@ -30,14 +30,16 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Node.js not found. Install Node.js 20+";
 
 Write-Host "[CI-LOCAL] pnpm --version" -ForegroundColor Yellow
 $pnpmVersion = & pnpm --version 2>$null
+$requiredPnpmVersion = "9"  # lockfileVersion 9.0 requires pnpm 9.x
+
 if ($LASTEXITCODE -ne 0) { 
-  Write-Host "pnpm not found. Installing pnpm 8.x via npm..." -ForegroundColor Yellow
-  npm install -g pnpm@8
+  Write-Host "pnpm not found. Installing pnpm $requiredPnpmVersion.x via npm..." -ForegroundColor Yellow
+  npm install -g pnpm@$requiredPnpmVersion
   if ($LASTEXITCODE -ne 0) { Write-Error "Failed to install pnpm"; exit 1 }
-} elseif ($pnpmVersion -and $pnpmVersion.StartsWith("10.")) {
-  Write-Host "pnpm $pnpmVersion detected. This lockfile requires pnpm 8.x. Downgrading..." -ForegroundColor Yellow
-  npm install -g pnpm@8
-  if ($LASTEXITCODE -ne 0) { Write-Error "Failed to downgrade pnpm"; exit 1 }
+} elseif ($pnpmVersion -and -not $pnpmVersion.StartsWith("$requiredPnpmVersion.")) {
+  Write-Host "pnpm $pnpmVersion detected. This lockfile requires pnpm $requiredPnpmVersion.x. Updating..." -ForegroundColor Yellow
+  npm install -g pnpm@$requiredPnpmVersion --force
+  if ($LASTEXITCODE -ne 0) { Write-Error "Failed to update pnpm"; exit 1 }
 }
 
 # Verify final version
