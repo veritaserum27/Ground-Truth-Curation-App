@@ -102,10 +102,13 @@ jobs:
     - name: Deploy to App Service
       run: |
         echo "🚀 Deploying backend API to Azure App Service..."
-        az webapp deployment source config-zip \
+
+        # Use the supported ZIP deploy command (replaces deprecated config-zip)
+        az webapp deploy \
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
           --name ${{ env.BACKEND_APP_NAME }} \
-          --src ./deploy/backend-api.zip
+          --src-path ./deploy/backend-api.zip \
+          --type zip
 
         echo "✅ Deployment completed!"
 
