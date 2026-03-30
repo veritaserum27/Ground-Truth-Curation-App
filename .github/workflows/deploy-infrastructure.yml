@@ -36,6 +36,7 @@ jobs:
   validate:
     name: Validate Bicep Templates
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
