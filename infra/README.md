@@ -342,14 +342,119 @@ The script will prompt for:
 
 Successfully imports all 48,900 records from the Support_tickets.csv file.
 
+## Working with Restrictive Subscription Policies
+
+If your Azure subscription has policies that **automatically disable public network access** on SQL Servers and Cosmos DB (typically seen in enterprise subscriptions), you won't be able to connect to your databases from your local development machine using standard connection strings.
+
+### The Problem
+
+When Azure Policy enforces `publicNetworkAccess: 'Disabled'`:
+- SQL Server firewall rules cannot be created or modified
+- Direct connections from your local machine fail with error **47073** (DenyPublicEndpointEnabled)
+- The policy automatically remediates any manual changes within 15-60 minutes
+- Only connections from within the Azure VNet are allowed
+
+### The Solution: Update Network Settings in Azure Portal
+
+1. Navigate to the Ground Truth Curation SQL Server resource in Azure Portal.
+2. Under `Networking > Public Access` select `Selected networks`.
+3. Add your client IPv3 Address.
+
+**Note:** Cosmos DB connections still use the public endpoint with access keys - no tunnel needed.
+
+### Daily Development Workflow
+
+1. **Update Network Policty**: Confirm that your IP address is listed in the allowed networks list or add it if needed
+2. **Start backend**: `dotnet run` in a separate terminal
+3. **Develop normally**: All database connections work transparently
+4. **Stop development**: Press Ctrl+C in tunnel terminal to close connections
+
+### Cost Management
+
+To minimize costs when not actively developing:
+
+```bash
+# Deallocate VM when done for the day (stops billing for compute)
+az vm deallocate --resource-group gt-mar-2-ground-truth-app-rg --name dev-jumpbox
+
+# Restart VM when you need it
+az vm start --resource-group gt-mar-2-ground-truth-app-rg --name dev-jumpbox
+```
+
+**Billing when deallocated:** Only storage (~$2/month for OS disk) - compute charges stop.
+
+### Cleanup Jumpbox
+
+To completely remove the jumpbox when you no longer need it:
+
+```bash
+az vm delete --resource-group gt-mar-2-ground-truth-app-rg --name dev-jumpbox --yes
+az disk list --resource-group gt-mar-2-ground-truth-app-rg --query "[?contains(name, 'dev-jumpbox')]" -o table
+# Delete any remaining disks if needed
+```
+
+### Troubleshooting SSH Tunnel Connection
+
+If the tunnel script fails or SSH times out:
+
+1. **Verify jumpbox is running:**
+
+   ```bash
+   az vm show -g gt-mar-2-ground-truth-app-rg -n dev-jumpbox -d --query "{Name:name, PowerState:powerState, PublicIP:publicIps}"
+   ```
+
+2. **Check NSG rule was created:**
+
+   ```bash
+   az network nsg rule show --resource-group gt-mar-2-ground-truth-app-rg \
+     --nsg-name gt-mar-2-vnet-data-services-nsg-centralus \
+     --name AllowSSHFromAdmin
+   ```
+
+   If missing or your IP changed, re-run `./quickstart-jumpbox.sh` to update it.
+
+3. **Test SSH connectivity directly:**
+
+   ```bash
+   VM_IP=$(az vm show -g gt-mar-2-ground-truth-app-rg -n dev-jumpbox -d --query publicIps -o tsv)
+   ssh -o ConnectTimeout=5 azureuser@$VM_IP "echo 'SSH works!'"
+   ```
+
+4. **Manual NSG fix (if needed):**
+
+   ```bash
+   MY_IP=$(curl -s https://api.ipify.org)
+   az network nsg rule create \
+     --resource-group gt-mar-2-ground-truth-app-rg \
+     --nsg-name gt-mar-2-vnet-data-services-nsg-centralus \
+     --name AllowSSHFromAdmin \
+     --priority 100 \
+     --direction Inbound \
+     --access Allow \
+     --protocol Tcp \
+     --source-address-prefixes $MY_IP \
+     --destination-port-ranges 22
+   ```
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **"Location not available"** - Change location in parameters file to `westus2`
 2. **"Server name already exists"** - The script uses uniqueString() to avoid conflicts
-3. **"Firewall blocking connection"** - Confirm that your IP was detected or provide `ADMIN_CLIENT_IP`; otherwise connect from a resource inside the VNet.
+3. **"Firewall blocking connection"** or **Error 47073 (DenyPublicEndpointEnabled)**:
+   - If your subscription has Azure Policies that disable public network access, you cannot use firewall rules
+   - See [Working with Restrictive Subscription Policies](#working-with-restrictive-subscription-policies) for the SSH tunnel workaround
+   - If public access is allowed: Confirm that your IP was detected or provide `ADMIN_CLIENT_IP`
 4. **"Authentication failed"** - Use SQL Server authentication (not Azure AD) for import scripts
+5. **SQL Error 40615 - "Client with IP address 'X.X.X.X' is not allowed"**:
+   - Your outbound IP to Azure isn't in the SQL firewall rules
+   - **Find your outbound IP:** Try connecting - the error message shows the exact IP Azure sees
+   - **Alternative detection:** `curl -s ipinfo.io/ip` (may differ from Azure's perspective if behind corporate NAT)
+   - **Add to firewall:** Azure Portal → SQL Server → Security → Networking → Add firewall rule with the IP from the error message
+   - **Important:** Your public IP detected by tools like `ipinfo.io` may differ from your outbound IP to Azure if you're behind corporate NAT/proxy. Always use the IP shown in SQL Server error messages.
+   - Apply the same rule to both SQL servers: `gt-mar-2-ground-truth-curation-sql` and `gt-mar-2-gt-system-data-sql`
+   - Wait 2-3 minutes for firewall rules to propagate
 
 ### Cleanup
 

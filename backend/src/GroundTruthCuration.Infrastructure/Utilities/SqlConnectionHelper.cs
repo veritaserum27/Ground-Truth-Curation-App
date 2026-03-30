@@ -43,13 +43,34 @@ public static class SqlConnectionHelper
         {
             logger?.LogInformation("Using Active Directory Interactive authentication (same as VS Code SQL extension)");
             var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync(cancellationToken);
+            try
+            {
+                await connection.OpenAsync(cancellationToken);
 
-            logger?.LogInformation("SQL connection opened successfully to {Server}/{Database}",
-                builder.DataSource,
-                builder.InitialCatalog);
+                logger?.LogInformation("SQL connection opened successfully to {Server}/{Database}",
+                    builder.DataSource,
+                    builder.InitialCatalog);
 
-            return connection;
+                return connection;
+            }
+            catch (SqlException sqlEx) when (sqlEx.Number == 47073)
+            {
+                logger?.LogError(sqlEx, "Failed to open SQL connection with Active Directory Interactive authentication (error 47073)");
+                throw new InvalidOperationException(
+                    "Failed to connect to SQL Server using Active Directory Interactive authentication. " +
+                    "Ensure you have the necessary networking permissions to allow access to the SQL Server for local development. " +
+                    $"Error: {sqlEx.Message}",
+                    sqlEx);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Failed to open SQL connection with Active Directory Interactive authentication");
+                throw new InvalidOperationException(
+                    "Failed to connect to SQL Server using Active Directory Interactive authentication. " +
+                    "Ensure you have the necessary tools installed and configured for interactive auth. " +
+                    $"Error: {ex.Message}",
+                    ex);
+            }
         }
 
         // Otherwise, use token-based authentication
