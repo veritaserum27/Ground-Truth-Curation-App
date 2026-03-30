@@ -30,7 +30,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Node.js not found. Install Node.js 20+";
 
 Write-Host "[CI-LOCAL] pnpm --version" -ForegroundColor Yellow
 $pnpmVersion = & pnpm --version 2>$null
-$requiredPnpmVersion = "9"  # lockfileVersion 9.0 requires pnpm 9.x
+$requiredPnpmVersion = "10"  # lockfileVersion 9.0 requires pnpm 9.x
 
 if ($LASTEXITCODE -ne 0) { 
   Write-Host "pnpm not found. Installing pnpm $requiredPnpmVersion.x via npm..." -ForegroundColor Yellow
