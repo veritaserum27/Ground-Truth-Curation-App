@@ -204,8 +204,8 @@ jobs:
               --name ${{ env.FRONTEND_APP_NAME }} \
               --src-path ./deploy/frontend-app.zip \
               --type zip \
-              --async true; then
-              echo "✅ Deploy command accepted."
+              --timeout 600; then
+              echo "✅ Deployment succeeded."
               deployed=1
               break
             fi
