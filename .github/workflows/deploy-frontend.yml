@@ -32,6 +32,7 @@ jobs:
   build:
     name: Build Frontend
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,8 +63,7 @@ jobs:
           pnpm exec react-router build
         env:
           NODE_ENV: production
-          # Note: VITE_API_BASE_URL is set via App Service configuration in Bicep
-          # The build doesn't need it at compile time since it's a runtime env var
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
 
       - name: Prepare deployment package
         working-directory: frontend
