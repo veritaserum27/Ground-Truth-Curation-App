@@ -73,7 +73,15 @@ jobs:
           mkdir -p ../deploy-package
 
           # Copy build output
-          if [ -d "build" ]; then
+          # React Router (and some Vite configs) emit a nested client build (e.g. build/client).
+          # App Service expects the site root (wwwroot) to contain index.html.
+          if [ -d "build/client" ]; then
+            echo "Detected build/client output; flattening to deployment root"
+            cp -r build/client/* ../deploy-package/
+          elif [ -d "dist/client" ]; then
+            echo "Detected dist/client output; flattening to deployment root"
+            cp -r dist/client/* ../deploy-package/
+          elif [ -d "build" ]; then
             cp -r build/* ../deploy-package/
           elif [ -d "dist" ]; then
             cp -r dist/* ../deploy-package/
@@ -138,6 +146,16 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Configure App Service startup
+        run: |
+          echo "⚙️ Configuring App Service startup command..."
+          # Linux App Service (Node) sometimes falls back to serving wwwroot if no startup is set.
+          # Explicitly run our package.json start script.
+          az webapp config set \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --startup-file "npm start"
 
       - name: Deploy to App Service
         run: |
