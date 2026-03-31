@@ -1,5 +1,9 @@
 # Ground Truth Curation App
 
+[![Deploy Infrastructure](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-infrastructure.yml/badge.svg)](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-infrastructure.yml)
+[![Deploy Backend](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-backend.yml)
+[![Deploy Frontend](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/veritaserum27/Ground-Truth-Curation-App/actions/workflows/deploy-frontend.yml)
+
 This application is a tool to curate contextualized ground truth entries for AI projects.
 The process is generic and applicable across data structures and problem domains.
 
@@ -175,13 +179,13 @@ The optimized bundle is emitted to `frontend/build/` (configured via `build.outD
 dotnet run --project backend/src/GroundTruthCuration.Api
 ```
 
-2. Terminal B: run frontend dev server:
+1. Terminal B: run frontend dev server:
 
 ```sh
 cd frontend && pnpm dev
 ```
 
-3. (Optional) Update `VITE_API_BASE_URL` in `frontend/.env` if the backend runs on a non-default port.
+1. (Optional) Update `VITE_API_BASE_URL` in `frontend/.env` if the backend runs on a non-default port.
 
 #### 7. Project Structure Highlights
 
@@ -211,6 +215,86 @@ Currently no dedicated lint/test scripts are defined. Recommended future additio
 - Port conflict: adjust `server.port` in `vite.config.ts`.
 
 Refer to future documentation for advanced workflows (SSR builds, API auth, deployment) as they are implemented.
+
+## Deployment to Azure
+
+### Prerequisites
+
+1. **Azure Infrastructure Deployed**: Follow the infrastructure deployment steps in [infra/README.md](infra/README.md)
+2. **GitHub OIDC Authentication Configured**: Required for GitHub Actions to deploy to Azure
+
+### GitHub Actions Setup
+
+This project uses GitHub Actions for automated deployments to Azure. Before workflows can run successfully, you need to configure authentication.
+
+#### One-Time Configuration
+
+1. **Run the OIDC setup script** (from the `infra/deploy/scripts` directory):
+
+   ```bash
+   cd infra/deploy/scripts
+   ./setup-github-oidc.sh
+   ```
+
+   This creates the Azure AD app registration and federated identity credentials needed for OIDC authentication.
+
+2. **Add the following secrets to your GitHub repository**:
+
+   Navigate to: **Settings → Secrets and variables → Actions → New repository secret**
+
+   | Secret Name | Description |
+   |-------------|-------------|
+   | `AZURE_CLIENT_ID` | App Registration Client ID (from setup script output) |
+   | `AZURE_TENANT_ID` | Azure AD Tenant ID (from setup script output) |
+   | `AZURE_SUBSCRIPTION_ID` | Azure Subscription ID (from setup script output) |
+
+   **Quick link**: `https://github.com/veritaserum27/Ground-Truth-Curation-App/settings/secrets/actions`
+
+3. **Create GitHub Environments**:
+
+   Navigate to: **Settings → Environments**
+
+   Create two environments:
+   - `staging`
+   - `production`
+
+   **Quick link**: `https://github.com/veritaserum27/Ground-Truth-Curation-App/settings/environments`
+
+4. **Add repository variables**:
+
+   Navigate to: **Settings → Secrets and variables → Actions → Variables**
+
+   | Variable Name | Example Value |
+   |--------------|---------------|
+   | `AZURE_RESOURCE_GROUP` | `ground-truth-app-rg` |
+   | `RESOURCE_NAME_PREFIX` | `gt-app` |
+
+#### Available Workflows
+
+Once configured, the following workflows will run automatically:
+
+- **Deploy Infrastructure** (`.github/workflows/deploy-infrastructure.yml`)
+  - Deploys Azure resources using Bicep templates
+  - Triggered on pushes to `iac` branch or manual dispatch
+
+- **Deploy Backend** (`.github/workflows/deploy-backend.yml`)
+  - Builds and deploys the .NET backend to Azure App Service
+  - Triggered on pushes to backend code or manual dispatch
+
+- **Deploy Frontend** (`.github/workflows/deploy-frontend.yml`)
+  - Builds and deploys the React frontend to Azure App Service
+  - Triggered on pushes to frontend code or manual dispatch
+
+#### Manual Deployment
+
+You can trigger deployments manually:
+1. Go to **Actions** tab in GitHub
+2. Select the workflow you want to run
+3. Click **Run workflow**
+4. Choose the target environment (`staging` or `production`)
+5. Click **Run workflow**
+
+For detailed infrastructure deployment instructions, see [infra/README.md](infra/README.md).
 
 ## Usage instructions
 

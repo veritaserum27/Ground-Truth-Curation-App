@@ -1,0 +1,1082 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.38.33.27573",
+      "templateHash": "13007181563027298099"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The location where all resources will be deployed"
+      }
+    },
+    "resourceNamePrefix": {
+      "type": "string",
+      "defaultValue": "sample-prefix",
+      "minLength": 1,
+      "metadata": {
+        "description": "Prefix applied to resource names to avoid conflicts across deployments"
+      }
+    },
+    "systemSqlServerName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-gt-system-data-sql', parameters('resourceNamePrefix'))]",
+      "metadata": {
+        "description": "The name of the System SQL Server"
+      }
+    },
+    "groundTruthSqlServerName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-ground-truth-curation-sql', parameters('resourceNamePrefix'))]",
+      "metadata": {
+        "description": "The name of the Ground Truth SQL Server"
+      }
+    },
+    "systemDatabaseName": {
+      "type": "string",
+      "defaultValue": "[format('{0}ManufacturingDataRelDB', parameters('resourceNamePrefix'))]",
+      "metadata": {
+        "description": "The name of the System Demo SQL Database"
+      }
+    },
+    "groundTruthDatabaseName": {
+      "type": "string",
+      "defaultValue": "[format('{0}GroundTruthDB', parameters('resourceNamePrefix'))]",
+      "metadata": {
+        "description": "The name of the Ground Truth SQL Database"
+      }
+    },
+    "sqlAdministratorLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "The administrator username for the SQL Server"
+      }
+    },
+    "sqlAdministratorPassword": {
+      "type": "securestring",
+      "minLength": 8,
+      "maxLength": 128,
+      "metadata": {
+        "description": "The administrator password for the SQL Server"
+      }
+    },
+    "sqlAadAdministratorLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "Login or display name for the Azure AD administrator of the SQL servers"
+      }
+    },
+    "sqlAadAdministratorObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD object ID for the administrator principal"
+      }
+    },
+    "sqlAadAdministratorPrincipalType": {
+      "type": "string",
+      "defaultValue": "User",
+      "allowedValues": [
+        "Application",
+        "Group",
+        "ServicePrincipal",
+        "User"
+      ],
+      "metadata": {
+        "description": "Azure AD principal type for the administrator (User, Group, ServicePrincipal, Application)"
+      }
+    },
+    "sqlAadAdministratorTenantId": {
+      "type": "string",
+      "defaultValue": "[tenant().tenantId]",
+      "metadata": {
+        "description": "Azure AD tenant ID for the administrator principal"
+      }
+    },
+    "sqlDatabaseSku": {
+      "type": "object",
+      "defaultValue": {
+        "name": "Basic",
+        "tier": "Basic",
+        "capacity": 5
+      },
+      "metadata": {
+        "description": "The SKU for the SQL Database"
+      }
+    },
+    "cosmosDbAccountName": {
+      "type": "string",
+      "defaultValue": "[toLower(format('{0}-system-data-cosmos', parameters('resourceNamePrefix')))]",
+      "metadata": {
+        "description": "The name of the Azure Cosmos DB account"
+      }
+    },
+    "cosmosDbDatabaseName": {
+      "type": "string",
+      "defaultValue": "[format('{0}ManufacturingDefects', parameters('resourceNamePrefix'))]",
+      "metadata": {
+        "description": "Logical Cosmos DB database name used by seed scripts (database resource is not provisioned by this template)"
+      }
+    },
+    "virtualNetworkName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-vnet', parameters('resourceNamePrefix'))]",
+      "metadata": {
+        "description": "Name of the virtual network hosting data service endpoints"
+      }
+    },
+    "vnetAddressPrefixes": {
+      "type": "array",
+      "defaultValue": [
+        "10.10.0.0/16"
+      ],
+      "metadata": {
+        "description": "Address prefixes assigned to the virtual network"
+      }
+    },
+    "dataSubnetName": {
+      "type": "string",
+      "defaultValue": "data-services",
+      "metadata": {
+        "description": "Name of the subnet dedicated to data service private endpoints"
+      }
+    },
+    "dataSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.10.1.0/24",
+      "metadata": {
+        "description": "Address prefix assigned to the data services subnet"
+      }
+    },
+    "adminClientIpAddress": {
+      "type": "string",
+      "defaultValue": "",
+      "minLength": 0,
+      "metadata": {
+        "description": "Optional client IPv4 address added to SQL firewall (example: 203.0.113.10)"
+      }
+    },
+    "cosmosPrivateDnsZoneName": {
+      "type": "string",
+      "defaultValue": "privatelink.documents.azure.com",
+      "metadata": {
+        "description": "Private DNS zone name used for Cosmos DB private endpoints"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('{0}-sharedNetworking', parameters('resourceNamePrefix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "resourceNamePrefix": {
+            "value": "[parameters('resourceNamePrefix')]"
+          },
+          "virtualNetworkName": {
+            "value": "[parameters('virtualNetworkName')]"
+          },
+          "vnetAddressPrefixes": {
+            "value": "[parameters('vnetAddressPrefixes')]"
+          },
+          "dataSubnetName": {
+            "value": "[parameters('dataSubnetName')]"
+          },
+          "dataSubnetPrefix": {
+            "value": "[parameters('dataSubnetPrefix')]"
+          },
+          "cosmosPrivateDnsZoneName": {
+            "value": "[parameters('cosmosPrivateDnsZoneName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.38.33.27573",
+              "templateHash": "8531206199881503789"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Builds the shared virtual network, subnet, and private DNS zones for data services."
+              }
+            },
+            "resourceNamePrefix": {
+              "type": "string"
+            },
+            "virtualNetworkName": {
+              "type": "string"
+            },
+            "vnetAddressPrefixes": {
+              "type": "array"
+            },
+            "dataSubnetName": {
+              "type": "string"
+            },
+            "dataSubnetPrefix": {
+              "type": "string"
+            },
+            "cosmosPrivateDnsZoneName": {
+              "type": "string",
+              "defaultValue": "privatelink.documents.azure.com"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.{0}', environment().suffixes.sqlServerHostname), format('{0}-sql-vnet-link', parameters('resourceNamePrefix')))]",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', environment().suffixes.sqlServerHostname))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('cosmosPrivateDnsZoneName'), format('{0}-cosmos-vnet-link', parameters('resourceNamePrefix')))]",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('cosmosPrivateDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('virtualNetworkName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": "[parameters('vnetAddressPrefixes')]"
+                },
+                "subnets": [
+                  {
+                    "name": "[parameters('dataSubnetName')]",
+                    "properties": {
+                      "addressPrefix": "[parameters('dataSubnetPrefix')]",
+                      "privateEndpointNetworkPolicies": "Disabled",
+                      "privateLinkServiceNetworkPolicies": "Enabled"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.{0}', environment().suffixes.sqlServerHostname)]",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[parameters('cosmosPrivateDnsZoneName')]",
+              "location": "global"
+            }
+          ],
+          "outputs": {
+            "virtualNetworkId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+            },
+            "virtualNetworkName": {
+              "type": "string",
+              "value": "[parameters('virtualNetworkName')]"
+            },
+            "dataSubnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('dataSubnetName'))]"
+            },
+            "sqlPrivateDnsZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', environment().suffixes.sqlServerHostname))]"
+            },
+            "cosmosPrivateDnsZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', parameters('cosmosPrivateDnsZoneName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('{0}-systemDataSql', parameters('resourceNamePrefix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "resourceNamePrefix": {
+            "value": "[parameters('resourceNamePrefix')]"
+          },
+          "serverName": {
+            "value": "[parameters('systemSqlServerName')]"
+          },
+          "databaseName": {
+            "value": "[parameters('systemDatabaseName')]"
+          },
+          "sqlAdministratorLogin": {
+            "value": "[parameters('sqlAdministratorLogin')]"
+          },
+          "sqlAdministratorPassword": {
+            "value": "[parameters('sqlAdministratorPassword')]"
+          },
+          "sqlDatabaseSku": {
+            "value": "[parameters('sqlDatabaseSku')]"
+          },
+          "sqlAadAdministratorLogin": {
+            "value": "[parameters('sqlAadAdministratorLogin')]"
+          },
+          "sqlAadAdministratorObjectId": {
+            "value": "[parameters('sqlAadAdministratorObjectId')]"
+          },
+          "sqlAadAdministratorPrincipalType": {
+            "value": "[parameters('sqlAadAdministratorPrincipalType')]"
+          },
+          "sqlAadAdministratorTenantId": {
+            "value": "[parameters('sqlAadAdministratorTenantId')]"
+          },
+          "adminClientIpAddress": {
+            "value": "[parameters('adminClientIpAddress')]"
+          },
+          "dataSubnetId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.dataSubnetId.value]"
+          },
+          "sqlPrivateDnsZoneId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.sqlPrivateDnsZoneId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.38.33.27573",
+              "templateHash": "10884088407844570093"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deploys the System SQL Server, database, firewall rule, and private endpoint."
+              }
+            },
+            "resourceNamePrefix": {
+              "type": "string"
+            },
+            "serverName": {
+              "type": "string"
+            },
+            "databaseName": {
+              "type": "string"
+            },
+            "sqlAdministratorLogin": {
+              "type": "string"
+            },
+            "sqlAdministratorPassword": {
+              "type": "securestring"
+            },
+            "sqlDatabaseSku": {
+              "type": "object"
+            },
+            "sqlAadAdministratorLogin": {
+              "type": "string"
+            },
+            "sqlAadAdministratorObjectId": {
+              "type": "string"
+            },
+            "sqlAadAdministratorPrincipalType": {
+              "type": "string"
+            },
+            "sqlAadAdministratorTenantId": {
+              "type": "string"
+            },
+            "adminClientIpAddress": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "dataSubnetId": {
+              "type": "string"
+            },
+            "sqlPrivateDnsZoneId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', format('{0}-system-sql-pe', parameters('resourceNamePrefix')), 'sql-zone-group')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "sqlDnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('sqlPrivateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-system-sql-pe', parameters('resourceNamePrefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Sql/servers",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[parameters('serverName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "administratorLogin": "[parameters('sqlAdministratorLogin')]",
+                "administratorLoginPassword": "[parameters('sqlAdministratorPassword')]",
+                "version": "12.0",
+                "publicNetworkAccess": "Enabled",
+                "administrators": {
+                  "administratorType": "ActiveDirectory",
+                  "login": "[parameters('sqlAadAdministratorLogin')]",
+                  "principalType": "[parameters('sqlAadAdministratorPrincipalType')]",
+                  "sid": "[parameters('sqlAadAdministratorObjectId')]",
+                  "tenantId": "[parameters('sqlAadAdministratorTenantId')]",
+                  "azureADOnlyAuthentication": true
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Sql/servers/databases",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), parameters('databaseName'))]",
+              "location": "[parameters('location')]",
+              "sku": "[parameters('sqlDatabaseSku')]",
+              "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "maxSizeBytes": 2147483648,
+                "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+                "zoneRedundant": false,
+                "readScale": "Disabled",
+                "requestedBackupStorageRedundancy": "Local"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('adminClientIpAddress')))]",
+              "type": "Microsoft.Sql/servers/firewallRules",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'AdminClientIp')]",
+              "properties": {
+                "startIpAddress": "[parameters('adminClientIpAddress')]",
+                "endIpAddress": "[parameters('adminClientIpAddress')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-system-sql-pe', parameters('resourceNamePrefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('dataSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-system-sql-pls', parameters('resourceNamePrefix'))]",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]",
+                      "groupIds": [
+                        "sqlServer"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "serverName": {
+              "type": "string",
+              "value": "[parameters('serverName')]"
+            },
+            "serverFqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Sql/servers', parameters('serverName')), '2023-05-01-preview').fullyQualifiedDomainName]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('databaseName')]"
+            },
+            "privateEndpointId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-system-sql-pe', parameters('resourceNamePrefix')))]"
+            },
+            "firewallRuleApplied": {
+              "type": "bool",
+              "value": "[not(empty(parameters('adminClientIpAddress')))]"
+            },
+            "firewallRuleIp": {
+              "type": "string",
+              "value": "[parameters('adminClientIpAddress')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('{0}-groundTruthDataSql', parameters('resourceNamePrefix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "resourceNamePrefix": {
+            "value": "[parameters('resourceNamePrefix')]"
+          },
+          "serverName": {
+            "value": "[parameters('groundTruthSqlServerName')]"
+          },
+          "databaseName": {
+            "value": "[parameters('groundTruthDatabaseName')]"
+          },
+          "sqlAdministratorLogin": {
+            "value": "[parameters('sqlAdministratorLogin')]"
+          },
+          "sqlAdministratorPassword": {
+            "value": "[parameters('sqlAdministratorPassword')]"
+          },
+          "sqlDatabaseSku": {
+            "value": "[parameters('sqlDatabaseSku')]"
+          },
+          "sqlAadAdministratorLogin": {
+            "value": "[parameters('sqlAadAdministratorLogin')]"
+          },
+          "sqlAadAdministratorObjectId": {
+            "value": "[parameters('sqlAadAdministratorObjectId')]"
+          },
+          "sqlAadAdministratorPrincipalType": {
+            "value": "[parameters('sqlAadAdministratorPrincipalType')]"
+          },
+          "sqlAadAdministratorTenantId": {
+            "value": "[parameters('sqlAadAdministratorTenantId')]"
+          },
+          "adminClientIpAddress": {
+            "value": "[parameters('adminClientIpAddress')]"
+          },
+          "dataSubnetId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.dataSubnetId.value]"
+          },
+          "sqlPrivateDnsZoneId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.sqlPrivateDnsZoneId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.38.33.27573",
+              "templateHash": "3193246501630240413"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deploys the Ground Truth SQL Server, database, firewall rule, and private endpoint."
+              }
+            },
+            "resourceNamePrefix": {
+              "type": "string"
+            },
+            "serverName": {
+              "type": "string"
+            },
+            "databaseName": {
+              "type": "string"
+            },
+            "sqlAdministratorLogin": {
+              "type": "string"
+            },
+            "sqlAdministratorPassword": {
+              "type": "securestring"
+            },
+            "sqlDatabaseSku": {
+              "type": "object"
+            },
+            "sqlAadAdministratorLogin": {
+              "type": "string"
+            },
+            "sqlAadAdministratorObjectId": {
+              "type": "string"
+            },
+            "sqlAadAdministratorPrincipalType": {
+              "type": "string"
+            },
+            "sqlAadAdministratorTenantId": {
+              "type": "string"
+            },
+            "adminClientIpAddress": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "dataSubnetId": {
+              "type": "string"
+            },
+            "sqlPrivateDnsZoneId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', format('{0}-groundtruth-sql-pe', parameters('resourceNamePrefix')), 'sql-zone-group')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "sqlDnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('sqlPrivateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-groundtruth-sql-pe', parameters('resourceNamePrefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Sql/servers",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[parameters('serverName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "administratorLogin": "[parameters('sqlAdministratorLogin')]",
+                "administratorLoginPassword": "[parameters('sqlAdministratorPassword')]",
+                "version": "12.0",
+                "publicNetworkAccess": "Enabled",
+                "administrators": {
+                  "administratorType": "ActiveDirectory",
+                  "login": "[parameters('sqlAadAdministratorLogin')]",
+                  "principalType": "[parameters('sqlAadAdministratorPrincipalType')]",
+                  "sid": "[parameters('sqlAadAdministratorObjectId')]",
+                  "tenantId": "[parameters('sqlAadAdministratorTenantId')]",
+                  "azureADOnlyAuthentication": true
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Sql/servers/databases",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), parameters('databaseName'))]",
+              "location": "[parameters('location')]",
+              "sku": "[parameters('sqlDatabaseSku')]",
+              "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "maxSizeBytes": 2147483648,
+                "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+                "zoneRedundant": false,
+                "readScale": "Disabled",
+                "requestedBackupStorageRedundancy": "Local"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('adminClientIpAddress')))]",
+              "type": "Microsoft.Sql/servers/firewallRules",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'AdminClientIp')]",
+              "properties": {
+                "startIpAddress": "[parameters('adminClientIpAddress')]",
+                "endIpAddress": "[parameters('adminClientIpAddress')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-groundtruth-sql-pe', parameters('resourceNamePrefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('dataSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-groundtruth-sql-pls', parameters('resourceNamePrefix'))]",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]",
+                      "groupIds": [
+                        "sqlServer"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "serverName": {
+              "type": "string",
+              "value": "[parameters('serverName')]"
+            },
+            "serverFqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Sql/servers', parameters('serverName')), '2023-05-01-preview').fullyQualifiedDomainName]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('databaseName')]"
+            },
+            "privateEndpointId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-groundtruth-sql-pe', parameters('resourceNamePrefix')))]"
+            },
+            "firewallRuleApplied": {
+              "type": "bool",
+              "value": "[not(empty(parameters('adminClientIpAddress')))]"
+            },
+            "firewallRuleIp": {
+              "type": "string",
+              "value": "[parameters('adminClientIpAddress')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('{0}-manufacturingCosmos', parameters('resourceNamePrefix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "resourceNamePrefix": {
+            "value": "[parameters('resourceNamePrefix')]"
+          },
+          "cosmosDbAccountName": {
+            "value": "[parameters('cosmosDbAccountName')]"
+          },
+          "cosmosDbDatabaseName": {
+            "value": "[parameters('cosmosDbDatabaseName')]"
+          },
+          "dataSubnetId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.dataSubnetId.value]"
+          },
+          "cosmosPrivateDnsZoneId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.cosmosPrivateDnsZoneId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.38.33.27573",
+              "templateHash": "2999569279294840233"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deploys the Cosmos DB account and private endpoint for manufacturing defects data."
+              }
+            },
+            "resourceNamePrefix": {
+              "type": "string"
+            },
+            "cosmosDbAccountName": {
+              "type": "string"
+            },
+            "cosmosDbDatabaseName": {
+              "type": "string"
+            },
+            "dataSubnetId": {
+              "type": "string"
+            },
+            "cosmosPrivateDnsZoneId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', format('{0}-cosmos-pe', parameters('resourceNamePrefix')), 'cosmos-zone-group')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "cosmosDnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('cosmosPrivateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-cosmos-pe', parameters('resourceNamePrefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DocumentDB/databaseAccounts",
+              "apiVersion": "2023-09-15",
+              "name": "[parameters('cosmosDbAccountName')]",
+              "location": "[parameters('location')]",
+              "kind": "GlobalDocumentDB",
+              "tags": {
+                "azd-env-name": "[uniqueString(resourceGroup().id)]",
+                "purpose": "hackathon",
+                "project": "ground-truth-curation",
+                "defaultExperience": "Core (SQL)",
+                "hidden-workload-type": "Development/Testing"
+              },
+              "properties": {
+                "databaseAccountOfferType": "Standard",
+                "publicNetworkAccess": "Enabled",
+                "enableAutomaticFailover": true,
+                "enableMultipleWriteLocations": false,
+                "isVirtualNetworkFilterEnabled": false,
+                "networkAclBypass": "None",
+                "disableKeyBasedMetadataWriteAccess": false,
+                "disableLocalAuth": false,
+                "enableFreeTier": false,
+                "enableAnalyticalStorage": false,
+                "analyticalStorageConfiguration": {
+                  "schemaType": "WellDefined"
+                },
+                "minimalTlsVersion": "Tls12",
+                "consistencyPolicy": {
+                  "defaultConsistencyLevel": "Session",
+                  "maxIntervalInSeconds": 5,
+                  "maxStalenessPrefix": 100
+                },
+                "capabilities": [
+                  {
+                    "name": "EnableServerless"
+                  }
+                ],
+                "locations": [
+                  {
+                    "locationName": "[parameters('location')]",
+                    "failoverPriority": 0,
+                    "isZoneRedundant": false
+                  }
+                ],
+                "backupPolicy": {
+                  "type": "Periodic",
+                  "periodicModeProperties": {
+                    "backupIntervalInMinutes": 240,
+                    "backupRetentionIntervalInHours": 8,
+                    "backupStorageRedundancy": "Geo"
+                  }
+                },
+                "capacity": {
+                  "totalThroughputLimit": 4000
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-cosmos-pe', parameters('resourceNamePrefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('dataSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-cosmos-pls', parameters('resourceNamePrefix'))]",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbAccountName'))]",
+                      "groupIds": [
+                        "Sql"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbAccountName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "accountName": {
+              "type": "string",
+              "value": "[parameters('cosmosDbAccountName')]"
+            },
+            "documentEndpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbAccountName')), '2023-09-15').documentEndpoint]"
+            },
+            "resourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbAccountName'))]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('cosmosDbDatabaseName')]"
+            },
+            "privateEndpointId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-cosmos-pe', parameters('resourceNamePrefix')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "systemSqlServerName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-systemDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.serverName.value]"
+    },
+    "systemSqlServerFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-systemDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.serverFqdn.value]"
+    },
+    "groundTruthSqlServerName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-groundTruthDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.serverName.value]"
+    },
+    "groundTruthSqlServerFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-groundTruthDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.serverFqdn.value]"
+    },
+    "systemDatabaseName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-systemDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.databaseName.value]"
+    },
+    "groundTruthDatabaseName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-groundTruthDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.databaseName.value]"
+    },
+    "connectionStringTemplateSystem": {
+      "type": "string",
+      "value": "[format('Server=tcp:{0},1433;Initial Catalog={1};Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;', reference(resourceId('Microsoft.Resources/deployments', format('{0}-systemDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.serverFqdn.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-systemDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.databaseName.value)]"
+    },
+    "connectionStringTemplateGroundTruth": {
+      "type": "string",
+      "value": "[format('Server=tcp:{0},1433;Initial Catalog={1};Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;', reference(resourceId('Microsoft.Resources/deployments', format('{0}-groundTruthDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.serverFqdn.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-groundTruthDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.databaseName.value)]"
+    },
+    "dataVirtualNetworkName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.virtualNetworkName.value]"
+    },
+    "dataSubnetResourceId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-sharedNetworking', parameters('resourceNamePrefix'))), '2025-04-01').outputs.dataSubnetId.value]"
+    },
+    "systemSqlPrivateEndpointId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-systemDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.privateEndpointId.value]"
+    },
+    "groundTruthSqlPrivateEndpointId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-groundTruthDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.privateEndpointId.value]"
+    },
+    "cosmosPrivateEndpointId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-manufacturingCosmos', parameters('resourceNamePrefix'))), '2025-04-01').outputs.privateEndpointId.value]"
+    },
+    "adminClientIpAddress": {
+      "type": "string",
+      "value": "[parameters('adminClientIpAddress')]"
+    },
+    "sqlFirewallRuleApplied": {
+      "type": "bool",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-systemDataSql', parameters('resourceNamePrefix'))), '2025-04-01').outputs.firewallRuleApplied.value]"
+    },
+    "cosmosDbAccountName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-manufacturingCosmos', parameters('resourceNamePrefix'))), '2025-04-01').outputs.accountName.value]"
+    },
+    "cosmosDbAccountEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-manufacturingCosmos', parameters('resourceNamePrefix'))), '2025-04-01').outputs.documentEndpoint.value]"
+    },
+    "cosmosDbResourceId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-manufacturingCosmos', parameters('resourceNamePrefix'))), '2025-04-01').outputs.resourceId.value]"
+    },
+    "cosmosDbDatabaseName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-manufacturingCosmos', parameters('resourceNamePrefix'))), '2025-04-01').outputs.databaseName.value]"
+    }
+  }
+}

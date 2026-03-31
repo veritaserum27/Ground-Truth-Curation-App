@@ -954,6 +954,8 @@
       "groundtruthcuration.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "Azure.Core": "[1.47.1, )",
+          "Azure.Identity": "[1.14.2, )",
           "Dapper": "[2.1.66, )",
           "GroundTruthCuration.Core": "[1.0.0, )",
           "GroundTruthCuration.Jobs": "[1.0.0, )",

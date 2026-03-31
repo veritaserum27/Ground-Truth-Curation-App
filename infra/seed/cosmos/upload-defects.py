@@ -225,7 +225,10 @@ def main():
         return
 
     # Read CSV data
-    csv_file_path = "data/defects_data_with_company.csv"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_file_path = os.path.join(
+        script_dir, "data", "defects_data_with_company.csv"
+    )
     defects = read_defects_csv(csv_file_path)
 
     if not defects:

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "Central US"
+    },
+    "resourceNamePrefix": {
+      "value": "brleight"
+    },
+    "vnetAddressPrefixes": {
+      "value": [
+        "10.50.0.0/16"
+      ]
+    },
+    "dataSubnetName": {
+      "value": "data-services"
+    },
+    "dataSubnetPrefix": {
+      "value": "10.50.1.0/24"
+    },
+    "cosmosDbDatabaseName": {
+      "value": "gtcdevManufacturingDefects"
+    },
+    "sqlAadAdministratorLogin": {
+      "value": "aad-admin@contoso.com"
+    },
+    "sqlAadAdministratorObjectId": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "sqlAadAdministratorPrincipalType": {
+      "value": "User"
+    },
+    "sqlAadAdministratorTenantId": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "cosmosPrivateDnsZoneName": {
+      "value": "privatelink.documents.azure.com"
+    }
+  }
+}

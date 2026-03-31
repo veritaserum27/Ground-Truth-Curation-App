@@ -11,6 +11,7 @@ The infrastructure creates:
 - **Ground Truth SQL Server**: `ground-truth-curation-sql` for curation workflow
 - **Ground Truth SQL Database**: `GroundTruthCurationDB` for curation workflow data
 - **Azure Cosmos DB**: `gt-system-data-cosmos` serverless NoSQL database for system/demo data
+- **Virtual Network**: Dedicated VNet and subnet hosting private endpoints for database resources
 
 ## Files
 
@@ -34,16 +35,58 @@ The infrastructure creates:
 2. **Azure Subscription** - You'll need an active Azure subscription
 3. **Permissions** - Contributor access to create resources
 4. **Python 3.7+** - For running the CSV import script
+5. **SQL Server Command Line Tools (sqlcmd)** - Required for automatic App Service database access configuration
+
+   **Installing sqlcmd:**
+
+   **macOS:**
+
+   ```bash
+   brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+   brew update
+   brew install mssql-tools
+
+   # Add to PATH (add to ~/.zshrc or ~/.bash_profile to make permanent)
+   echo 'export PATH="/usr/local/opt/mssql-tools/bin:$PATH"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+   **Linux (Ubuntu/Debian):**
+
+   ```bash
+   curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+
+   # Ubuntu 20.04
+   sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+
+   # Ubuntu 22.04
+   sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/22.04/prod.list)"
+
+   sudo apt-get update
+   sudo apt-get install mssql-tools unixodbc-dev
+
+   # Add to PATH
+   echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+   **Verify installation:**
+
+   ```bash
+   sqlcmd '-?'
+   ```
+
+   **Note:** If sqlcmd is not installed, the deployment script will skip automatic SQL database access configuration for App Services. You can manually configure access using the SQL script at `infra/deploy/scripts/configure-backend-sql-access.sql`.
 
    **Option A: Use the automated setup script (Recommended)**
 
    ```bash
-   # Run the setup script (creates virtual environment and installs dependencies)
+   # Run the setup script in `infra/seed (creates virtual environment and installs dependencies)
    ./setup.sh
-   
+
    # After the script completes, activate the virtual environment
    cd .. && source .venv/bin/activate
-   
+
    # Verify activation (you should see (.venv) in your prompt)
    which python
    ```
@@ -53,13 +96,46 @@ The infrastructure creates:
    ```bash
    # Create virtual environment in project root
    cd .. && python3 -m venv .venv
-   
+
    # Activate virtual environment
    source .venv/bin/activate
-   
+
    # Install dependencies
    pip install -r infra/requirements.txt
    ```
+
+## GitHub Actions Deployment Setup
+
+To enable automated deployments from GitHub Actions to Azure using OIDC authentication (no secrets stored), you need to configure Azure AD app registration and federated identity credentials.
+
+### One-Time Setup
+
+1. **Run the OIDC setup script**:
+
+   ```bash
+   cd infra/deploy/scripts
+   ./setup-github-oidc.sh
+   ```
+
+   This script will:
+   - Create an Azure AD app registration for GitHub OIDC authentication
+   - Configure federated identity credentials for `staging` and `production` environments
+   - Assign Contributor role to the service principal on your subscription
+   - Output the values needed for GitHub secrets
+
+2. **GitHub Repository Setup**:
+
+   Follow the [instructions](../README.md#deployment-to-azure) to deploy to Azure.
+
+### How It Works
+
+The GitHub Actions workflows use **OpenID Connect (OIDC)** to authenticate with Azure:
+- No client secrets are stored in GitHub
+- GitHub issues a short-lived token for each workflow run
+- Azure validates the token against the federated identity credentials
+- The token includes claims like `repo`, `environment`, and `ref` that must match exactly
+
+For more information, see [Azure's OIDC documentation](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure).
 
 ## Quick Deployment
 
@@ -78,6 +154,8 @@ The infrastructure creates:
    cd infra
    cp .env.example .env
    # Edit .env and set SQL_ADMIN_PASSWORD=YourSecurePassword123!
+   # Optional: set ADMIN_CLIENT_IP=203.0.113.10 to force a SQL firewall rule
+   # Optional: set SKIP_ADMIN_IP_DISCOVERY=1 to skip automatic IP detection
    ```
 
 2. **Login to Azure**:
@@ -197,19 +275,44 @@ The default configuration creates a Basic tier SQL Database suitable for develop
 
 ⚠️ **Important Security Notes**:
 
-1. **Firewall rules allow all IPs** - This is configured for hackathon/development use
-2. **Change the default admin password** in `main.parameters.json`
-3. **Restrict firewall rules** for production deployments
-4. **Mixed authentication** is enabled - disable Azure AD-only restriction for SQL auth
+1. **Private networking** - A virtual network and data-services subnet host private endpoints for SQL Servers and Cosmos DB.
+2. **Targeted firewall rule** - `deploy.sh` auto-detects your public IP and opens a single-address SQL firewall rule.
+   Set `ADMIN_CLIENT_IP` in `.env` to override, or `SKIP_ADMIN_IP_DISCOVERY=1` to disable detection.
+3. **Credential hygiene** - Change the default admin password in `main.parameters.json` and store it securely.
+4. **Public access review** - Cosmos DB keeps public network access enabled for tooling; disable it if your environment requires private-only connectivity.
+5. **Authentication mix** - SQL auth remains enabled for tooling (Azure AD-only mode is disabled); adjust to meet compliance requirements.
+
+If automatic IP discovery fails, add a firewall rule manually:
+
+```bash
+az sql server firewall-rule create \
+   --resource-group <resource-group> \
+   --server <sql-server-name> \
+   --name AdminWorkstation \
+   --start-ip-address <your-ip> \
+   --end-ip-address <your-ip>
+```
+
+You can also add the rule through the Azure portal under **Security > Networking** for each SQL Server.
+
+### Networking Overview
+
+- **Virtual network**: `<prefix>-vnet` by default; customize CIDR ranges via `vnetAddressPrefixes` and `dataSubnetPrefix` parameters.
+- **Data-services subnet**: Hosts private endpoints and disables private endpoint network policies as required by Azure.
+- **Private DNS zones**: `privatelink.database.windows.net` and `privatelink.documents.azure.com` are linked to the VNet for seamless name resolution.
+- **SQL firewall management**: Automatic IP detection feeds the `adminClientIpAddress` parameter. Provide `ADMIN_CLIENT_IP` or skip detection to control access manually.
+- **Connectivity expectation**: Without an IP rule, SQL endpoints are reachable only from within the virtual network (VPN, peered VNet, or Azure service).
 
 ### Connection Information
 
 After deployment, you'll get:
 - **System SQL Server**: `gt-system-data-sql.database.windows.net`
 - **System Database**: `ManufacturingDataRelDB` (for support tickets and system data)
-- **Ground Truth SQL Server**: `ground-truth-curation-sql.database.windows.net`  
+- **Ground Truth SQL Server**: `ground-truth-curation-sql.database.windows.net`
 - **Ground Truth Database**: `GroundTruthCurationDB` (for curation workflow data)
 - **Cosmos DB Account**: `gt-system-data-cosmos` (for manufacturing defects)
+- **Virtual Network**: `<prefix>-vnet` (data-services subnet resource ID captured in `.env`)
+- **Private Endpoints**: Resource IDs for SQL and Cosmos endpoints appended to `.env`
 - Connection strings for both SQL databases
 - Admin credentials (as configured in parameters)
 
@@ -217,18 +320,18 @@ After deployment, you'll get:
 
 The table includes 33 columns optimized for the CSV data with proper data types:
 
-| Column | Type | Description |
-|--------|------|-------------|
-| ticket_id | BIGINT | Primary key |
-| day_of_week | NVARCHAR(10) | Day name |
-| company_id | INT | Company identifier |
-| priority | NVARCHAR(20) | Ticket priority |
-| customer_sentiment | NVARCHAR(20) | Customer satisfaction (nullable) |
-| error_rate_pct | DECIMAL(15,9) | Error rate percentage with high precision |
-| product_area | NVARCHAR(50) | Product area affected |
-| customer_tier | NVARCHAR(20) | Customer tier classification |
-| region | NVARCHAR(50) | Geographic region |
-| ... | ... | [See full schema in create-support-tickets-table.sql] |
+| Column             | Type          | Description                                           |
+| ------------------ | ------------- | ----------------------------------------------------- |
+| ticket_id          | BIGINT        | Primary key                                           |
+| day_of_week        | NVARCHAR(10)  | Day name                                              |
+| company_id         | INT           | Company identifier                                    |
+| priority           | NVARCHAR(20)  | Ticket priority                                       |
+| customer_sentiment | NVARCHAR(20)  | Customer satisfaction (nullable)                      |
+| error_rate_pct     | DECIMAL(15,9) | Error rate percentage with high precision             |
+| product_area       | NVARCHAR(50)  | Product area affected                                 |
+| customer_tier      | NVARCHAR(20)  | Customer tier classification                          |
+| region             | NVARCHAR(50)  | Geographic region                                     |
+| ...                | ...           | [See full schema in create-support-tickets-table.sql] |
 
 ### Key Features
 
@@ -241,7 +344,7 @@ The table includes 33 columns optimized for the CSV data with proper data types:
 
 Optimized indexes are created for common query patterns:
 - company_id
-- priority  
+- priority
 - customer_tier
 - product_area
 - region
@@ -272,21 +375,59 @@ The script will prompt for:
 
 Successfully imports all 48,900 records from the Support_tickets.csv file.
 
+## Working with Restrictive Subscription Policies
+
+If your Azure subscription has policies that **automatically disable public network access** on SQL Servers and Cosmos DB (typically seen in enterprise subscriptions), you won't be able to connect to your databases from your local development machine using standard connection strings.
+
+### The Problem
+
+When Azure Policy enforces `publicNetworkAccess: 'Disabled'`:
+- SQL Server firewall rules cannot be created or modified
+- Direct connections from your local machine fail with error **47073** (DenyPublicEndpointEnabled)
+- The policy automatically remediates any manual changes within 15-60 minutes
+- Only connections from within the Azure VNet are allowed
+
+### The Solution: Update Network Settings in Azure Portal
+
+1. Navigate to the Ground Truth Curation SQL Server resource in Azure Portal.
+2. Under `Networking > Public Access` select `Selected networks`.
+3. Add your client IPv3 Address.
+
+**Note:** Cosmos DB connections still use the public endpoint with access keys - no tunnel needed.
+
+### Daily Development Workflow
+
+1. **Update Network Policty**: Confirm that your IP address is listed in the allowed networks list or add it if needed
+2. **Start backend**: `dotnet run` in a separate terminal
+3. **Develop normally**: All database connections work transparently
+4. **Stop development**: Press Ctrl+C in tunnel terminal to close connections
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **"Location not available"** - Change location in parameters file to `westus2`
 2. **"Server name already exists"** - The script uses uniqueString() to avoid conflicts
-3. **"Firewall blocking connection"** - Firewall rules are configured for open access in hackathon setup
+3. **"Firewall blocking connection"** or **Error 47073 (DenyPublicEndpointEnabled)**:
+   - If your subscription has Azure Policies that disable public network access, you cannot use firewall rules
+   - See [Working with Restrictive Subscription Policies](#working-with-restrictive-subscription-policies) for the SSH tunnel workaround
+   - If public access is allowed: Confirm that your IP was detected or provide `ADMIN_CLIENT_IP`
 4. **"Authentication failed"** - Use SQL Server authentication (not Azure AD) for import scripts
+5. **SQL Error 40615 - "Client with IP address 'X.X.X.X' is not allowed"**:
+   - Your outbound IP to Azure isn't in the SQL firewall rules
+   - **Find your outbound IP:** Try connecting - the error message shows the exact IP Azure sees
+   - **Alternative detection:** `curl -s ipinfo.io/ip` (may differ from Azure's perspective if behind corporate NAT)
+   - **Add to firewall:** Azure Portal → SQL Server → Security → Networking → Add firewall rule with the IP from the error message
+   - **Important:** Your public IP detected by tools like `ipinfo.io` may differ from your outbound IP to Azure if you're behind corporate NAT/proxy. Always use the IP shown in SQL Server error messages.
+   - Apply the same rule to both SQL servers: `{prefix}-ground-truth-curation-sql` and `{prefix}-gt-system-data-sql`
+   - Wait 2-3 minutes for firewall rules to propagate
 
 ### Cleanup
 
 To remove all resources:
 
 ```bash
-az group delete --name ground-truth-app-rg --yes --no-wait
+az group delete --name <resource group name> --yes --no-wait
 ```
 
 ## Cost Estimation
@@ -317,12 +458,12 @@ The infrastructure includes a serverless Azure Cosmos DB account with:
 - **Automatic indexing**: All properties are indexed by default for flexible queries
 - **Global accessibility**: NoSQL API compatible with MongoDB, SQL queries, and REST APIs
 - **Hackathon-friendly**: Open public access for easy development
-- **Deterministic naming**: `gt-system-data-cosmos` for predictable resource management
+- **Deterministic naming**: `{prefix}-system-data-cosmos` for predictable resource management
 
 ### Cosmos DB Connection Information
 After deployment, you'll get:
-- Cosmos DB Account Name: `gt-system-data-cosmos`
-- Endpoint: `https://gt-system-data-cosmos.documents.azure.com:443/`
+- Cosmos DB Account Name: `{prefix}-system-data-cosmos`
+- Endpoint: `https://{prefix}-system-data-cosmos.documents.azure.com:443/`
 - Primary keys available through Azure portal or CLI
 
 ### Data Upload

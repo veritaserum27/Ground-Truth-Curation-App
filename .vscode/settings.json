@@ -15,6 +15,7 @@
     },
     "[markdown]": {
         "editor.formatOnSave": true,
+        "editor.wordWrap": "on",
         "editor.codeActionsOnSave": {
             "source.fixAll.markdownlint": "explicit"
         },

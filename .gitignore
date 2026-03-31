@@ -34,6 +34,7 @@ dist/
 frontend/dist/
 build/
 frontend/build/
+deploy-package/
 
 # Vite / Tooling caches
 .vite/
@@ -72,4 +73,6 @@ lerna-debug.log*
 .env.production.local
 .react-router/
 
+# Virtual Environments
+.venv/
 

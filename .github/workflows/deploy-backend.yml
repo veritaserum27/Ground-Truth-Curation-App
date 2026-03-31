@@ -1,0 +1,260 @@
+name: deploy-backend
+
+on:
+  push:
+    branches:
+      - iac
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  BACKEND_APP_NAME: ${{ vars.RESOURCE_NAME_PREFIX }}-backend
+
+jobs:
+  build:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+          cache-dependency-path: "backend/**/packages.lock.json"
+
+      - name: Restore dependencies
+        working-directory: backend
+        run: |
+          echo "📦 Restoring .NET dependencies..."
+          dotnet restore GroundTruthCuration.sln --locked-mode
+
+      - name: Build solution
+        working-directory: backend
+        run: |
+          echo "🔨 Building solution in Release configuration..."
+          dotnet build GroundTruthCuration.sln \
+            --configuration Release \
+            --no-restore
+
+      - name: Publish API
+        working-directory: backend
+        run: |
+          echo "📤 Publishing API project..."
+          dotnet publish src/GroundTruthCuration.Api/GroundTruthCuration.Api.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./publish
+
+      - name: Create deployment package
+        working-directory: backend/publish
+        run: |
+          echo "📦 Creating zip deployment package..."
+          zip -r ../backend-api.zip .
+          cd ..
+          ls -lh backend-api.zip
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-api-${{ github.sha }}
+          path: backend/backend-api.zip
+          retention-days: 7
+
+  deploy:
+    name: Deploy Backend to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-api-${{ github.sha }}
+          path: ./deploy
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Configure App Service deployment settings
+        run: |
+          echo "⚙️ Configuring App Service deployment settings..."
+          # Reduce Kudu work during ZIP deployment and improve reliability.
+          az webapp config appsettings set \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --settings \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              WEBSITE_RUN_FROM_PACKAGE=1 \
+              WEBSITE_DISABLE_SCM_SEPARATION=false
+
+      - name: Restart App Service (pre-deploy)
+        run: |
+          echo "🔄 Restarting App Service before deployment..."
+          az webapp restart \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+
+          echo "⏳ Waiting briefly after restart..."
+          sleep 15
+
+      - name: Deploy to App Service
+        run: |
+          echo "🚀 Deploying backend API to Azure App Service..."
+
+          # Use async deployment since container startup can take 20-30 minutes
+          # (certificate updates are slow on first start)
+          max_attempts=3
+          attempt=1
+          deployed=0
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Attempt $attempt/$max_attempts"
+            if az webapp deploy \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.BACKEND_APP_NAME }} \
+              --src-path ./deploy/backend-api.zip \
+              --type zip \
+              --async true; then
+              echo "✅ Deployment queued successfully."
+              deployed=1
+              break
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "❌ Deployment failed to queue after $max_attempts attempts."
+              exit 1
+            fi
+
+            echo "⏳ Deployment attempt failed; backing off before retry..."
+            sleep $((attempt * 30))
+            attempt=$((attempt + 1))
+          done
+
+          echo "✅ Deployment queued. Container will start in background."
+
+      - name: Wait for application startup
+        run: |
+          echo "⏳ Waiting for backend application to start (this may take 20-30 minutes on first deploy)..."
+
+          # Get the app URL
+          APP_URL=$(az webapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query defaultHostName -o tsv)
+
+          HEALTH_URL="https://$APP_URL/healthz"
+          echo "Health endpoint: $HEALTH_URL"
+
+          # Poll health endpoint with exponential backoff
+          max_wait=1800  # 30 minutes
+          elapsed=0
+          interval=10
+
+          while [ $elapsed -lt $max_wait ]; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" --max-time 10 || echo "000")
+            
+            if [ "$HTTP_STATUS" -eq 200 ]; then
+              echo "✅ Backend is healthy! (HTTP $HTTP_STATUS after ${elapsed}s)"
+              exit 0
+            fi
+            
+            echo "⏳ Status: HTTP $HTTP_STATUS - waiting ${interval}s... (${elapsed}s/${max_wait}s)"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+            
+            # Exponential backoff up to 60s intervals
+            if [ $interval -lt 60 ]; then
+              interval=$((interval * 2))
+              if [ $interval -gt 60 ]; then
+                interval=60
+              fi
+            fi
+          done
+
+          echo "❌ Health check timed out after ${max_wait}s"
+          echo "App may still be starting. Check logs in Azure Portal."
+          exit 1
+
+      - name: Show deployment logs (on failure)
+        if: failure()
+        run: |
+          echo "🧾 Deployment failed; dumping App Service deployment logs..."
+          echo "🔎 App state (safe diagnostics):"
+          az webapp show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --query '{name:name, state:state, kind:kind, httpsOnly:httpsOnly, reserved:reserved, defaultHostName:defaultHostName}' \
+            -o json || true
+
+          echo "🔎 Site config (safe diagnostics):"
+          az webapp config show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --query '{linuxFxVersion:linuxFxVersion, appCommandLine:appCommandLine, healthCheckPath:healthCheckPath}' \
+            -o json || true
+
+          echo "🔎 SCM endpoint HTTP status (should be 401/403; 503 indicates SCM unhealthy):"
+          SCM_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.BACKEND_APP_NAME }}.scm.azurewebsites.net/" || echo "000")
+          echo "SCM status: $SCM_STATUS"
+
+          # Shows the latest deployment log summary (Kudu/OneDeploy).
+          az webapp log deployment show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.BACKEND_APP_NAME }} || true
+
+          echo "📜 Recent deployments:"
+          az webapp log deployment list \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --query "[0:5]" -o table || true
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Final deployment verification..."
+
+          # Get the app URL
+          APP_URL=$(az webapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query defaultHostName -o tsv)
+
+          HEALTH_URL="https://$APP_URL/healthz"
+
+          # Display deployment summary
+          echo "## 🎉 Backend Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**App Name**: ${{ env.BACKEND_APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL**: [https://$APP_URL](https://$APP_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ github.event.inputs.environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Health Check**: $HEALTH_URL" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ✅ Healthy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Backend deployment successful and verified!" >> $GITHUB_STEP_SUMMARY
+
+      - name: Show final status
+        run: |
+          echo "✅ Backend API is healthy and ready!"
+          echo "📖 Swagger UI: https://$(az webapp show --name ${{ env.BACKEND_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query defaultHostName -o tsv)/swagger"
