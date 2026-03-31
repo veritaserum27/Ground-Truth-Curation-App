@@ -129,6 +129,7 @@ jobs:
         # Retry because SCM/Kudu can be temporarily unavailable (503/504).
         max_attempts=3
         attempt=1
+        deployed=0
         while [ "$attempt" -le "$max_attempts" ]; do
           echo "Attempt $attempt/$max_attempts"
           if az webapp deploy \
@@ -138,6 +139,7 @@ jobs:
             --type zip \
             --async true; then
             echo "✅ Deploy command accepted."
+            deployed=1
             break
           fi
 
@@ -150,6 +152,16 @@ jobs:
           sleep $((attempt * 30))
           attempt=$((attempt + 1))
         done
+
+        if [ "$deployed" -ne 1 ]; then
+          echo "⚠️ az webapp deploy did not succeed. Falling back to legacy ZIP deploy with extended timeout."
+          echo "⚠️ NOTE: This uses a deprecated command as a reliability workaround."
+          az webapp deployment source config-zip \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --src ./deploy/backend-api.zip \
+            --timeout 1800
+        fi
 
         echo "✅ Deployment completed!"
 
