@@ -157,6 +157,17 @@ jobs:
             --name ${{ env.FRONTEND_APP_NAME }} \
             --startup-file "npm start"
 
+      - name: Configure App Service deployment settings
+        run: |
+          echo "⚙️ Configuring App Service deployment settings..."
+          # Reduce Kudu work during ZIP deployment and improve reliability.
+          az webapp config appsettings set \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --settings \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              WEBSITE_RUN_FROM_PACKAGE=1
+
       - name: Deploy to App Service
         run: |
           echo "🚀 Deploying frontend to Azure App Service..."
@@ -165,9 +176,35 @@ jobs:
             --name ${{ env.FRONTEND_APP_NAME }} \
             --src-path ./deploy/frontend-app.zip \
             --type zip \
-            --async false
+            --async true
 
           echo "✅ Deployment completed!"
+
+      - name: Show deployment logs (after deploy)
+        run: |
+          echo "🧾 Latest deployment log summary:"
+          az webapp log deployment show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.FRONTEND_APP_NAME }} || true
+
+          echo "📜 Recent deployments:"
+          az webapp log deployment list \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --top 5 || true
+
+      - name: Show deployment logs (on failure)
+        if: failure()
+        run: |
+          echo "🧾 Deployment failed; dumping App Service deployment logs..."
+          az webapp log deployment show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.FRONTEND_APP_NAME }} || true
+
+          az webapp log deployment list \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --top 10 || true
 
       - name: Wait for deployment
         run: |
