@@ -166,17 +166,56 @@ jobs:
             --name ${{ env.FRONTEND_APP_NAME }} \
             --settings \
               SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-              WEBSITE_RUN_FROM_PACKAGE=1
+              WEBSITE_RUN_FROM_PACKAGE=1 \
+              WEBSITE_DISABLE_SCM_SEPARATION=false
+
+      - name: Restart App Service (pre-deploy)
+        run: |
+          echo "🔄 Restarting App Service before deployment..."
+          az webapp restart \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+
+          echo "⏳ Waiting briefly after restart..."
+          sleep 15
+
+      - name: Check SCM/Kudu endpoint health (pre-deploy)
+        run: |
+          echo "🔎 Checking SCM/Kudu endpoint health..."
+          SCM_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.FRONTEND_APP_NAME }}.scm.azurewebsites.net/" || echo "000")
+          echo "SCM status: $SCM_STATUS"
+          # 401/403 is expected for unauthenticated callers. 503 indicates SCM is unhealthy.
+          if [ "$SCM_STATUS" = "503" ]; then
+            echo "⚠️ SCM/Kudu is returning 503 (Service Unavailable). Deployments will fail until SCM recovers."
+          fi
 
       - name: Deploy to App Service
         run: |
           echo "🚀 Deploying frontend to Azure App Service..."
-          az webapp deploy \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name ${{ env.FRONTEND_APP_NAME }} \
-            --src-path ./deploy/frontend-app.zip \
-            --type zip \
-            --async true
+          # Retry because SCM/Kudu can be temporarily unavailable (503/504).
+          max_attempts=3
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Attempt $attempt/$max_attempts"
+            if az webapp deploy \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.FRONTEND_APP_NAME }} \
+              --src-path ./deploy/frontend-app.zip \
+              --type zip \
+              --async true; then
+              echo "✅ Deploy command accepted."
+              break
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "❌ Deployment failed after $max_attempts attempts."
+              exit 1
+            fi
+
+            echo "⏳ Deployment attempt failed; backing off before retry..."
+            sleep $((attempt * 30))
+            attempt=$((attempt + 1))
+          done
 
           echo "✅ Deployment completed!"
 
@@ -191,12 +230,17 @@ jobs:
           az webapp log deployment list \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --name ${{ env.FRONTEND_APP_NAME }} \
-            --top 5 || true
+            --query "[0:5]" \
+            -o table || true
 
       - name: Show deployment logs (on failure)
         if: failure()
         run: |
           echo "🧾 Deployment failed; dumping App Service deployment logs..."
+          echo "🔎 SCM endpoint HTTP status (should be 401/403; 503 indicates SCM unhealthy):"
+          SCM_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.FRONTEND_APP_NAME }}.scm.azurewebsites.net/" || echo "000")
+          echo "SCM status: $SCM_STATUS"
+
           az webapp log deployment show \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --name ${{ env.FRONTEND_APP_NAME }} || true
@@ -204,7 +248,8 @@ jobs:
           az webapp log deployment list \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --name ${{ env.FRONTEND_APP_NAME }} \
-            --top 10 || true
+            --query "[0:10]" \
+            -o table || true
 
       - name: Wait for deployment
         run: |

@@ -108,19 +108,48 @@ jobs:
           --name ${{ env.BACKEND_APP_NAME }} \
           --settings \
             SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-            WEBSITE_RUN_FROM_PACKAGE=1
+            WEBSITE_RUN_FROM_PACKAGE=1 \
+            WEBSITE_DISABLE_SCM_SEPARATION=false
+
+    - name: Restart App Service (pre-deploy)
+      run: |
+        echo "🔄 Restarting App Service before deployment..."
+        az webapp restart \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+
+        echo "⏳ Waiting briefly after restart..."
+        sleep 15
 
     - name: Deploy to App Service
       run: |
         echo "🚀 Deploying backend API to Azure App Service..."
 
         # Use the supported ZIP deploy command (replaces deprecated config-zip)
-        az webapp deploy \
-          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-          --name ${{ env.BACKEND_APP_NAME }} \
-          --src-path ./deploy/backend-api.zip \
-          --type zip \
-          --async true
+        # Retry because SCM/Kudu can be temporarily unavailable (503/504).
+        max_attempts=3
+        attempt=1
+        while [ "$attempt" -le "$max_attempts" ]; do
+          echo "Attempt $attempt/$max_attempts"
+          if az webapp deploy \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --src-path ./deploy/backend-api.zip \
+            --type zip \
+            --async true; then
+            echo "✅ Deploy command accepted."
+            break
+          fi
+
+          if [ "$attempt" -eq "$max_attempts" ]; then
+            echo "❌ Deployment failed after $max_attempts attempts."
+            exit 1
+          fi
+
+          echo "⏳ Deployment attempt failed; backing off before retry..."
+          sleep $((attempt * 30))
+          attempt=$((attempt + 1))
+        done
 
         echo "✅ Deployment completed!"
 
@@ -128,6 +157,24 @@ jobs:
       if: failure()
       run: |
         echo "🧾 Deployment failed; dumping App Service deployment logs..."
+        echo "🔎 App state (safe diagnostics):"
+        az webapp show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --query '{name:name, state:state, kind:kind, httpsOnly:httpsOnly, reserved:reserved, defaultHostName:defaultHostName}' \
+          -o json || true
+
+        echo "🔎 Site config (safe diagnostics):"
+        az webapp config show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --query '{linuxFxVersion:linuxFxVersion, appCommandLine:appCommandLine, healthCheckPath:healthCheckPath}' \
+          -o json || true
+
+        echo "🔎 SCM endpoint HTTP status (should be 401/403; 503 indicates SCM unhealthy):"
+        SCM_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.BACKEND_APP_NAME }}.scm.azurewebsites.net/" || echo "000")
+        echo "SCM status: $SCM_STATUS"
+
         # Shows the latest deployment log summary (Kudu/OneDeploy).
         az webapp log deployment show \
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
