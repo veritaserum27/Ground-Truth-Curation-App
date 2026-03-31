@@ -99,6 +99,17 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Configure App Service deployment settings
+      run: |
+        echo "⚙️ Configuring App Service deployment settings..."
+        # Reduce Kudu work during ZIP deployment and improve reliability.
+        az webapp config appsettings set \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --settings \
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            WEBSITE_RUN_FROM_PACKAGE=1
+
     - name: Deploy to App Service
       run: |
         echo "🚀 Deploying backend API to Azure App Service..."
@@ -108,9 +119,25 @@ jobs:
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
           --name ${{ env.BACKEND_APP_NAME }} \
           --src-path ./deploy/backend-api.zip \
-          --type zip
+          --type zip \
+          --async true
 
         echo "✅ Deployment completed!"
+
+    - name: Show deployment logs (on failure)
+      if: failure()
+      run: |
+        echo "🧾 Deployment failed; dumping App Service deployment logs..."
+        # Shows the latest deployment log summary (Kudu/OneDeploy).
+        az webapp log deployment show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.BACKEND_APP_NAME }} || true
+
+        echo "📜 Recent deployments:"
+        az webapp log deployment list \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.BACKEND_APP_NAME }} \
+          --top 5 || true
 
     - name: Wait for deployment
       run: |
